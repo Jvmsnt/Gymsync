@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GYMSYNC From-Scratch Developer Roadmap (roadmap.sh style)</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-canvas: #0B0F19;
+      --bg-card: #111827;
+      --bg-elevated: #1E293B;
+      --spine-yellow: #FACC15;
+      --spine-yellow-text: #0F172A;
+      --node-sub: #FEF9C3;
+      --accent-emerald: #10B981;
+      --accent-indigo: #6366F1;
+      --accent-amber: #F59E0B;
+      --accent-rose: #F43F5E;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #0B0F19;
+      color: #F8FAFC;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Dot grid background like roadmap.sh */
+    .roadmap-grid-bg {
+      background-color: #0B0F19;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+    /* Spine & Connector lines */
+    .spine-line {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #3B82F6 0%, #10B981 50%, #6366F1 100%);
+      z-index: 1;
+      border-radius: 999px;
+    }
+    @media (max-width: 900px) {
+      .spine-line {
+        left: 24px;
+        transform: none;
+      }
+    }
+    /* Roadmap.sh Node styling */
+    .rm-spine-node {
+      background: #FACC15;
+      color: #0F172A;
+      border: 2.5px solid #0F172A;
+      box-shadow: 4px 4px 0px #334155;
+      transition: all 0.16s ease;
+    }
+    .rm-spine-node:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0px #10B981;
+    }
+    .rm-sub-node {
+      background: #1E293B;
+      color: #F8FAFC;
+      border: 2px solid #475569;
+      box-shadow: 3px 3px 0px #0F172A;
+      transition: all 0.16s ease;
+    }
+    .rm-sub-node:hover {
+      border-color: #FACC15;
+      transform: translate(-2px, -2px);
+      box-shadow: 5px 5px 0px rgba(250, 204, 21, 0.35);
+    }
+    .rm-sub-node.status-done {
+      border-color: #10B981;
+      background: rgba(16, 185, 129, 0.13);
+    }
+    .rm-sub-node.status-doing {
+      border-color: #F59E0B;
+      background: rgba(245, 158, 11, 0.13);
+    }
+    .rm-sub-node.status-skip {
+      opacity: 0.48;
+      text-decoration: line-through;
+    }
+    /* Connector dashed lines on desktop */
+    .connector-left, .connector-right {
+      position: relative;
+    }
+    @media (min-width: 901px) {
+      .connector-left::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: -28px;
+        width: 28px;
+        border-top: 2.5px dashed #64748B;
+        z-index: 1;
+      }
+      .connector-right::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: -28px;
+        width: 28px;
+        border-top: 2.5px dashed #64748B;
+        z-index: 1;
+      }
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0B0F19; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="roadmap-grid-bg min-h-screen flex flex-col">
+
+  <!-- TOP NAVIGATION BAR (roadmap.sh header style) -->
+  <header class="sticky top-0 z-30 bg-[#0B0F19]/95 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand + Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-yellow-400 text-slate-950 font-extrabold flex items-center justify-center text-lg shadow-sm border-2 border-slate-950">
+          GS
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono-code uppercase tracking-wider px-2 py-0.5 rounded bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">roadmap.sh style</span>
+            <span class="text-xs text-slate-400 hidden sm:inline">From-Scratch Build Guide</span>
+          </div>
+          <h1 class="text-base sm:text-lg font-extrabold text-white tracking-tight">GYMSYNC: Zero-to-Defense Team Roadmap</h1>
+        </div>
+      </div>
+
+      <!-- Progress Bar & Counter -->
+      <div class="flex items-center gap-3 bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2">
+        <div class="text-right">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Team Progress</div>
+          <div class="text-sm font-bold text-emerald-400 font-mono-code" id="progressText">0 / 24 Done (0%)</div>
+        </div>
+        <div class="w-28 sm:w-36 h-2.5 bg-slate-800 rounded-full overflow-hidden">
+          <div id="progressBar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- View Switcher & Quick Actions -->
+      <div class="flex items-center gap-2">
+        <button id="btnViewTree" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-yellow-400 text-slate-950 transition">
+          🗺️ Visual Tree
+        </button>
+        <button id="btnViewBoard" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+          📋 Role Checklists
+        </button>
+        <button id="btnViewSpecs" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+          📐 Feature Specs Cheat Sheet
+        </button>
+        <button id="btnResetProgress" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-700 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 transition" title="Reset all node statuses">
+          ↺ Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- FILTER & LEGEND BAR -->
+    <div class="bg-slate-900/80 border-t border-slate-800/80">
+      <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        <!-- Team Member Filter Pills -->
+        <div class="flex flex-wrap items-center gap-1.5" id="roleFilterGroup">
+          <span class="text-xs font-semibold text-slate-400 mr-1">Filter by Member:</span>
+          <button data-role="all" class="role-pill px-2.5 py-1 rounded-md text-xs font-bold bg-white text-slate-950 transition">
+            All 4 Members
+          </button>
+          <button data-role="pm" class="role-pill px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 transition">
+            👑 Jhan Vince Aaron Musnit (PM &amp; DB)
+          </button>
+          <button data-role="ui" class="role-pill px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 transition">
+            🎨 MikeAndrew Barizo (UI/UX)
+          </button>
+          <button data-role="dev" class="role-pill px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30 hover:bg-blue-500/25 transition">
+            💻 Christian Teston (Java Dev)
+          </button>
+          <button data-role="qa" class="role-pill px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition">
+            🧪 Broderick Texon (QA)
+          </button>
+        </div>
+
+        <!-- roadmap.sh Legend -->
+        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-yellow-400 inline-block border border-slate-950"></span> Main Milestone</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-400 inline-block"></span> Core Requirement</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span> Done</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> In Progress</span>
+          <span class="text-slate-400 hidden md:inline">💡 Click any node to open specs &amp; checklist</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8 relative">
+
+    <!-- INTRO BANNER -->
+    <div class="mb-8 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-mono-code text-yellow-400 mb-1">
+          <span>START HERE</span>
+          <span>•</span>
+          <span>BUILDING GYMSYNC FROM SCRATCH</span>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-3xl">
+          Every feature you brainstormed earlier—the <strong>Play Store dark-mode UI</strong>, <strong>Figma prototype</strong>, <strong>device-clock membership countdowns</strong>, <strong>optional Birthdate/Address + mandatory Emergency Contact</strong>, <strong>21 gym machines with filter toggles</strong>, and the <strong>hybrid offline GIF + muscle-map fallback</strong>—is mapped into 8 sequential stages below. Click any node to see <em>who builds it</em>, <em>how to build it from scratch</em>, and <em>exact code/SQL snippets</em>.
+        </p>
+      </div>
+      <div class="flex sm:flex-col gap-2 shrink-0">
+        <div class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+          <div class="text-slate-400">Search Nodes:</div>
+          <input id="searchInput" type="text" placeholder="e.g. GIF, SQL, Figma..." class="mt-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-yellow-400 w-40">
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 1: ROADMAP.SH INTERACTIVE TREE -->
+    <section id="viewTree" class="relative pb-16">
+      <div class="spine-line"></div>
+      <div id="roadmapTreeContainer" class="relative z-10 space-y-10"></div>
+    </section>
+
+    <!-- VIEW 2: ROLE-BY-ROLE CHECKLIST BOARD -->
+    <section id="viewBoard" class="hidden pb-16">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="roleBoardContainer"></div>
+    </section>
+
+    <!-- VIEW 3: CONSOLIDATED FEATURE SPECS CHEAT SHEET -->
+    <section id="viewSpecs" class="hidden pb-16 space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <h2 class="text-lg font-extrabold text-yellow-400 mb-2">📐 All Brainstormed Architecture &amp; Feature Decisions (Quick Reference)</h2>
+        <p class="text-xs text-slate-400 mb-5">Use this reference table while coding from scratch so all 4 group members stay 100% aligned on database columns, color hex codes, validation rules, and QA targets.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+            <h3 class="font-bold text-emerald-400 text-sm mb-2">1. Play Store Dark-Mode Theme Palette (MikeAndrew + Christian)</h3>
+            <ul class="space-y-1.5 text-slate-300 font-mono-code">
+              <li>• App Canvas Background: <span class="text-white">#0B0F19</span> (Deep Obsidian)</li>
+              <li>• Elevated Card Surface: <span class="text-white">#111827</span> / <span class="text-white">#1E293B</span></li>
+              <li>• Primary Brand / Active Status: <span class="text-emerald-400">#10B981</span> (Neon Emerald)</li>
+              <li>• Secondary Accent / Machine Badge: <span class="text-indigo-400">#6366F1</span> (Electric Indigo)</li>
+              <li>• Warning / Expiring Soon (1–7d): <span class="text-amber-400">#F59E0B</span> (Amber)</li>
+              <li>• Danger / Expired (&le;0d) / Primary Muscle: <span class="text-rose-400">#F43F5E</span> (Crimson)</li>
+            </ul>
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+            <h3 class="font-bold text-blue-400 text-sm mb-2">2. Member Form &amp; Safety Validation Rules (Christian + Broderick)</h3>
+            <ul class="space-y-1.5 text-slate-300">
+              <li>• <strong>Mandatory Fields:</strong> Full Name, Contact Number, Email, Emergency Contact Name, Emergency Contact Phone.</li>
+              <li>• <strong>Optional Fields:</strong> Birthdate and Home Address (speeds up registration to &lt; 45 seconds while prioritizing emergency safety on the gym floor).</li>
+              <li>• <strong>Password Security:</strong> SHA-256 hashing via <code class="text-yellow-300">MessageDigest.getInstance("SHA-256")</code>.</li>
+            </ul>
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+            <h3 class="font-bold text-purple-400 text-sm mb-2">3. Real-Time Device Clock &amp; Renewal Logic (Jhan Vince + Christian)</h3>
+            <ul class="space-y-1.5 text-slate-300">
+              <li>• <strong>Java Clock Check:</strong> <code class="text-yellow-300">LocalDate.now()</code> and <code class="text-yellow-300">ChronoUnit.DAYS.between(today, endDate)</code>.</li>
+              <li>• <strong>SQLite View Check:</strong> <code class="text-yellow-300">julianday(end_date) - julianday(date('now','localtime'))</code>.</li>
+              <li>• <strong>1-Month Renewal Rule:</strong> If still active, <code class="text-yellow-300">newEnd = currentEnd.plusMonths(1)</code>; if already expired, <code class="text-yellow-300">newEnd = LocalDate.now().plusMonths(1)</code>.</li>
+            </ul>
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+            <h3 class="font-bold text-amber-400 text-sm mb-2">4. Hybrid Offline/Online Exercise Visuals &amp; Machines (All 4)</h3>
+            <ul class="space-y-1.5 text-slate-300">
+              <li>• <strong>32 Exercises Seeded:</strong> 21 Commercial Gym Machines (<code class="text-indigo-300">⚙ Machine</code>) + 11 Free-Weight/Bodyweight (<code class="text-emerald-300">✓ No Machine</code>).</li>
+              <li>• <strong>User Toggle:</strong> <code class="text-yellow-300">[✓] Include Gym Machines</code> checkbox + pill filters.</li>
+              <li>• <strong>3-Tier Hybrid Media:</strong> Tier 1 loads local <code class="text-yellow-300">images/*.gif</code> (offline); Tier 2 caches remote GIF URLs when on Wi-Fi; Tier 3 draws a 12 FPS Java2D anatomical muscle map + stick-figure animation.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SLIDE-OVER DETAIL DRAWER (roadmap.sh right panel on node click) -->
+  <div id="drawerBackdrop" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden"></div>
+  <aside id="detailDrawer" class="fixed top-0 right-0 h-full w-full max-w-xl bg-[#0F172A] border-l border-slate-700 z-50 transform translate-x-full transition-transform duration-200 flex flex-col shadow-2xl">
+    <!-- Drawer Header -->
+    <div class="p-4 sm:p-5 border-b border-slate-800 flex items-start justify-between gap-3 bg-slate-950/70">
+      <div>
+        <div class="flex flex-wrap items-center gap-2 mb-1.5" id="drawerBadges"></div>
+        <h2 id="drawerTitle" class="text-lg sm:text-xl font-extrabold text-white leading-snug">Node Title</h2>
+      </div>
+      <button id="btnCloseDrawer" class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 text-sm font-bold">
+        ✕ ESC
+      </button>
+    </div>
+
+    <!-- Status Selector Bar (like roadmap.sh "Update Status") -->
+    <div class="px-5 py-3 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+      <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Node Status:</span>
+      <div class="flex items-center gap-1.5" id="drawerStatusBtns">
+        <button data-status="todo" class="status-opt px-3 py-1 rounded-md text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300">Pending</button>
+        <button data-status="doing" class="status-opt px-3 py-1 rounded-md text-xs font-bold border border-amber-500/40 bg-amber-500/15 text-amber-300">⚡ In Progress</button>
+        <button data-status="done" class="status-opt px-3 py-1 rounded-md text-xs font-bold border border-emerald-500/40 bg-emerald-500/15 text-emerald-300">✓ Done</button>
+      </div>
+    </div>
+
+    <!-- Drawer Scrollable Body -->
+    <div class="flex-1 overflow-y-auto p-5 space-y-5 text-sm" id="drawerBody"></div>
+  </aside>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastMsg" class="fixed bottom-5 right-5 z-50 hidden bg-emerald-500 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg"></div>
+
+  <script>
+    // =========================================================================
+    // ROADMAP.SH DATA STRUCTURE: 8 STAGES, 24 FROM-SCRATCH NODES
+    // =========================================================================
+    const ROLES = {
+      pm:  { code: 'pm',  name: 'Jhan Vince Aaron Musnit', title: 'Project Manager & DB Lead', badge: '👑 Musnit (PM)', color: 'emerald' },
+      ui:  { code: 'ui',  name: 'MikeAndrew Barizo',       title: 'UI/UX Designer',            badge: '🎨 Barizo (UI/UX)', color: 'purple' },
+      dev: { code: 'dev', name: 'Christian Teston',        title: 'Lead Java Developer',       badge: '💻 Teston (Dev)', color: 'blue' },
+      qa:  { code: 'qa',  name: 'Broderick Texon',         title: 'QA Tester & Analyst',       badge: '🧪 Texon (QA)', color: 'amber' }
+    };
+
+    const ROADMAP_STAGES = [
+      {
+        stageId: 'stage-1',
+        stageNumber: 'STAGE 1',
+        title: '1. Project Setup, Roles & Scope Lock',
+        subtitle: 'Days 1–2 • Align on the 5 Proposal Objectives & Folder Structure',
+        ownerSummary: 'Led by Jhan Vince Aaron Musnit (PM) with all 4 members',
+        leftNodes: [
+          {
+            id: 'node-1-1',
+            title: 'Lock the 5 Proposal Objectives & Metrics',
+            roles: ['pm', 'qa'],
+            priority: 'core',
+            timeEst: '2 Hours',
+            summary: 'Translate the GymSync Case Study Proposal into 5 measurable acceptance targets before writing a single line of code.',
+            checklist: [
+              'Review Section 3 of GymSync_Case_Study_Proposal_v2.docx with all 4 members',
+              'Lock Target 1: Member Registration in under 2 minutes (< 120 seconds)',
+              'Lock Target 2: Membership Status Lookup in under 5 seconds',
+              'Lock Target 3: Automatic 1-month expiration & renewal calculation using local PC clock',
+              'Lock Target 4: Personalized Workout Plan generation in under 1 minute',
+              'Lock Target 5: Generate 3 Management Summary Reports (Active/Expired, Popular Goals, Monthly Revenue)'
+            ],
+            specs: `Mandatory Member Fields: Full Name, Contact No, Email, Emergency Contact Name, Emergency Contact Phone.\nOptional Fields: Birthdate, Home Address (kept optional so front-desk staff finish registration in <45s while ensuring emergency safety).`,
+            resources: [
+              { label: 'Case Study Proposal v2 (Scope & Roles)', url: 'https://www.sqlite.org/docs.html' }
+            ]
+          },
+          {
+            id: 'node-1-2',
+            title: 'Set Up Shared Git Repo / Drive & Folder Tree',
+            roles: ['pm', 'dev'],
+            priority: 'core',
+            timeEst: '1.5 Hours',
+            summary: 'Create a clean, standardized project directory so the Java app, SQLite database, and local workout GIFs always resolve relative paths.',
+            checklist: [
+              'Create root project folder: GymSync_Project/',
+              'Create subfolder GymSync_Project/images/ for the 32 local workout .gif files',
+              'Create subfolder GymSync_Project/lib/ for sqlite-jdbc.jar',
+              'Set up shared Google Drive or GitHub repo for Musnit, Teston, Texon, and Barizo'
+            ],
+            specs: `Folder Structure:\nGymSync_Project/\n ├── gymsyncapp.java\n ├── gymsync.db\n ├── GymSync_Database_Schema_and_Seed.sql\n ├── images/ (ex_01_lat_pulldown.gif ... ex_32_barbell_bench_press.gif)\n └── lib/sqlite-jdbc.jar`,
+            resources: []
+          }
+        ],
+        rightNodes: [
+          {
+            id: 'node-1-3',
+            title: 'Install JDK 17+, NetBeans IDE & SQLite JDBC Driver',
+            roles: ['dev'],
+            priority: 'core',
+            timeEst: '2 Hours',
+            summary: 'Configure NetBeans IDE and attach the SQLite JDBC driver JAR so Java can run SQL queries without needing a heavy external DB server.',
+            checklist: [
+              'Install JDK 17+ and Apache NetBeans on Christian Teston’s and Jhan Vince Aaron Musnit’s laptops',
+              'Download sqlite-jdbc.jar (Xerial SQLite JDBC driver)',
+              'In NetBeans: Right-click Libraries -> Add JAR/Folder -> select sqlite-jdbc.jar',
+              'Test DriverManager.getConnection("jdbc:sqlite:gymsync.db") in a 5-line test main()'
+            ],
+            specs: `JDBC Connection String:\nString url = "jdbc:sqlite:gymsync.db";\nConnection conn = DriverManager.getConnection(url);`,
+            resources: [
+              { label: 'Xerial SQLite JDBC Driver (GitHub)', url: 'https://github.com/xerial/sqlite-jdbc' }
+            ]
+          }
+        ]
+      },
+      {
+        stageId: 'stage-2',
+        stageNumber: 'STAGE 2',
+        title: '2. UI/UX Research & Figma Dark-Mode Prototype',
+        subtitle: 'Days 2–4 • Design the Play Store Fitness App Look Before Coding Swing',
+        ownerSummary: 'Led by MikeAndrew Barizo (UI/UX) + Jhan Vince Aaron Musnit (PM)',
+        leftNodes: [
+          {
+            id: 'node-2-1',
+            title: 'Define Play Store Dark-Mode Design Tokens',
+            roles: ['ui'],
+            priority: 'core',
+            timeEst: '3 Hours',
+            summary: 'Replace default gray/white Java Swing surfaces with a high-contrast dark obsidian palette inspired by Nike Training Club, Hevy, and Gymshark.',
+            checklist: [
+              'Set primary background canvas token to #0B0F19 (Obsidian Dark)',
+              'Set card container surface token to #111827 and elevated input surface to #1E293B',
+              'Set primary accent to #10B981 (Neon Emerald) and secondary accent to #6366F1 (Electric Indigo)',
+              'Define semantic status colors: #10B981 (Active), #F59E0B (Expiring 1–7d), #F43F5E (Expired <=0d)'
+            ],
+            specs: `Color Constants for Java Swing:\nstatic final Color BG_CANVAS   = new Color(0x0B, 0x0F, 0x19);\nstatic final Color BG_CARD     = new Color(0x11, 0x18, 0x27);\nstatic final Color ACCENT_MINT = new Color(0x10, 0xB9, 0x81);\nstatic final Color ACCENT_IND  = new Color(0x63, 0x66, 0xF1);`,
+            resources: [
+              { label: 'Figma (Free Student / Starter Plan)', url: 'https://www.figma.com/' }
+            ]
+          },
+          {
+            id: 'node-2-2',
+            title: 'Wireframe the 5 Core Screens in Figma',
+            roles: ['ui', 'pm'],
+            priority: 'core',
+            timeEst: '5 Hours',
+            summary: 'Build interactive Figma frames for Login, Admin KPI Dashboard, Member Registration Form, Trainer Workout Builder, and Member Portal.',
+            checklist: [
+              'Frame 1: Split-Screen Login with One-Click Demo Role Pills (Admin, Staff, Trainer, Member)',
+              'Frame 2: Admin Overview with 4 KPI Metric Cards & Status Filter Pills',
+              'Frame 3: Safety-First Registration Form (Optional Birthdate/Address, Required Emergency Contact)',
+              'Frame 4: Workout Builder with [✓] Include Gym Machines Toggle & ⚙ Machine Badges',
+              'Frame 5: Member Portal with Google Wallet-style Pass & Anatomical Muscle Map Card'
+            ],
+            specs: `Viewport Target: 1320 x 840 Desktop Frame with 16px rounded cards, 1px #1E293B borders, and pill-shaped top navigation tabs.`,
+            resources: []
+          }
+        ],
+        rightNodes: [
+          {
+            id: 'node-2-3',
+            title: 'Curate 32 Workout GIFs & Muscle Map Assets',
+            roles: ['pm', 'ui'],
+            priority: 'core',
+            timeEst: '4 Hours',
+            summary: 'Collect or generate 32 looping exercise GIFs (21 gym machines + 11 free-weight/bodyweight) named consistently inside images/*.gif.',
+            checklist: [
+              'List all 21 commercial gym machines (Lat Pulldown, Leg Press, Seated Cable Row, Pec Deck, Smith Squat, etc.)',
+              'List all 11 free-weight/bodyweight movements (Push-Ups, Plank, Barbell Bench Press, Dumbbell Lunges, etc.)',
+              'Save looping 290x195 GIFs into images/ex_01_lat_pulldown.gif through ex_32_barbell_bench_press.gif',
+              'Verify primary & secondary muscle group labels for each exercise (e.g., Latissimus Dorsi + Biceps)'
+            ],
+            specs: `Free Sources for Exercise GIFs & Muscle Maps:\n1. ExerciseDB API (1,300+ 360p GIFs + target muscles)\n2. MuscleWiki (Front/Back highlighted muscle diagrams)\n3. Wger Open Fitness Database (CC-BY-SA exercise images)`,
+            resources: [
+              { label: 'ExerciseDB Open Source', url: 'https://github.com/ExerciseDB/exercisedb-api' },
+              { label: 'MuscleWiki Visual Directory', url: 'https://musclewiki.com/' },
+              { label: 'Wger Workout Manager', url: 'https://wger.de/' }
+            ]
+          }
+        ]
+      },
+      {
+        stageId: 'stage-3',
+        stageNumber: 'STAGE 3',
+        title: '3. Relational Database Architecture (SQL)',
+        subtitle: 'Days 3–5 • Build the 5 Normalized Tables, Views & Seed Data',
+        ownerSummary: 'Led by Jhan Vince Aaron Musnit (PM & DB) + Christian Teston (Dev)',
+        leftNodes: [
+          {
+            id: 'node-3-1',
+            title: 'Write DDL for the 5 Core Relational Tables',
+            roles: ['pm', 'dev'],
+            priority: 'core',
+            timeEst: '3 Hours',
+            summary: 'Author GymSync_Database_Schema_and_Seed.sql with foreign keys, CHECK constraints, and nullable birthdate/address columns.',
+            checklist: [
+              'Create Table 1: User (user_id, username, password_hash, role, full_name, birthdate NULL, gender, contact_no, email, address NULL, emergency_contact_name NOT NULL, emergency_contact_phone NOT NULL, fitness_goal)',
+              'Create Table 2: Membership (membership_id, user_id FK, plan_type, start_date, end_date, fee_paid, payment_status)',
+              'Create Table 3: Exercise (exercise_id, exercise_name, target_muscle, secondary_muscle, goal_category, difficulty_level, equipment_needed, needs_machine, media_file, default_sets, default_reps)',
+              'Create Table 4 & 5: WorkoutPlan and WorkoutPlanExercise (junction table linking plans to exercises)'
+            ],
+            specs: `CREATE TABLE Exercise (\n  exercise_id INTEGER PRIMARY KEY AUTOINCREMENT,\n  exercise_name TEXT NOT NULL UNIQUE,\n  target_muscle TEXT NOT NULL,\n  secondary_muscle TEXT,\n  goal_category TEXT NOT NULL,\n  difficulty_level TEXT NOT NULL,\n  equipment_needed TEXT NOT NULL,\n  needs_machine INTEGER NOT NULL DEFAULT 1,\n  media_file TEXT\n);`,
+            resources: [
+              { label: 'DB Browser for SQLite (Free GUI)', url: 'https://sqlitebrowser.org/' }
+            ]
+          }
+        ],
+        rightNodes: [
+          {
+            id: 'node-3-2',
+            title: 'Build Dynamic vw_member_status View (Device Clock)',
+            roles: ['pm', 'dev'],
+            priority: 'core',
+            timeEst: '2 Hours',
+            summary: 'Use SQLite date("now","localtime") to compute days_remaining and Active / Expiring Soon / Expired status dynamically on every query.',
+            checklist: [
+              'Write CREATE VIEW vw_member_status joining User and latest Membership',
+              'Compute days_remaining = CAST(julianday(end_date) - julianday(date("now","localtime")) AS INTEGER)',
+              'Map status: < 0 -> "Expired", 0 to 7 -> "Expiring Soon", > 7 -> "Active"',
+              'Test view output in DB Browser for SQLite'
+            ],
+            specs: `CASE\n  WHEN julianday(m.end_date) - julianday(date('now','localtime')) < 0 THEN 'Expired'\n  WHEN julianday(m.end_date) - julianday(date('now','localtime')) <= 7 THEN 'Expiring Soon'\n  ELSE 'Active'\nEND AS computed_status`,
+            resources: []
+          },
+          {
+            id: 'node-3-3',
+            title: 'Seed 8 Demo Users, 10 Memberships & 32 Exercises',
+            roles: ['pm'],
+            priority: 'core',
+            timeEst: '2 Hours',
+            summary: 'Populate realistic Filipino gym members (Active, Expiring in 4 days, Expired) and all 32 workouts (21 machines + 11 non-machine) for immediate testing.',
+            checklist: [
+              'Seed Admin (admin / admin123), Staff (staff1 / staff123), Trainer (trainer1 / trainer123)',
+              'Seed 5 Members (member1..5) with varied membership end dates relative to today',
+              'Seed 21 Machine exercises (needs_machine = 1) and 11 Free-Weight/Bodyweight exercises (needs_machine = 0)'
+            ],
+            specs: `Seeded Demo Logins:\n• Admin: admin / admin123\n• Staff: staff1 / staff123\n• Trainer: trainer1 / trainer123\n• Member: member1 / member123`,
+            resources: []
+          }
+        ]
+      },
+      {
+        stageId: 'stage-4',
+        stageNumber: 'STAGE 4',
+        title: '4. Core Java Backend, JDBC & LocalDate Engine',
+        subtitle: 'Days 4–6 • Build DatabaseHelper, SHA-256 Auth & Auto-Countdown Logic',
+        ownerSummary: 'Led by Christian Teston (Lead Java Developer)',
+        leftNodes: [
+          {
+            id: 'node-4-1',
+            title: 'Implement DatabaseHelper & Auto-Bootstrap Seeder',
+            roles: ['dev'],
+            priority: 'core',
+            timeEst: '4 Hours',
+            summary: 'Create the JDBC connection manager in gymsyncapp.java that automatically creates and seeds gymsync.db on first launch if missing.',
+            checklist: [
+              'Write DatabaseHelper.getConnection() using jdbc:sqlite:gymsync.db',
+              'Enable PRAGMA foreign_keys = ON on every connection',
+              'Add schema migration check (auto-add secondary_muscle, needs_machine, media_file if upgrading an older DB)',
+              'Use PreparedStatement across all SELECT/INSERT/UPDATE/DELETE calls to prevent SQL injection'
+            ],
+            specs: `Connection conn = DriverManager.getConnection("jdbc:sqlite:gymsync.db");\ntry (Statement st = conn.createStatement()) {\n    st.execute("PRAGMA foreign_keys = ON;");\n}`,
+            resources: []
+          },
+          {
+            id: 'node-4-2',
+            title: 'Build LocalDate Countdown & +1 Month Renewal Math',
+            roles: ['dev'],
+            priority: 'core',
+            timeEst: '2.5 Hours',
+            summary: 'Use java.time.LocalDate.now() so the app reads the PC’s local clock to compute remaining days and 1-month renewals with zero manual date math.',
+            checklist: [
+              'Read device date via LocalDate today = LocalDate.now()',
+              'Calculate long daysLeft = ChronoUnit.DAYS.between(today, endDate)',
+              'Implement 1-Month Renewal rule: LocalDate base = endDate.isBefore(today) ? today : endDate; LocalDate newEnd = base.plusMonths(1);',
+              'Format countdown badges ("24d left", "4d left • Expiring Soon", "Expired 5d ago")'
+            ],
+            specs: `LocalDate today = LocalDate.now();\nlong daysLeft = ChronoUnit.DAYS.between(today, endDate);\nLocalDate renewalBase = endDate.isBefore(today) ? today : endDate;\nLocalDate nextExpiry = renewalBase.plusMonths(1);`,
+            resources: []
+          }
+        ],
+        rightNodes: [
+          {
+            id: 'node-4-3',
+            title: 'Implement SHA-256 Password Hashing & RBAC Login',
+            roles: ['dev', 'qa'],
+            priority: 'core',
+            timeEst: '2.5 Hours',
+            summary: 'Hash passwords with SHA-256 and route authenticated users to Role-Based Access Control (RBAC) tabs for Admin, Staff, Trainer, or Member.',
+            checklist: [
+              'Write hashPassword(String plain) using MessageDigest.getInstance("SHA-256")',
+              'Verify username + password_hash against the User table',
+              'Restrict navigation tabs by role (e.g., Members only see My Portal; Staff see Overview + Members; Trainers see Overview + Workout Builder; Admin sees all 5 tabs)'
+            ],
+            specs: `Role Access Matrix:\n• Admin: Overview, Members, Workout Builder, Member Portal, Reports\n• Staff: Overview, Members\n• Trainer: Overview, Workout Builder, Member Portal\n• Member: Member Portal only`,
+            resources: []
+          }
+        ]
+      },
+      {
+        stageId: 'stage-5',
+        stageNumber: 'STAGE 5',
+        title: '5. Custom Java2D Play Store Dark-Mode UI Components',
+        subtitle: 'Days 5–7 • Eliminate White Swing Controls with Custom Graphics2D',
+        ownerSummary: 'Led by Christian Teston (Dev) + MikeAndrew Barizo (UI/UX)',
+        leftNodes: [
+          {
+            id: 'node-5-1',
+            title: 'Override Windows Look & Feel White Buttons/Tables',
+            roles: ['dev', 'ui'],
+            priority: 'core',
+            timeEst: '4 Hours',
+            summary: 'Windows SystemLookAndFeel forces white backgrounds on standard JButtons and JTableHeaders—replace them with custom Graphics2D painted components.',
+            checklist: [
+              'Do NOT call UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())',
+              'Build createGradientButton(text, color1, color2) using Graphics2D GradientPaint and setContentAreaFilled(false)',
+              'Build custom dark JTableHeader renderer (#111827 background, #94A3B8 bold uppercase text)',
+              'Style dark JTextFields, JComboBoxes, and JScrollPanes with #1E293B backgrounds and #334155 borders'
+            ],
+            specs: `Why buttons turned white earlier:\nWindows LookAndFeel ignores setBackground() on standard JButtons. Setting setContentAreaFilled(false) and painting a rounded GradientPaint in paintComponent(Graphics g) fixes it 100%.`,
+            resources: []
+          }
+        ],
+        rightNodes: [
+          {
+            id: 'node-5-2',
+            title: 'Build Google Wallet-Style DigitalMemberPassCard',
+            roles: ['ui', 'dev'],
+            priority: 'core',
+            timeEst: '3 Hours',
+            summary: 'Paint a sleek gradient membership pass card in the Member Portal showing Member ID, Plan Tier, Expiry Date, Live Countdown Progress Bar, and QR Verification Barcode.',
+            checklist: [
+              'Paint rounded gradient card (#0F172A -> #1E1B4B -> #064E3B) with anti-aliased Graphics2D',
+              'Render live Days Remaining progress bar and status pill (ACTIVE / EXPIRING SOON / EXPIRED)',
+              'Display Emergency Contact safety badge on the pass footer'
+            ],
+            specs: `Component Class: DigitalMemberPassCard extends JPanel\nRenders member name, gym ID, start/end dates, and dynamic status badge.`,
+            resources: []
+          },
+          {
+            id: 'node-5-3',
+            title: 'Build 3-Tier Hybrid WorkoutVisualCard (GIF + Muscle Map)',
+            roles: ['dev', 'ui', 'pm'],
+            priority: 'core',
+            timeEst: '5 Hours',
+            summary: 'Create the "Best of Both Worlds" visual panel: loads local GIFs offline (Tier 1), caches online GIF URLs (Tier 2), and draws a 12 FPS anatomical muscle map + motion figure (Tier 3).',
+            checklist: [
+              'Tier 1 (Offline Local GIF): Load images/ex_XX_*.gif via ImageIcon and render inside a 290x195 dark viewport',
+              'Tier 2 (Online URL Cache): If media_file is an http(s) URL, download once to images/cache_*.gif for offline reuse',
+              'Tier 3 (Java2D Fallback): Draw Front & Back human muscle silhouettes highlighting Primary (crimson #F43F5E) and Secondary (amber #F59E0B) muscles + animated stick figure at 12 FPS',
+              'Draw top badge showing [⚙ MACHINE REQUIRED] vs [✓ NO MACHINE]'
+            ],
+            specs: `3-Tier Priority Order:\n1. Local File in images/ -> "● LOCAL GIF (OFFLINE READY)"\n2. Cached Remote URL -> "● CACHED WEB GIF"\n3. Built-in 12 FPS Vector Animator -> "● LIVE VECTOR MUSCLE MAP"`,
+            resources: []
+          }
+        ]
+      },
+      {
+        stageId: 'stage-6',
+        stageNumber: 'STAGE 6',
+        title: '6. Feature Modules: Safety CRUD, Machine Toggles & Reports',
+        subtitle: 'Days 6–8 • Wire All 5 Application Tabs to the SQLite Database',
+        ownerSummary: 'Led by Christian Teston (Dev) + MikeAndrew Barizo (UI/UX)',
+        leftNodes: [
+          {
+            id: 'node-6-1',
+            title: 'Member Registration & Renewal Dialog (< 2 Min Flow)',
+            roles: ['dev', 'ui'],
+            priority: 'core',
+            timeEst: '3.5 Hours',
+            summary: 'Build the Member CRUD screen with live <5s search, status filter pills, 1-click +1 Month Renewal, and safety-first form validation.',
+            checklist: [
+              'Validate mandatory fields: Full Name, Contact No, Email, Emergency Contact Name, Emergency Contact Phone',
+              'Allow Birthdate and Address to be left blank ("Optional — Skip for fast check-in")',
+              'Wire live search bar (DocumentListener) to filter members by Name, Username, or ID in < 50ms',
+              'Wire "Renew (+1 Mo)" button to extend membership end_date by 1 month and log payment'
+            ],
+            specs: `Validation Rule:\nif (fullName.isEmpty() || phone.isEmpty() || email.isEmpty() || emergName.isEmpty() || emergPhone.isEmpty()) {\n  showWarning("Please fill required fields (Name, Phone, Email & Emergency Contact).");\n}`,
+            resources: []
+          },
+          {
+            id: 'node-6-2',
+            title: 'Equipment-Aware Workout Builder & Machine Toggle',
+            roles: ['dev', 'pm'],
+            priority: 'core',
+            timeEst: '4 Hours',
+            summary: 'Allow Trainers and Members to filter the 32 exercises by All (32), ⚙ Machines (21), or ✓ No Machine (11), and auto-generate plans with a machine toggle.',
+            checklist: [
+              'Add [✓] Include Gym Machines checkbox in both Workout Builder and Member Portal',
+              'Add quick filter pills: All (32), ⚙ Machines (21), ✓ No Machine (11)',
+              'Implement Auto-Generate by Goal (Weight Loss, Muscle Gain, General Fitness) respecting the machine checkbox',
+              'Add "+ Add Machine / Exercise to Gym Library" modal so staff can register new gym equipment anytime'
+            ],
+            specs: `SQL Filter when [ ] Include Gym Machines is unchecked:\nSELECT * FROM Exercise WHERE goal_category = ? AND needs_machine = 0;`,
+            resources: []
+          }
+        ],
+        rightNodes: [
+          {
+            id: 'node-6-3',
+            title: 'Build the 3 Admin Management Summary Reports + CSV Export',
+            roles: ['dev', 'qa'],
+            priority: 'core',
+            timeEst: '3 Hours',
+            summary: 'Implement the Reports & Analytics tab with SQL aggregation queries and 1-click CSV export to satisfy Proposal Objective #5.',
+            checklist: [
+              'Report 1: Active, Expiring Soon & Expired Memberships Breakdown (count + percentage + revenue)',
+              'Report 2: Most Popular Workout Goals & Equipment Usage Breakdown (Machine vs. Free-Weight count)',
+              'Report 3: Monthly Membership Registrations & Fee Revenue Summary',
+              'Add "Export Current Report to CSV" button for Excel/Sheets grading verification'
+            ],
+            specs: `Satisfies Proposal Objective #5:\n"Generate at least three (3) basic management summary reports (active/expired memberships, popular workout goals, and monthly registrations)."`,
+            resources: []
+          }
+        ]
+      },
+      {
+        stageId: 'stage-7',
+        stageNumber: 'STAGE 7',
+        title: '7. QA Testing, Stopwatch Benchmarking & Bug Fixing',
+        subtitle: 'Days 8–9 • Prove All 5 Proposal Objectives with Stopwatch Timings',
+        ownerSummary: 'Led by Broderick Texon (QA Tester) + Christian Teston (Dev)',
+        leftNodes: [
+          {
+            id: 'node-7-1',
+            title: 'Execute 12 Formal Test Cases & Edge-Case Checks',
+            roles: ['qa'],
+            priority: 'core',
+            timeEst: '3 Hours',
+            summary: 'Run systematic positive and negative tests across Login, Registration validation, Date math, Machine filtering, Offline GIF loading, and Reports.',
+            checklist: [
+              'TC-01 to TC-03: Role login verification & invalid password rejection',
+              'TC-04 to TC-06: Registration with blank Birthdate/Address (PASS) vs. blank Emergency Contact (BLOCKED with alert)',
+              'TC-07 to TC-09: LocalDate countdown accuracy & +1 Month Renewal on Active vs. Expired members',
+              'TC-10 to TC-12: Machine toggle filtering, Wi-Fi-off GIF animation test, and 3 Admin Reports accuracy'
+            ],
+            specs: `Key Offline Resilience Test (TC-11):\nTurn off laptop Wi-Fi -> Open Workout Builder -> Click through Lat Pulldown, Leg Press, Pec Deck, and Push-Ups -> Confirm all 32 animations and muscle maps render with zero network errors.`,
+            resources: []
+          }
+        ],
+        rightNodes: [
+          {
+            id: 'node-7-2',
+            title: 'Record Stopwatch Benchmarks for the 5 Objectives',
+            roles: ['qa', 'pm'],
+            priority: 'core',
+            timeEst: '2 Hours',
+            summary: 'Time each core user flow with a stopwatch and record the exact seconds in Section 5 of your QA Documentation.',
+            checklist: [
+              'Benchmark 1 (Target < 120s): Time a new member registration -> Expected: ~35–45 seconds',
+              'Benchmark 2 (Target < 5s): Time live search bar lookup -> Expected: < 1.2 seconds',
+              'Benchmark 3 (Target 100% accurate): Verify 1-month renewal date math across month lengths',
+              'Benchmark 4 (Target < 60s): Time auto-generating a 5-exercise workout plan -> Expected: ~15 seconds',
+              'Benchmark 5 (Target 3 reports): Verify all 3 management reports + CSV export'
+            ],
+            specs: `Include your recorded stopwatch table in your defense slides so panelists see hard quantitative proof that every objective in Section 3 of the proposal passed.`,
+            resources: []
+          },
+          {
+            id: 'node-7-3',
+            title: 'Regression Bug Triage & UI Polish Sign-Off',
+            roles: ['dev', 'qa', 'ui'],
+            priority: 'optional',
+            timeEst: '2 Hours',
+            summary: 'Fix any layout clipping, table column widths, or contrast issues discovered on different Windows screen resolutions (1080p vs 125% scaling).',
+            checklist: [
+              'Verify window fits cleanly on 1366x768 and 1920x1080 laptops',
+              'Confirm zero compiler warnings when running javac gymsyncapp.java'
+            ],
+            specs: `Clean Compile Command:\njavac -cp ".;sqlite-jdbc.jar" gymsyncapp.java\njava -cp ".;sqlite-jdbc.jar" gymsyncapp`,
+            resources: []
+          }
+        ]
+      },
+      {
+        stageId: 'stage-8',
+        stageNumber: 'STAGE 8',
+        title: '8. Final Documentation, Packaging & Live Panel Defense',
+        subtitle: 'Day 10 • Synchronize the 10-Minute 4-Speaker Demo & Q&A',
+        ownerSummary: 'All 4 Members (Musnit, Teston, Texon, Barizo)',
+        leftNodes: [
+          {
+            id: 'node-8-1',
+            title: 'Assemble Final Deliverable Bundle & Backup Laptop',
+            roles: ['pm', 'dev'],
+            priority: 'core',
+            timeEst: '2 Hours',
+            summary: 'Package the NetBeans project, SQL script, seeded gymsync.db, 32 GIFs, Figma link, and Word documentation on two separate laptops.',
+            checklist: [
+              'Verify primary demo laptop (Christian Teston) and backup laptop (Jhan Vince Aaron Musnit) both run the app offline',
+              'Print or export the System Documentation & QA Report (GymSync_System_Documentation_and_QA_Plan.docx)',
+              'Keep Figma prototype open in a browser tab alongside the running Java Swing application'
+            ],
+            specs: `Defense Day Golden Rule:\nNever rely on venue Wi-Fi. Because GYMSYNC uses SQLite + local images/*.gif + Java2D muscle maps, your entire live demo works 100% offline.`,
+            resources: []
+          }
+        ],
+        rightNodes: [
+          {
+            id: 'node-8-2',
+            title: 'Rehearse the 10-Minute 4-Speaker Live Defense Flow',
+            roles: ['pm', 'ui', 'dev', 'qa'],
+            priority: 'core',
+            timeEst: '2.5 Hours',
+            summary: 'Divide the 10-minute presentation into four 2.5-minute blocks so every team member presents their exact specialty.',
+            checklist: [
+              '00:00–02:30 (Jhan Vince Aaron Musnit - PM): Problem statement, 5-table ERD, and vw_member_status device-clock SQL logic',
+              '02:30–05:00 (MikeAndrew Barizo - UI/UX): Figma prototype walkthrough, Play Store dark-mode hierarchy, Digital Member Pass & Muscle Map design',
+              '05:00–07:30 (Christian Teston - Dev): Live 35s member registration (optional Birthdate/Address, mandatory Emergency Contact), Machine toggle workout generation, and 3-tier hybrid GIF engine code',
+              '07:30–10:00 (Broderick Texon - QA): 12-case QA results, stopwatch benchmarks (<2m, <5s, <1m), and live demo of the 3 Management Summary Reports'
+            ],
+            specs: `Panel Q&A Ready Answers:\n• "What if there is no Wi-Fi?" -> Tier 1 loads local GIFs from images/; Tier 3 renders a live 12 FPS Java2D muscle map.\n• "Why is Emergency Contact required instead of Birthdate/Address?" -> Faster <45s check-in while protecting member safety in case of gym floor injury.`,
+            resources: []
+          }
+        ]
+      }
+    ];
+
+    // =========================================================================
+    // STATE MANAGEMENT (Persisted in localStorage safely)
+    // =========================================================================
+    const STORAGE_KEY = 'gymsync_roadmap_sh_state_v1';
+    let nodeState = {}; // { [nodeId]: { status: 'todo'|'doing'|'done', checks: { [idx]: bool } } }
+    let activeRoleFilter = 'all';
+    let searchQuery = '';
+    let currentDrawerNodeId = null;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          nodeState = JSON.parse(raw) || {};
+        }
+      } catch (e) {
+        nodeState = {};
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nodeState));
+      } catch (e) {
+        // Ignore storage errors in restricted iframes
+      }
+    }
+
+    function getNodeStatus(nodeId) {
+      return (nodeState[nodeId] && nodeState[nodeId].status) ? nodeState[nodeId].status : 'todo';
+    }
+
+    function setNodeStatus(nodeId, status) {
+      if (!nodeState[nodeId]) nodeState[nodeId] = { status: 'todo', checks: {} };
+      nodeState[nodeId].status = status;
+      saveState();
+      renderAll();
+      if (currentDrawerNodeId === nodeId) {
+        updateDrawerStatusUI(status);
+      }
+      showToast(`Updated status to "${status.toUpperCase()}"`);
+    }
+
+    function toggleChecklistItem(nodeId, idx) {
+      if (!nodeState[nodeId]) nodeState[nodeId] = { status: 'todo', checks: {} };
+      if (!nodeState[nodeId].checks) nodeState[nodeId].checks = {};
+      nodeState[nodeId].checks[idx] = !nodeState[nodeId].checks[idx];
+
+      // Auto-update node status based on checklist completion
+      const node = findNodeById(nodeId);
+      if (node && node.checklist) {
+        const total = node.checklist.length;
+        let checkedCount = 0;
+        for (let i = 0; i < total; i++) {
+          if (nodeState[nodeId].checks[i]) checkedCount++;
+        }
+        if (checkedCount === total && total > 0) {
+          nodeState[nodeId].status = 'done';
+        } else if (checkedCount > 0 && nodeState[nodeId].status === 'todo') {
+          nodeState[nodeId].status = 'doing';
+        }
+      }
+      saveState();
+      renderAll();
+      if (currentDrawerNodeId === nodeId) {
+        openDrawer(nodeId);
+      }
+    }
+
+    function getAllNodes() {
+      const list = [];
+      ROADMAP_STAGES.forEach(st => {
+        st.leftNodes.forEach(n => list.push({ ...n, stageTitle: st.title, stageNumber: st.stageNumber }));
+        st.rightNodes.forEach(n => list.push({ ...n, stageTitle: st.title, stageNumber: st.stageNumber }));
+      });
+      return list;
+    }
+
+    function findNodeById(nodeId) {
+      return getAllNodes().find(n => n.id === nodeId) || null;
+    }
+
+    function matchesFilter(node) {
+      const roleMatch = (activeRoleFilter === 'all') || node.roles.includes(activeRoleFilter);
+      if (!roleMatch) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const hay = (node.title + ' ' + node.summary + ' ' + (node.specs || '') + ' ' + node.checklist.join(' ')).toLowerCase();
+      return hay.includes(q);
+    }
+
+    // =========================================================================
+    // RENDER FUNCTIONS
+    // =========================================================================
+    function updateProgressHeader() {
+      const all = getAllNodes();
+      const total = all.length;
+      const doneCount = all.filter(n => getNodeStatus(n.id) === 'done').length;
+      const doingCount = all.filter(n => getNodeStatus(n.id) === 'doing').length;
+      const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
+      const textEl = document.getElementById('progressText');
+      const barEl = document.getElementById('progressBar');
+      if (textEl) {
+        textEl.textContent = `${doneCount} / ${total} Done (${pct}%)${doingCount > 0 ? ` • ${doingCount} Active` : ''}`;
+      }
+      if (barEl) {
+        barEl.style.width = `${pct}%`;
+      }
+    }
+
+    function renderRoleBadges(roles) {
+      return roles.map(rCode => {
+        const r = ROLES[rCode];
+        if (!r) return '';
+        const colorMap = {
+          emerald: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+          purple:  'bg-purple-500/15 text-purple-300 border-purple-500/30',
+          blue:    'bg-blue-500/15 text-blue-300 border-blue-500/30',
+          amber:   'bg-amber-500/15 text-amber-300 border-amber-500/30'
+        };
+        return `<span class="text-[10px] font-semibold px-2 py-0.5 rounded border ${colorMap[r.color]}">${r.badge}</span>`;
+      }).join('');
+    }
+
+    function renderNodeCard(node, side) {
+      const status = getNodeStatus(node.id);
+      const isVisible = matchesFilter(node);
+      const dimClass = isVisible ? '' : 'opacity-25 pointer-events-auto';
+      const statusClass = status === 'done' ? 'status-done' : (status === 'doing' ? 'status-doing' : '');
+      const connClass = side === 'left' ? 'connector-left' : 'connector-right';
+
+      const checks = (nodeState[node.id] && nodeState[node.id].checks) ? nodeState[node.id].checks : {};
+      const totalChecks = node.checklist ? node.checklist.length : 0;
+      let doneChecks = 0;
+      for (let i = 0; i < totalChecks; i++) {
+        if (checks[i]) doneChecks++;
+      }
+
+      const statusBadge = status === 'done'
+        ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500 text-slate-950">✓ DONE</span>`
+        : status === 'doing'
+        ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-400 text-slate-950">⚡ IN PROGRESS</span>`
+        : `<span class="text-[10px] font-mono-code text-slate-400">${node.timeEst}</span>`;
+
+      const priorityDot = node.priority === 'core'
+        ? `<span class="w-2.5 h-2.5 rounded-full bg-purple-400 shrink-0" title="Core Requirement"></span>`
+        : `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" title="Recommended Polish"></span>`;
+
+      return `
+        <div data-node-id="${node.id}" class="rm-node-trigger cursor-pointer rm-sub-node ${statusClass} ${connClass} ${dimClass} rounded-xl p-3.5 text-left">
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <div class="flex items-center gap-1.5">
+              ${priorityDot}
+              <span class="text-[11px] font-mono-code uppercase tracking-wider text-yellow-400/90 font-semibold">${node.id.replace('node-', 'STEP ')}</span>
+            </div>
+            ${statusBadge}
+          </div>
+          <h4 class="text-sm font-bold text-white leading-snug mb-1.5">${node.title}</h4>
+          <p class="text-xs text-slate-300 line-clamp-2 mb-2.5 leading-relaxed">${node.summary}</p>
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-700/60">
+            <div class="flex flex-wrap gap-1">
+              ${renderRoleBadges(node.roles)}
+            </div>
+            <span class="text-[11px] font-mono-code text-slate-400">${doneChecks}/${totalChecks} tasks</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTree() {
+      const container = document.getElementById('roadmapTreeContainer');
+      if (!container) return;
+
+      container.innerHTML = ROADMAP_STAGES.map(stage => {
+        const stageNodes = [...stage.leftNodes, ...stage.rightNodes];
+        const stageDone = stageNodes.every(n => getNodeStatus(n.id) === 'done');
+
+        return `
+          <div class="relative">
+            <!-- CENTRAL YELLOW SPINE MILESTONE NODE (roadmap.sh signature look) -->
+            <div class="flex justify-start md:justify-center mb-5 pl-10 md:pl-0">
+              <div class="rm-spine-node rounded-xl px-5 py-3 max-w-md w-full md:text-center relative z-20">
+                <div class="flex items-center md:justify-center gap-2 text-[11px] font-mono-code font-bold uppercase tracking-wider text-slate-800">
+                  <span>${stage.stageNumber}</span>
+                  <span>•</span>
+                  <span>${stageDone ? '✓ STAGE COMPLETE' : stage.subtitle}</span>
+                </div>
+                <h3 class="text-base sm:text-lg font-extrabold text-slate-950 mt-0.5">${stage.title}</h3>
+                <div class="text-xs font-semibold text-slate-800 mt-0.5">${stage.ownerSummary}</div>
+              </div>
+            </div>
+
+            <!-- 2-COLUMN BRANCHING SUB-NODES (Left & Right of Spine) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-14 pl-10 md:pl-0 items-start">
+              <div class="space-y-4">
+                ${stage.leftNodes.map(n => renderNodeCard(n, 'left')).join('')}
+              </div>
+              <div class="space-y-4">
+                ${stage.rightNodes.map(n => renderNodeCard(n, 'right')).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderRoleBoard() {
+      const container = document.getElementById('roleBoardContainer');
+      if (!container) return;
+
+      const allNodes = getAllNodes();
+      container.innerHTML = Object.values(ROLES).map(role => {
+        const memberNodes = allNodes.filter(n => n.roles.includes(role.code));
+        const doneCount = memberNodes.filter(n => getNodeStatus(n.id) === 'done').length;
+
+        return `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col">
+            <div class="flex items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-800">
+              <div>
+                <span class="text-xs font-mono-code uppercase text-yellow-400">${role.title}</span>
+                <h3 class="text-base font-extrabold text-white">${role.name}</h3>
+              </div>
+              <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono-code text-emerald-400 font-bold">
+                ${doneCount} / ${memberNodes.length} Done
+              </span>
+            </div>
+            <div class="space-y-2.5 flex-1">
+              ${memberNodes.map(node => {
+                const st = getNodeStatus(node.id);
+                const badge = st === 'done'
+                  ? '<span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500 text-slate-950 font-bold">DONE</span>'
+                  : st === 'doing'
+                  ? '<span class="text-[10px] px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-bold">DOING</span>'
+                  : '<span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold">TODO</span>';
+                return `
+                  <div data-node-id="${node.id}" class="rm-node-trigger cursor-pointer p-3 rounded-xl bg-slate-950/90 border border-slate-800 hover:border-yellow-400/60 transition flex items-start justify-between gap-3">
+                    <div>
+                      <div class="text-[11px] font-mono-code text-slate-400">${node.stageNumber} • ${node.timeEst}</div>
+                      <div class="text-xs sm:text-sm font-bold text-white mt-0.5">${node.title}</div>
+                    </div>
+                    ${badge}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAll() {
+      updateProgressHeader();
+      renderTree();
+      renderRoleBoard();
+    }
+
+    // =========================================================================
+    // SLIDE-OVER DRAWER LOGIC
+    // =========================================================================
+    function updateDrawerStatusUI(status) {
+      document.querySelectorAll('#drawerStatusBtns .status-opt').forEach(btn => {
+        const s = btn.getAttribute('data-status');
+        if (s === status) {
+          btn.className = 'status-opt px-3 py-1 rounded-md text-xs font-extrabold bg-yellow-400 text-slate-950 shadow-xs';
+        } else {
+          btn.className = 'status-opt px-3 py-1 rounded-md text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700';
+        }
+      });
+    }
+
+    function openDrawer(nodeId) {
+      const node = findNodeById(nodeId);
+      if (!node) return;
+      currentDrawerNodeId = nodeId;
+
+      const status = getNodeStatus(nodeId);
+      updateDrawerStatusUI(status);
+
+      const badgesEl = document.getElementById('drawerBadges');
+      const titleEl = document.getElementById('drawerTitle');
+      const bodyEl = document.getElementById('drawerBody');
+
+      if (badgesEl) {
+        badgesEl.innerHTML = `
+          <span class="text-[11px] font-mono-code font-bold px-2 py-0.5 rounded bg-yellow-400 text-slate-950">${node.stageNumber}</span>
+          <span class="text-[11px] font-mono-code px-2 py-0.5 rounded bg-slate-800 text-slate-300">⏱ ${node.timeEst}</span>
+          ${renderRoleBadges(node.roles)}
+        `;
+      }
+      if (titleEl) {
+        titleEl.textContent = node.title;
+      }
+
+      const checks = (nodeState[nodeId] && nodeState[nodeId].checks) ? nodeState[nodeId].checks : {};
+
+      if (bodyEl) {
+        bodyEl.innerHTML = `
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4">
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Why &amp; What to Build</div>
+            <p class="text-slate-200 text-xs sm:text-sm leading-relaxed">${node.summary}</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">From-Scratch Step-by-Step Checklist</h3>
+              <span class="text-[11px] text-slate-400">Click items to check off</span>
+            </div>
+            <div class="space-y-2">
+              ${node.checklist.map((item, idx) => {
+                const isChecked = !!checks[idx];
+                return `
+                  <label data-check-node="${node.id}" data-check-idx="${idx}" class="drawer-check-item flex items-start gap-2.5 p-2.5 rounded-lg bg-slate-900 border ${isChecked ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-slate-800'} cursor-pointer hover:border-slate-600 transition">
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} class="mt-0.5 accent-emerald-500 pointer-events-none">
+                    <span class="text-xs sm:text-sm ${isChecked ? 'line-through text-slate-400' : 'text-slate-100'}">${item}</span>
+                  </label>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          ${node.specs ? `
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-yellow-400 mb-2">Exact Specs / Code / SQL from Brainstorming</h3>
+              <pre class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs font-mono-code text-emerald-300 overflow-x-auto whitespace-pre-wrap leading-relaxed">${node.specs}</pre>
+            </div>
+          ` : ''}
+
+          ${node.resources && node.resources.length > 0 ? `
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2">Free Tools &amp; Reference Links</h3>
+              <div class="space-y-1.5">
+                ${node.resources.map(r => `
+                  <a href="${r.url}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-blue-400 text-xs text-blue-300 font-semibold">
+                    <span>🔗 ${r.label}</span>
+                    <span class="font-mono-code text-[11px] text-slate-400">Open ↗</span>
+                  </a>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        `;
+      }
+
+      document.getElementById('drawerBackdrop').classList.remove('hidden');
+      document.getElementById('detailDrawer').classList.remove('translate-x-full');
+    }
+
+    function closeDrawer() {
+      currentDrawerNodeId = null;
+      document.getElementById('drawerBackdrop').classList.add('hidden');
+      document.getElementById('detailDrawer').classList.add('translate-x-full');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toastMsg');
+      if (!t) return;
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        t.classList.add('hidden');
+      }, 2200);
+    }
+
+    // =========================================================================
+    // EVENT LISTENERS
+    // =========================================================================
+    function initEvents() {
+      // Delegate clicks on roadmap nodes and checklist items
+      document.body.addEventListener('click', (e) => {
+        const nodeTrigger = e.target.closest('.rm-node-trigger');
+        if (nodeTrigger) {
+          const nodeId = nodeTrigger.getAttribute('data-node-id');
+          if (nodeId) openDrawer(nodeId);
+          return;
+        }
+
+        const checkItem = e.target.closest('.drawer-check-item');
+        if (checkItem) {
+          e.preventDefault();
+          const nId = checkItem.getAttribute('data-check-node');
+          const idx = parseInt(checkItem.getAttribute('data-check-idx'), 10);
+          if (nId && !isNaN(idx)) {
+            toggleChecklistItem(nId, idx);
+          }
+          return;
+        }
+      });
+
+      // Role filter buttons
+      document.querySelectorAll('#roleFilterGroup .role-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeRoleFilter = btn.getAttribute('data-role') || 'all';
+          document.querySelectorAll('#roleFilterGroup .role-pill').forEach(b => {
+            b.classList.remove('ring-2', 'ring-yellow-400');
+          });
+          btn.classList.add('ring-2', 'ring-yellow-400');
+          renderTree();
+        });
+      });
+
+      // Search input
+      const searchEl = document.getElementById('searchInput');
+      if (searchEl) {
+        searchEl.addEventListener('input', (e) => {
+          searchQuery = e.target.value || '';
+          renderTree();
+        });
+      }
+
+      // View switcher buttons
+      const btnTree = document.getElementById('btnViewTree');
+      const btnBoard = document.getElementById('btnViewBoard');
+      const btnSpecs = document.getElementById('btnViewSpecs');
+      const viewTree = document.getElementById('viewTree');
+      const viewBoard = document.getElementById('viewBoard');
+      const viewSpecs = document.getElementById('viewSpecs');
+
+      function setActiveView(view) {
+        viewTree.classList.toggle('hidden', view !== 'tree');
+        viewBoard.classList.toggle('hidden', view !== 'board');
+        viewSpecs.classList.toggle('hidden', view !== 'specs');
+
+        btnTree.className = view === 'tree'
+          ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-yellow-400 text-slate-950 transition'
+          : 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+        btnBoard.className = view === 'board'
+          ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-yellow-400 text-slate-950 transition'
+          : 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+        btnSpecs.className = view === 'specs'
+          ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-yellow-400 text-slate-950 transition'
+          : 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+      }
+
+      btnTree.addEventListener('click', () => setActiveView('tree'));
+      btnBoard.addEventListener('click', () => setActiveView('board'));
+      btnSpecs.addEventListener('click', () => setActiveView('specs'));
+
+      // Reset progress button
+      document.getElementById('btnResetProgress').addEventListener('click', () => {
+        nodeState = {};
+        saveState();
+        renderAll();
+        if (currentDrawerNodeId) openDrawer(currentDrawerNodeId);
+        showToast('Progress reset to 0%');
+      });
+
+      // Drawer close & status buttons
+      document.getElementById('btnCloseDrawer').addEventListener('click', closeDrawer);
+      document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer);
+      document.querySelectorAll('#drawerStatusBtns .status-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const st = btn.getAttribute('data-status');
+          if (currentDrawerNodeId && st) {
+            setNodeStatus(currentDrawerNodeId, st);
+          }
+        });
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDrawer();
+      });
+    }
+
+    // Boot
+    loadState();
+    renderAll();
+    initEvents();
+  </script>
+</body>
+</html>

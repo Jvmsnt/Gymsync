@@ -39,28 +39,43 @@ import java.util.stream.Collectors;
 public class gymsyncapp extends JFrame {
     private static final long serialVersionUID = 1L;
 
-    // ── Play Store Fitness App Dark & Neon Theme Palette ──
-    public static final Color BG_OBSIDIAN     = new Color(11, 15, 25);    // #0B0F19 Main App Canvas
-    public static final Color BG_SURFACE      = new Color(18, 25, 38);    // #121926 Secondary Surface
-    public static final Color CARD_SURFACE    = new Color(28, 37, 54);    // #1C2536 Elevated Card
-    public static final Color CARD_HIGHLIGHT  = new Color(37, 49, 71);    // #253147 Hover/Inner Card
-    public static final Color BORDER_SUBTLE   = new Color(51, 65, 85);    // #334155 Card Outline
-    public static final Color INPUT_BG        = new Color(15, 23, 42);    // #0F172A Dark Input Pill
+    // ── Obsidian Dark Design Tokens (Nike Training Club / Hevy / Gymshark inspired) ──
+    // Surfaces
+    public static final Color BG_CANVAS       = new Color(0x0B, 0x0F, 0x19); // #0B0F19 Obsidian Dark: primary background canvas
+    public static final Color BG_CARD         = new Color(0x11, 0x18, 0x27); // #111827 card container surface
+    public static final Color BG_ELEVATED     = new Color(0x1E, 0x29, 0x3B); // #1E293B elevated input surface
+    // Brand accents
+    public static final Color ACCENT_MINT     = new Color(0x10, 0xB9, 0x81); // #10B981 Neon Emerald: primary accent
+    public static final Color ACCENT_IND      = new Color(0x63, 0x66, 0xF1); // #6366F1 Electric Indigo: secondary accent
+    // Semantic status colors
+    public static final Color STATUS_ACTIVE   = new Color(0x10, 0xB9, 0x81); // #10B981 Active
+    public static final Color STATUS_EXPIRING = new Color(0xF5, 0x9E, 0x0B); // #F59E0B Expiring soon
+    public static final Color STATUS_EXPIRED  = new Color(0xF4, 0x3F, 0x5E); // #F43F5E Expired
+    public static final int   EXPIRING_WINDOW_DAYS = 7;                      // amber window (days left)
 
+    // Neutrals
+    public static final Color BORDER_SUBTLE   = new Color(51, 65, 85);    // #334155 Card Outline
     public static final Color TEXT_PRIMARY    = new Color(248, 250, 252); // #F8FAFC Crisp White
     public static final Color TEXT_SECONDARY  = new Color(148, 163, 184); // #94A3B8 Muted Slate
     public static final Color TEXT_MUTED      = new Color(100, 116, 139); // #64748B Sub-label
 
-    // Play Store Vibrant Accents & Gradients
-    public static final Color NEON_EMERALD    = new Color(16, 185, 129);  // #10B981 Active / Primary CTA
+    // Extra gradient partners (not part of the core token set)
     public static final Color CYBER_CYAN      = new Color(6, 182, 212);   // #06B6D4 Secondary Gradient
-    public static final Color ELECTRIC_INDIGO = new Color(99, 102, 241);  // #6366F1 Brand Accent
     public static final Color VIOLET_GLOW     = new Color(139, 92, 246);  // #8B5CF6 Secondary Accent
-    public static final Color CORAL_RED       = new Color(244, 63, 94);   // #F43F5E Expired / Danger
-    public static final Color AMBER_GOLD      = new Color(245, 158, 11);  // #F59E0B Expiring Soon Warning
 
-    public static final Color TABLE_EVEN_ROW  = new Color(24, 33, 48);
-    public static final Color TABLE_ALT_ROW   = new Color(19, 27, 40);
+    // Legacy names kept so the rest of the file keeps compiling; they now point at the tokens above.
+    public static final Color BG_OBSIDIAN     = BG_CANVAS;
+    public static final Color BG_SURFACE      = BG_CARD;
+    public static final Color CARD_SURFACE    = BG_CARD;
+    public static final Color CARD_HIGHLIGHT  = BG_ELEVATED;
+    public static final Color INPUT_BG        = BG_ELEVATED;
+    public static final Color NEON_EMERALD    = ACCENT_MINT;
+    public static final Color ELECTRIC_INDIGO = ACCENT_IND;
+    public static final Color CORAL_RED       = STATUS_EXPIRED;
+    public static final Color AMBER_GOLD      = STATUS_EXPIRING;
+
+    public static final Color TABLE_EVEN_ROW  = BG_CARD;
+    public static final Color TABLE_ALT_ROW   = new Color(21, 30, 46);
     public static final Color TABLE_SELECT    = new Color(55, 48, 163);
 
     private final DataRepository repo;
@@ -123,6 +138,14 @@ public class gymsyncapp extends JFrame {
         public String getComputedStatus(LocalDate referenceDate) {
             if (endDate == null) return "Expired";
             return !endDate.isBefore(referenceDate) ? "Active" : "Expired";
+        }
+
+        /** Three-state status for colour coding: Active (green), Expiring Soon (amber), Expired (red). */
+        public String getDisplayStatus(LocalDate referenceDate) {
+            if (endDate == null) return "Expired";
+            long days = getDaysRemaining(referenceDate);
+            if (days < 0) return "Expired";
+            return days <= EXPIRING_WINDOW_DAYS ? "Expiring Soon" : "Active";
         }
 
         public long getDaysRemaining(LocalDate referenceDate) {
@@ -977,8 +1000,11 @@ public class gymsyncapp extends JFrame {
             long daysLeft = latest != null ? latest.getDaysRemaining(today) : -999;
 
             // Top Gradient Wallet Pass Banner
-            Color bannerStart = (member == null) ? ELECTRIC_INDIGO : (isActive ? new Color(13, 148, 136) : new Color(190, 18, 60));
-            Color bannerEnd   = (member == null) ? VIOLET_GLOW     : (isActive ? NEON_EMERALD : CORAL_RED);
+            boolean expiringSoon = isActive && daysLeft >= 0 && daysLeft <= EXPIRING_WINDOW_DAYS;
+            Color statusColor = expiringSoon ? STATUS_EXPIRING : (isActive ? STATUS_ACTIVE : STATUS_EXPIRED);
+            Color bannerStart = (member == null) ? ACCENT_IND
+                    : (expiringSoon ? new Color(180, 83, 9) : (isActive ? new Color(13, 148, 136) : new Color(190, 18, 60)));
+            Color bannerEnd   = (member == null) ? VIOLET_GLOW : statusColor;
             g2.setPaint(new GradientPaint(0, 0, bannerStart, w, 135, bannerEnd));
             g2.fillRoundRect(10, 10, w - 20, 135, 20, 20);
 
@@ -1027,7 +1053,8 @@ public class gymsyncapp extends JFrame {
             g2.drawString("@" + member.username + "  •  ID #" + member.userId, 92, 68);
 
             // Status Pill inside Banner
-            String pillText = isActive ? "● ACTIVE — ENTRY ALLOWED" : "● EXPIRED — RENEW NOW";
+            String pillText = expiringSoon ? "● EXPIRING SOON — ENTRY ALLOWED"
+                    : (isActive ? "● ACTIVE — ENTRY ALLOWED" : "● EXPIRED — RENEW NOW");
             g2.setColor(new Color(11, 15, 25, 175));
             g2.fillRoundRect(24, 96, w - 48, 34, 16, 16);
             g2.setColor(Color.WHITE);
@@ -1044,7 +1071,7 @@ public class gymsyncapp extends JFrame {
             String dayLabel = (latest != null)
                     ? (daysLeft >= 0 ? daysLeft + " of 30 Days Left" : Math.abs(daysLeft) + " Days Overdue")
                     : "No Record";
-            g2.setColor(isActive ? NEON_EMERALD : CORAL_RED);
+            g2.setColor(statusColor);
             FontMetrics dfm = g2.getFontMetrics();
             g2.drawString(dayLabel, w - 22 - dfm.stringWidth(dayLabel), y);
 
@@ -1223,7 +1250,7 @@ public class gymsyncapp extends JFrame {
         passField.addActionListener(doLogin);
 
         // One-Tap Play Store Role Switcher Chips
-        RoundedCardPanel demoBox = new RoundedCardPanel(BG_SURFACE, BORDER_SUBTLE, 18);
+        RoundedCardPanel demoBox = new RoundedCardPanel(BG_CANVAS, BORDER_SUBTLE, 18);
         demoBox.setLayout(new BorderLayout(0, 8));
         demoBox.setBorder(new EmptyBorder(12, 14, 12, 14));
         demoBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 95));
@@ -1346,9 +1373,9 @@ public class gymsyncapp extends JFrame {
                     if (active) {
                         g2.setPaint(new GradientPaint(0, 0, ELECTRIC_INDIGO, getWidth(), getHeight(), CYBER_CYAN));
                     } else if (getModel().isRollover()) {
-                        g2.setColor(CARD_HIGHLIGHT);
+                        g2.setColor(BORDER_SUBTLE);
                     } else {
-                        g2.setColor(CARD_SURFACE);
+                        g2.setColor(BG_ELEVATED);
                     }
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                     g2.dispose();
@@ -1476,7 +1503,7 @@ public class gymsyncapp extends JFrame {
                 Membership latest = repo.getLatestMembership(m.userId);
                 String startStr = latest != null ? latest.startDate.toString() : "N/A";
                 String endStr   = latest != null ? latest.endDate.toString() : "N/A";
-                String status   = latest != null ? latest.getComputedStatus(today) : "Expired";
+                String status   = latest != null ? latest.getDisplayStatus(today) : "Expired";
                 long daysLeft   = latest != null ? latest.getDaysRemaining(today) : -999;
                 String daysStr  = latest != null
                         ? (daysLeft >= 0 ? daysLeft + "d left" : Math.abs(daysLeft) + "d overdue")
@@ -1834,12 +1861,12 @@ public class gymsyncapp extends JFrame {
         top.add(btnDeleteUser);
 
         btnAddStaff.addActionListener(e -> {
-            JTextField tfUser = new JTextField();
-            JPasswordField pfPass = new JPasswordField();
-            JComboBox<String> cbRole = new JComboBox<>(new String[]{"Staff", "Admin"});
-            JTextField tfFirst = new JTextField();
-            JTextField tfLast = new JTextField();
-            JTextField tfContact = new JTextField("09");
+            JTextField tfUser = createDarkTextField("");
+            JPasswordField pfPass = createDarkPasswordField();
+            JComboBox<String> cbRole = createDarkComboBox(new String[]{"Staff", "Admin"});
+            JTextField tfFirst = createDarkTextField("");
+            JTextField tfLast = createDarkTextField("");
+            JTextField tfContact = createDarkTextField("09");
 
             Object[] fields = {
                     "Username *:", tfUser,
@@ -1933,23 +1960,21 @@ public class gymsyncapp extends JFrame {
                 int id = (int) model.getValueAt(row, 0);
                 target = repo.getAllExercises().stream().filter(x -> x.exerciseId == id).findFirst().orElse(null);
             }
-            JTextField tfName = new JTextField(target != null ? target.name : "");
-            JComboBox<String> cbGroup = new JComboBox<>(new String[]{"Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full Body"});
+            JTextField tfName = createDarkTextField(target != null ? target.name : "");
+            JComboBox<String> cbGroup = createDarkComboBox(new String[]{"Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full Body"});
             if (target != null) cbGroup.setSelectedItem(target.muscleGroup);
-            JComboBox<String> cbDiff = new JComboBox<>(new String[]{"Beginner", "Intermediate", "Advanced"});
+            JComboBox<String> cbDiff = createDarkComboBox(new String[]{"Beginner", "Intermediate", "Advanced"});
             if (target != null) cbDiff.setSelectedItem(target.difficulty);
-            JComboBox<String> cbEquip = new JComboBox<>(new String[]{"Bodyweight", "Dumbbells", "Machine", "Barbell"});
+            JComboBox<String> cbEquip = createDarkComboBox(new String[]{"Bodyweight", "Dumbbells", "Machine", "Barbell"});
             if (target != null) cbEquip.setSelectedItem(target.equipment);
-            JTextArea taDesc = new JTextArea(target != null ? target.description : "", 3, 24);
-            taDesc.setLineWrap(true);
-            taDesc.setWrapStyleWord(true);
+            JTextArea taDesc = createDarkTextArea(target != null ? target.description : "", 3, 24);
 
             Object[] fields = {
                     "Exercise Name *:", tfName,
                     "Muscle Group *:", cbGroup,
                     "Difficulty *:", cbDiff,
                     "Equipment *:", cbEquip,
-                    "Instructions *:", new JScrollPane(taDesc)
+                    "Instructions *:", wrapDarkScrollPane(taDesc)
             };
             int res = JOptionPane.showConfirmDialog(this, fields,
                     isEdit ? "Edit Exercise" : "Add Exercise to Library", JOptionPane.OK_CANCEL_OPTION);
@@ -2083,7 +2108,7 @@ public class gymsyncapp extends JFrame {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         for (Membership m : repo.getMembershipsByUser(member.userId)) {
-            model.addRow(new Object[]{"#" + m.membershipId, m.startDate, m.endDate, m.getComputedStatus(today)});
+            model.addRow(new Object[]{"#" + m.membershipId, m.startDate, m.endDate, m.getDisplayStatus(today)});
         }
         JTable historyTable = new JTable(model);
         styleTable(historyTable);
@@ -2261,7 +2286,8 @@ public class gymsyncapp extends JFrame {
                 "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
         });
         JComboBox<Exercise> cbEx = createDarkComboBox(repo.getAllExercises().toArray(new Exercise[0]));
-        JSpinner spSets = new JSpinner(new SpinnerNumberModel(3, 1, 10, 1));
+        JComboBox<Integer> cbSets = createDarkComboBox(new Integer[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
+        cbSets.setSelectedItem(3);
         JTextField tfReps = createDarkTextField("10-12");
         tfReps.setColumns(7);
         JButton btnAddRow = createGradientButton("+ Add Exercise", ELECTRIC_INDIGO, CYBER_CYAN);
@@ -2271,7 +2297,7 @@ public class gymsyncapp extends JFrame {
         adder.add(createChipLabel("EXERCISE:"));
         adder.add(cbEx);
         adder.add(createChipLabel("SETS:"));
-        adder.add(spSets);
+        adder.add(cbSets);
         adder.add(createChipLabel("REPS:"));
         adder.add(tfReps);
         adder.add(btnAddRow);
@@ -2291,7 +2317,7 @@ public class gymsyncapp extends JFrame {
             item.muscleGroup = ex.muscleGroup;
             item.equipment = ex.equipment;
             item.dayOfWeek = (String) cbDay.getSelectedItem();
-            item.sets = (Integer) spSets.getValue();
+            item.sets = (Integer) cbSets.getSelectedItem();
             item.reps = reps;
             draftItems.add(item);
             draftModel.addRow(new Object[]{item.dayOfWeek, ex.exerciseId, ex.name, ex.muscleGroup, item.sets, item.reps});
@@ -2377,11 +2403,97 @@ public class gymsyncapp extends JFrame {
 
     private <T> JComboBox<T> createDarkComboBox(T[] items) {
         JComboBox<T> cb = new JComboBox<>(items);
+        // Themed arrow button (the default Metal one is light gray)
+        cb.setUI(new BasicComboBoxUI() {
+            @Override
+            protected JButton createArrowButton() {
+                JButton arrow = new JButton() {
+                    @Override
+                    protected void paintComponent(Graphics g) {
+                        Graphics2D g2 = (Graphics2D) g.create();
+                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setColor(INPUT_BG);
+                        g2.fillRect(0, 0, getWidth(), getHeight());
+                        g2.setColor(TEXT_SECONDARY);
+                        int cx = getWidth() / 2;
+                        int cy = getHeight() / 2;
+                        g2.fillPolygon(new int[]{cx - 5, cx + 5, cx}, new int[]{cy - 2, cy - 2, cy + 3}, 3);
+                        g2.dispose();
+                    }
+                };
+                arrow.setBorder(BorderFactory.createEmptyBorder());
+                arrow.setFocusPainted(false);
+                arrow.setContentAreaFilled(false);
+                arrow.setOpaque(false);
+                return arrow;
+            }
+        });
         cb.setBackground(INPUT_BG);
         cb.setForeground(TEXT_PRIMARY);
         cb.setFont(new Font("SansSerif", Font.BOLD, 12));
         cb.setBorder(new LineBorder(BORDER_SUBTLE, 1, true));
+        // Themed dropdown rows (the default popup list is white)
+        cb.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                l.setOpaque(true);
+                l.setBackground(isSelected && index >= 0 ? TABLE_SELECT : INPUT_BG);
+                l.setForeground(TEXT_PRIMARY);
+                l.setBorder(new EmptyBorder(6, 10, 6, 10));
+                return l;
+            }
+        });
         return cb;
+    }
+
+    private JTextArea createDarkTextArea(String text, int rows, int cols) {
+        JTextArea ta = new JTextArea(text, rows, cols);
+        ta.setBackground(INPUT_BG);
+        ta.setForeground(TEXT_PRIMARY);
+        ta.setCaretColor(CYBER_CYAN);
+        ta.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        ta.setLineWrap(true);
+        ta.setWrapStyleWord(true);
+        ta.setBorder(new EmptyBorder(8, 12, 8, 12));
+        return ta;
+    }
+
+    /** Slim, themed scrollbar replacing the default light-gray Metal one. */
+    private static class DarkScrollBarUI extends BasicScrollBarUI {
+        private static JButton zeroButton() {
+            JButton b = new JButton();
+            Dimension zero = new Dimension(0, 0);
+            b.setPreferredSize(zero);
+            b.setMinimumSize(zero);
+            b.setMaximumSize(zero);
+            return b;
+        }
+        @Override protected JButton createDecreaseButton(int orientation) { return zeroButton(); }
+        @Override protected JButton createIncreaseButton(int orientation) { return zeroButton(); }
+
+        @Override
+        public Dimension getPreferredSize(JComponent c) {
+            return scrollbar.getOrientation() == Adjustable.VERTICAL
+                    ? new Dimension(12, 48) : new Dimension(48, 12);
+        }
+
+        @Override
+        protected void paintTrack(Graphics g, JComponent c, Rectangle r) {
+            g.setColor(BG_CANVAS);
+            g.fillRect(r.x, r.y, r.width, r.height);
+        }
+
+        @Override
+        protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
+            if (r.isEmpty() || !scrollbar.isEnabled()) return;
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(isThumbRollover() || isDragging ? ACCENT_IND : BORDER_SUBTLE);
+            g2.fillRoundRect(r.x + 2, r.y + 2, r.width - 4, r.height - 4, 8, 8);
+            g2.dispose();
+        }
     }
 
     private JButton createStyledButton(String text, Color bg, Color fg) {
@@ -2425,6 +2537,10 @@ public class gymsyncapp extends JFrame {
         return b;
     }
 
+    private static Color withAlpha(Color c, int alpha) {
+        return new Color(c.getRed(), c.getGreen(), c.getBlue(), alpha);
+    }
+
     private static Color brighten(Color c, int delta) {
         return new Color(
                 Math.min(255, c.getRed() + delta),
@@ -2433,11 +2549,20 @@ public class gymsyncapp extends JFrame {
         );
     }
 
-    private JScrollPane wrapDarkScrollPane(JTable table) {
-        JScrollPane sp = new JScrollPane(table);
+    private JScrollPane wrapDarkScrollPane(JComponent view) {
+        JScrollPane sp = new JScrollPane(view);
         sp.getViewport().setBackground(TABLE_EVEN_ROW);
-        sp.setBackground(CARD_SURFACE);
+        sp.setBackground(BG_CARD);
         sp.setBorder(new LineBorder(BORDER_SUBTLE, 1, true));
+        sp.getVerticalScrollBar().setUI(new DarkScrollBarUI());
+        sp.getHorizontalScrollBar().setUI(new DarkScrollBarUI());
+        sp.getVerticalScrollBar().setBackground(BG_CANVAS);
+        sp.getHorizontalScrollBar().setBackground(BG_CANVAS);
+        for (String corner : new String[]{JScrollPane.UPPER_RIGHT_CORNER, JScrollPane.LOWER_RIGHT_CORNER}) {
+            JPanel filler = new JPanel();
+            filler.setBackground(corner.equals(JScrollPane.UPPER_RIGHT_CORNER) ? new Color(15, 23, 42) : BG_CANVAS);
+            sp.setCorner(corner, filler);
+        }
         return sp;
     }
 
@@ -2549,11 +2674,11 @@ public class gymsyncapp extends JFrame {
 
                     Color pillBg;
                     if ("Active".equalsIgnoreCase(st)) {
-                        pillBg = new Color(16, 185, 129, 45);
+                        pillBg = withAlpha(STATUS_ACTIVE, 45);
                     } else if (st.toLowerCase().contains("expiring")) {
-                        pillBg = new Color(245, 158, 11, 50);
+                        pillBg = withAlpha(STATUS_EXPIRING, 50);
                     } else {
-                        pillBg = new Color(244, 63, 94, 50);
+                        pillBg = withAlpha(STATUS_EXPIRED, 50);
                     }
                     g2.setColor(pillBg);
                     g2.fillRoundRect(8, 5, getWidth() - 16, getHeight() - 10, 14, 14);
@@ -2563,13 +2688,13 @@ public class gymsyncapp extends JFrame {
             };
             lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
             if ("Active".equalsIgnoreCase(st)) {
-                lbl.setForeground(NEON_EMERALD);
+                lbl.setForeground(STATUS_ACTIVE);
                 lbl.setText("● ACTIVE");
             } else if (st.toLowerCase().contains("expiring")) {
-                lbl.setForeground(AMBER_GOLD);
+                lbl.setForeground(STATUS_EXPIRING);
                 lbl.setText("● EXPIRING");
             } else {
-                lbl.setForeground(CORAL_RED);
+                lbl.setForeground(STATUS_EXPIRED);
                 lbl.setText("● EXPIRED");
             }
             return lbl;
@@ -2579,10 +2704,19 @@ public class gymsyncapp extends JFrame {
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-            UIManager.put("Panel.background", BG_OBSIDIAN);
-            UIManager.put("OptionPane.background", CARD_SURFACE);
+            UIManager.put("Panel.background", BG_CANVAS);
+            UIManager.put("OptionPane.background", BG_CANVAS);
             UIManager.put("OptionPane.messageForeground", TEXT_PRIMARY);
             UIManager.put("Label.foreground", TEXT_PRIMARY);
+            // Default buttons (JOptionPane Yes/No/OK) — drop the gray Metal gradient
+            UIManager.put("Button.background", BG_ELEVATED);
+            UIManager.put("Button.foreground", TEXT_PRIMARY);
+            UIManager.put("Button.select", BORDER_SUBTLE);
+            UIManager.put("Button.focus", ACCENT_IND);
+            UIManager.put("Button.gradient", null);
+            // Combo popup selection
+            UIManager.put("ComboBox.selectionBackground", TABLE_SELECT);
+            UIManager.put("ComboBox.selectionForeground", Color.WHITE);
         } catch (Exception ignored) {}
         SwingUtilities.invokeLater(() -> {
             gymsyncapp app = new gymsyncapp();

@@ -199,41 +199,42 @@ INSERT INTO Membership (membership_id, user_id, start_date, end_date) VALUES
 (10, 8, DATE('now', '-28 days'), DATE('now', '+2 days'));
 
 -- ============================================================================
--- 5. SEED DATA: EXERCISE LIBRARY (24 Structured Exercises Across Muscle Groups)
+-- 5. SEED DATA: EXERCISE LIBRARY (32 Exercises Including 21 Gym Machines)
 -- ============================================================================
 
 INSERT INTO Exercise (exercise_id, name, muscle_group, difficulty, equipment, description) VALUES
--- Bodyweight Exercises
-(1,  'Push-Up', 'Chest', 'Beginner', 'Bodyweight', 'Keep body in a straight plank line, lower chest to floor, and press back up.'),
-(2,  'Bodyweight Squat', 'Legs', 'Beginner', 'Bodyweight', 'Stand shoulder-width apart, sit hips back and down keeping chest upright, then stand.'),
-(3,  'Forward Lunge', 'Legs', 'Beginner', 'Bodyweight', 'Step forward with one leg, lower hips until both knees form 90-degree angles, push back.'),
-(4,  'Forearm Plank', 'Core', 'Beginner', 'Bodyweight', 'Hold a rigid straight-body position supported on forearms and toes with braced core.'),
-(5,  'Glute Bridge', 'Legs', 'Beginner', 'Bodyweight', 'Lie on back with knees bent, drive through heels to lift hips until aligned with knees.'),
-(6,  'Mountain Climbers', 'Full Body', 'Beginner', 'Bodyweight', 'From high plank position, alternate driving knees toward chest at a steady brisk pace.'),
-(7,  'Bicycle Crunches', 'Core', 'Beginner', 'Bodyweight', 'Lie on back, alternate touching elbow to opposite knee while extending the other leg.'),
-(8,  'Burpees', 'Full Body', 'Intermediate', 'Bodyweight', 'Drop into a squat with hands on floor, kick feet back to plank, return to squat, and jump.'),
-(9,  'Pull-Up', 'Back', 'Advanced', 'Bodyweight', 'Grip overhead bar slightly wider than shoulders and pull chin cleanly above the bar.'),
-
--- Dumbbell Exercises
-(10, 'Dumbbell Goblet Squat', 'Legs', 'Beginner', 'Dumbbells', 'Hold one dumbbell vertically at chest height and perform a controlled full squat.'),
-(11, 'Dumbbell Chest Press', 'Chest', 'Beginner', 'Dumbbells', 'Lie on flat bench and press dumbbells from chest level up until arms are extended.'),
-(12, 'One-Arm Dumbbell Row', 'Back', 'Beginner', 'Dumbbells', 'Support one hand on bench, keep back flat, and pull dumbbell toward hip crease.'),
-(13, 'Seated Dumbbell Shoulder Press', 'Shoulders', 'Beginner', 'Dumbbells', 'Sit upright on bench and press dumbbells overhead without arching the lower back.'),
-(14, 'Dumbbell Bicep Curl', 'Arms', 'Beginner', 'Dumbbells', 'Stand tall with elbows tucked at sides and curl dumbbells upward with full control.'),
-(15, 'Overhead Dumbbell Tricep Extension', 'Arms', 'Beginner', 'Dumbbells', 'Hold dumbbell overhead with both hands, lower behind head by bending elbows, and extend.'),
-(16, 'Dumbbell Romanian Deadlift', 'Legs', 'Intermediate', 'Dumbbells', 'Hinge at the hips with a slight knee bend, lowering dumbbells along shins, then squeeze glutes.'),
-(17, 'Dumbbell Lateral Raise', 'Shoulders', 'Beginner', 'Dumbbells', 'Raise dumbbells out to the sides to shoulder height with a slight bend in the elbows.'),
-
--- Machine & Cable Exercises
-(18, 'Lat Pulldown (Machine)', 'Back', 'Beginner', 'Machine', 'Sit at pulldown station, lean back slightly, and pull wide bar down to upper chest.'),
-(19, 'Seated Cable Row', 'Back', 'Beginner', 'Machine', 'Sit tall with feet braced, pull handle to midsection while squeezing shoulder blades together.'),
-(20, 'Leg Press (Machine)', 'Legs', 'Beginner', 'Machine', 'Place feet hip-width on sled platform, lower weight until knees reach 90 degrees, press up.'),
-(21, 'Chest Press Machine', 'Chest', 'Beginner', 'Machine', 'Adjust seat height so handles align with mid-chest and press forward smoothly.'),
-(22, 'Cable Tricep Pushdown', 'Arms', 'Beginner', 'Machine', 'Keep elbows pinned to sides and push rope or bar attachment down until arms lock out.'),
-
--- Barbell Exercises
-(23, 'Barbell Bench Press', 'Chest', 'Intermediate', 'Barbell', 'Lie on flat bench, unrack barbell, lower with control to mid-chest, and press upward.'),
-(24, 'Barbell Back Squat', 'Legs', 'Intermediate', 'Barbell', 'Rest barbell across upper traps, brace core, squat to parallel, and drive back up.');
+(1, 'Lat Pulldown Machine', 'Back', 'Beginner', 'Machine: Lat Pulldown Station', 'Sit tall with thighs secured under pads; pull wide bar smoothly down to upper chest while squeezing lats.'),
+(2, 'Seated Cable Row Machine', 'Back', 'Beginner', 'Machine: Seated Cable Row Station', 'Brace feet on platform, keep spine neutral, and pull V-handle to midsection while retracting shoulder blades.'),
+(3, 'Assisted Pull-Up Machine', 'Back', 'Beginner', 'Machine: Assisted Dip & Chin-Up Machine', 'Kneel on counter-weighted pad, grip overhead handles, and pull chin above bar with controlled tempo.'),
+(4, 'Seated Chest Press Machine', 'Chest', 'Beginner', 'Machine: Converging Chest Press Machine', 'Adjust seat so handles align with mid-chest; press forward until arms extend without locking elbows.'),
+(5, 'Pec Deck Butterfly Machine', 'Chest', 'Beginner', 'Machine: Pec Deck Fly Station', 'Sit with back flat against pad and bring padded arms together in front of chest in a wide arc.'),
+(6, 'Incline Smith Machine Press', 'Chest', 'Intermediate', 'Machine: Angled Smith Machine', 'Set bench to 30 degrees inside Smith Machine; unlatch bar, lower to upper chest, and press up.'),
+(7, '45° Leg Press Machine', 'Legs', 'Beginner', 'Machine: 45-Degree Leg Press Sled', 'Place feet shoulder-width on sled platform, release safety catches, lower until knees reach 90°, and drive up.'),
+(8, 'Seated Leg Extension Machine', 'Legs', 'Beginner', 'Machine: Quad Extension Machine', 'Align knee joint with machine pivot, hook ankles behind roller pad, and extend legs until straight.'),
+(9, 'Lying Hamstring Curl Machine', 'Legs', 'Beginner', 'Machine: Prone Leg Curl Machine', 'Lie face down with roller pad just above heels; curl legs up toward glutes and lower slowly.'),
+(10, 'Standing Calf Raise Machine', 'Legs', 'Beginner', 'Machine: Standing Calf Machine', 'Place shoulders under pads and balls of feet on step; rise onto toes for full calf contraction.'),
+(11, 'Hack Squat Machine', 'Legs', 'Intermediate', 'Machine: Linear Hack Squat Sled', 'Rest back against angled carriage pad, unlock safety handles, squat to parallel, and drive through heels.'),
+(12, 'Seated Shoulder Press Machine', 'Shoulders', 'Beginner', 'Machine: Overhead Press Machine', 'Sit upright with handles at ear level and press overhead smoothly without arching lower back.'),
+(13, 'Rear Delt Reverse Fly Machine', 'Shoulders', 'Beginner', 'Machine: Rear Delt / Pec Deck Machine', 'Face the pad with chest supported, grasp outer handles, and sweep arms back to target rear deltoids.'),
+(14, 'Cable Lateral Raise', 'Shoulders', 'Intermediate', 'Machine: Dual Adjustable Pulley Tower', 'Stand beside low pulley, grasp D-handle, and raise arm out to shoulder height with a slight elbow bend.'),
+(15, 'Cable Rope Tricep Pushdown', 'Arms', 'Beginner', 'Machine: High Pulley Cable Station', 'Pin elbows to sides, grip rope attachment, and extend forearms downward until triceps fully contract.'),
+(16, 'Seated Preacher Curl Machine', 'Arms', 'Beginner', 'Machine: Bicep Preacher Curl Machine', 'Rest upper arms flat on angled preacher pad, grasp handles, and curl upward with full control.'),
+(17, 'Low-Pulley Cable Bicep Curl', 'Arms', 'Beginner', 'Machine: Low Pulley Cable Station', 'Stand tall facing low pulley with EZ-curl bar attachment and curl toward shoulders while keeping elbows fixed.'),
+(18, 'Captain''s Chair Knee Raise', 'Core', 'Beginner', 'Machine: Captain''s Chair / Roman Chair', 'Support body on forearm pads with back pressed against support and raise knees toward chest.'),
+(19, 'Seated Ab Crunch Machine', 'Core', 'Beginner', 'Machine: Abdominal Crunch Machine', 'Grip top handles, brace core, and curl torso forward against resistance pad without pulling with arms.'),
+(20, 'Treadmill Incline Power Walk / Jog', 'Full Body', 'Beginner', 'Machine: Motorized Gym Treadmill', 'Set incline to 4–8% at a brisk walking or jogging pace to burn calories and condition the lower body.'),
+(21, 'Stationary Rowing Ergometer', 'Full Body', 'Beginner', 'Machine: Indoor Concept Rower', 'Drive with legs first, hinge back slightly, and pull handle to lower ribs in a smooth continuous rhythm.'),
+(22, 'Push-Up', 'Chest', 'Beginner', 'Bodyweight', 'Keep body in a straight plank line, lower chest to floor, and press back up.'),
+(23, 'Bodyweight Air Squat', 'Legs', 'Beginner', 'Bodyweight', 'Stand shoulder-width apart, sit hips back and down keeping chest upright, then stand.'),
+(24, 'Forward Walking Lunge', 'Legs', 'Beginner', 'Bodyweight', 'Step forward with one leg, lower hips until both knees form 90-degree angles, push back.'),
+(25, 'Forearm Plank Hold', 'Core', 'Beginner', 'Bodyweight', 'Hold a rigid straight-body position supported on forearms and toes with braced core.'),
+(26, 'Bicycle Crunches', 'Core', 'Beginner', 'Bodyweight', 'Lie on back, alternate touching elbow to opposite knee while extending the other leg.'),
+(27, 'Dumbbell Goblet Squat', 'Legs', 'Beginner', 'Dumbbells', 'Hold one dumbbell vertically at chest height and perform a controlled full squat.'),
+(28, 'Flat Dumbbell Chest Press', 'Chest', 'Beginner', 'Dumbbells', 'Lie on flat bench and press dumbbells from chest level up until arms are extended.'),
+(29, 'One-Arm Dumbbell Row', 'Back', 'Beginner', 'Dumbbells', 'Support one hand on bench, keep back flat, and pull dumbbell toward hip crease.'),
+(30, 'Seated Dumbbell Shoulder Press', 'Shoulders', 'Beginner', 'Dumbbells', 'Sit upright on bench and press dumbbells overhead without arching the lower back.'),
+(31, 'Alternating Dumbbell Bicep Curl', 'Arms', 'Beginner', 'Dumbbells', 'Stand tall with elbows tucked at sides and curl dumbbells upward with full control.'),
+(32, 'Barbell Bench Press', 'Chest', 'Intermediate', 'Barbell', 'Lie on flat bench, unrack barbell, lower with control to mid-chest, and press upward.');
 
 -- ============================================================================
 -- 6. SEED DATA: WORKOUT PLANS & WORKOUT PLAN EXERCISES

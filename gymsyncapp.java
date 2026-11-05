@@ -138,10 +138,93 @@ public class gymsyncapp extends JFrame {
         public String difficulty;
         public String equipment;
         public String description;
+        public String customGifOrImagePath;
+
+        public boolean requiresMachine() {
+            if (equipment == null) return false;
+            String eq = equipment.toLowerCase();
+            return eq.contains("machine") || eq.contains("cable") || eq.contains("pulley")
+                    || eq.contains("sled") || eq.contains("station") || eq.contains("tower")
+                    || eq.contains("treadmill") || eq.contains("rower") || eq.contains("chair")
+                    || eq.contains("pec deck") || eq.contains("smith");
+        }
+
+        public String getMachineBadgeText() {
+            if (!requiresMachine()) return "✓ No Machine (" + equipment + ")";
+            return "⚙ " + equipment.replace("Machine: ", "");
+        }
+
+        public String getDefaultGifFilename() {
+            switch (exerciseId) {
+                case 1:  return "ex_01_lat_pulldown.gif";
+                case 2:  return "ex_02_seated_cable_row.gif";
+                case 3:  return "ex_03_assisted_pullup.gif";
+                case 4:  return "ex_04_chest_press_machine.gif";
+                case 5:  return "ex_05_pec_deck_fly.gif";
+                case 6:  return "ex_06_incline_smith_press.gif";
+                case 7:  return "ex_07_leg_press_sled.gif";
+                case 8:  return "ex_08_leg_extension.gif";
+                case 9:  return "ex_09_hamstring_curl.gif";
+                case 10: return "ex_10_calf_raise.gif";
+                case 11: return "ex_11_hack_squat.gif";
+                case 12: return "ex_12_shoulder_press_machine.gif";
+                case 13: return "ex_13_rear_delt_fly.gif";
+                case 14: return "ex_14_cable_lateral_raise.gif";
+                case 15: return "ex_15_tricep_pushdown.gif";
+                case 16: return "ex_16_preacher_curl.gif";
+                case 17: return "ex_17_cable_bicep_curl.gif";
+                case 18: return "ex_18_captains_chair.gif";
+                case 19: return "ex_19_ab_crunch_machine.gif";
+                case 20: return "ex_20_treadmill_incline.gif";
+                case 21: return "ex_21_rowing_machine.gif";
+                case 22: return "ex_22_push_up.gif";
+                case 23: return "ex_23_air_squat.gif";
+                case 24: return "ex_24_walking_lunge.gif";
+                case 25: return "ex_25_forearm_plank.gif";
+                case 26: return "ex_26_bicycle_crunches.gif";
+                case 27: return "ex_27_goblet_squat.gif";
+                case 28: return "ex_28_dumbbell_chest_press.gif";
+                case 29: return "ex_29_dumbbell_row.gif";
+                case 30: return "ex_30_dumbbell_shoulder_press.gif";
+                case 31: return "ex_31_dumbbell_bicep_curl.gif";
+                case 32: return "ex_32_barbell_bench_press.gif";
+                default: return muscleGroup.toLowerCase().replace(" ", "_") + ".gif";
+            }
+        }
+
+        public String getPrimaryMuscles() {
+            String n = name != null ? name.toLowerCase() : "";
+            if (n.contains("pulldown") || n.contains("pull-up")) return "Latissimus Dorsi, Upper Lats";
+            if (n.contains("row") && !n.contains("ergometer")) return "Middle Back (Rhomboids, Traps), Lats";
+            if (n.contains("incline")) return "Upper Pectoralis Major (Clavicular)";
+            if (n.contains("pec deck") || n.contains("chest") || n.contains("push-up") || n.contains("bench")) return "Pectoralis Major (Sternal)";
+            if (n.contains("extension")) return "Quadriceps (Rectus Femoris, Vastus)";
+            if (n.contains("hamstring") || n.contains("leg curl")) return "Hamstrings (Biceps Femoris)";
+            if (n.contains("calf")) return "Gastrocnemius & Soleus (Calves)";
+            if (n.contains("leg press") || n.contains("squat") || n.contains("lunge")) return "Quadriceps, Gluteus Maximus";
+            if (n.contains("rear delt")) return "Posterior Deltoid (Rear Delts)";
+            if (n.contains("lateral")) return "Lateral Deltoid (Side Delts)";
+            if (n.contains("shoulder")) return "Anterior & Lateral Deltoids";
+            if (n.contains("tricep") || n.contains("pushdown")) return "Triceps Brachii (Long & Lateral Head)";
+            if (n.contains("curl")) return "Biceps Brachii & Brachialis";
+            if (n.contains("captain") || n.contains("crunch") || n.contains("plank")) return "Rectus Abdominis & Obliques";
+            return "Full Body (Quads, Glutes, Lats, Core)";
+        }
+
+        public String getSecondaryMuscles() {
+            String mg = muscleGroup != null ? muscleGroup.toLowerCase() : "";
+            if (mg.contains("chest")) return "Anterior Deltoids, Triceps Brachii";
+            if (mg.contains("back")) return "Biceps Brachii, Rear Deltoids, Forearms";
+            if (mg.contains("leg")) return "Hamstrings, Calves, Core Stabilizers";
+            if (mg.contains("shoulder")) return "Triceps Brachii, Upper Trapezius";
+            if (mg.contains("arm")) return "Forearm Flexors, Anterior Delts";
+            if (mg.contains("core")) return "Hip Flexors, Transverse Abdominis";
+            return "Hamstrings, Shoulders, Cardiovascular System";
+        }
 
         @Override
         public String toString() {
-            return name + " (" + muscleGroup + " • " + equipment + ")";
+            return name + " [" + muscleGroup + " • " + (requiresMachine() ? "⚙ " + equipment : equipment) + "]";
         }
     }
 
@@ -206,6 +289,17 @@ public class gymsyncapp extends JFrame {
                 int daysPerWeek,
                 String equipmentPref,
                 List<Exercise> allExercises) {
+            return generateRuleBasedPlan(userId, goal, fitnessLevel, daysPerWeek, equipmentPref, true, allExercises);
+        }
+
+        public static WorkoutPlan generateRuleBasedPlan(
+                int userId,
+                String goal,
+                String fitnessLevel,
+                int daysPerWeek,
+                String equipmentPref,
+                boolean includeMachines,
+                List<Exercise> allExercises) {
 
             WorkoutPlan plan = new WorkoutPlan();
             plan.userId = userId;
@@ -214,7 +308,8 @@ public class gymsyncapp extends JFrame {
             plan.dateCreated = LocalDate.now();
 
             List<Exercise> pool = allExercises.stream()
-                    .filter(ex -> matchesEquipment(ex.equipment, equipmentPref))
+                    .filter(ex -> includeMachines || !ex.requiresMachine())
+                    .filter(ex -> matchesEquipment(ex.equipment, equipmentPref, includeMachines))
                     .filter(ex -> matchesDifficulty(ex.difficulty, fitnessLevel))
                     .collect(Collectors.toList());
 
@@ -259,16 +354,19 @@ public class gymsyncapp extends JFrame {
             return plan;
         }
 
-        private static boolean matchesEquipment(String exEquip, String pref) {
+        private static boolean matchesEquipment(String exEquip, String pref, boolean includeMachines) {
+            String eq = exEquip != null ? exEquip.toLowerCase() : "";
+            boolean isMachine = eq.contains("machine") || eq.contains("station") || eq.contains("sled")
+                    || eq.contains("tower") || eq.contains("treadmill") || eq.contains("rower") || eq.contains("chair");
+            if (!includeMachines && isMachine) return false;
             if (pref.equalsIgnoreCase("Full Gym")) return true;
-            if (pref.equalsIgnoreCase("Bodyweight")) return exEquip.equalsIgnoreCase("Bodyweight");
+            if (pref.equalsIgnoreCase("Gym Machines Only")) return isMachine;
+            if (pref.equalsIgnoreCase("Bodyweight")) return eq.contains("bodyweight");
             if (pref.equalsIgnoreCase("Dumbbells")) {
-                return exEquip.equalsIgnoreCase("Bodyweight") || exEquip.equalsIgnoreCase("Dumbbells");
+                return eq.contains("bodyweight") || eq.contains("dumbbell");
             }
             if (pref.equalsIgnoreCase("Machine")) {
-                return exEquip.equalsIgnoreCase("Bodyweight")
-                        || exEquip.equalsIgnoreCase("Machine")
-                        || exEquip.equalsIgnoreCase("Dumbbells");
+                return isMachine || eq.contains("bodyweight");
             }
             return true;
         }
@@ -584,30 +682,41 @@ public class gymsyncapp extends JFrame {
             addSeedMembership(uKevin.userId, today.minusDays(45), today.minusDays(15));
             addSeedMembership(uHannah.userId, today.minusDays(28), today.plusDays(2));
 
+            // 21 Commercial Gym Machine Workouts
+            addSeedExercise("Lat Pulldown Machine", "Back", "Beginner", "Machine: Lat Pulldown Station", "Sit tall with thighs secured under pads; pull wide bar smoothly down to upper chest while squeezing lats.");
+            addSeedExercise("Seated Cable Row Machine", "Back", "Beginner", "Machine: Seated Cable Row Station", "Brace feet on platform, keep spine neutral, and pull V-handle to midsection while retracting shoulder blades.");
+            addSeedExercise("Assisted Pull-Up Machine", "Back", "Beginner", "Machine: Assisted Dip & Chin-Up Machine", "Kneel on counter-weighted pad, grip overhead handles, and pull chin above bar with controlled tempo.");
+            addSeedExercise("Seated Chest Press Machine", "Chest", "Beginner", "Machine: Converging Chest Press Machine", "Adjust seat so handles align with mid-chest; press forward until arms extend without locking elbows.");
+            addSeedExercise("Pec Deck Butterfly Machine", "Chest", "Beginner", "Machine: Pec Deck Fly Station", "Sit with back flat against pad and bring padded arms together in front of chest in a wide arc.");
+            addSeedExercise("Incline Smith Machine Press", "Chest", "Intermediate", "Machine: Angled Smith Machine", "Set bench to 30 degrees inside Smith Machine; unlatch bar, lower to upper chest, and press up.");
+            addSeedExercise("45° Leg Press Machine", "Legs", "Beginner", "Machine: 45-Degree Leg Press Sled", "Place feet shoulder-width on sled platform, release safety catches, lower until knees reach 90°, and drive up.");
+            addSeedExercise("Seated Leg Extension Machine", "Legs", "Beginner", "Machine: Quad Extension Machine", "Align knee joint with machine pivot, hook ankles behind roller pad, and extend legs until straight.");
+            addSeedExercise("Lying Hamstring Curl Machine", "Legs", "Beginner", "Machine: Prone Leg Curl Machine", "Lie face down with roller pad just above heels; curl legs up toward glutes and lower slowly.");
+            addSeedExercise("Standing Calf Raise Machine", "Legs", "Beginner", "Machine: Standing Calf Machine", "Place shoulders under pads and balls of feet on step; rise onto toes for full calf contraction.");
+            addSeedExercise("Hack Squat Machine", "Legs", "Intermediate", "Machine: Linear Hack Squat Sled", "Rest back against angled carriage pad, unlock safety handles, squat to parallel, and drive through heels.");
+            addSeedExercise("Seated Shoulder Press Machine", "Shoulders", "Beginner", "Machine: Overhead Press Machine", "Sit upright with handles at ear level and press overhead smoothly without arching lower back.");
+            addSeedExercise("Rear Delt Reverse Fly Machine", "Shoulders", "Beginner", "Machine: Rear Delt / Pec Deck Machine", "Face the pad with chest supported, grasp outer handles, and sweep arms back to target rear deltoids.");
+            addSeedExercise("Cable Lateral Raise", "Shoulders", "Intermediate", "Machine: Dual Adjustable Pulley Tower", "Stand beside low pulley, grasp D-handle, and raise arm out to shoulder height with a slight elbow bend.");
+            addSeedExercise("Cable Rope Tricep Pushdown", "Arms", "Beginner", "Machine: High Pulley Cable Station", "Pin elbows to sides, grip rope attachment, and extend forearms downward until triceps fully contract.");
+            addSeedExercise("Seated Preacher Curl Machine", "Arms", "Beginner", "Machine: Bicep Preacher Curl Machine", "Rest upper arms flat on angled preacher pad, grasp handles, and curl upward with full control.");
+            addSeedExercise("Low-Pulley Cable Bicep Curl", "Arms", "Beginner", "Machine: Low Pulley Cable Station", "Stand tall facing low pulley with EZ-curl bar attachment and curl toward shoulders while keeping elbows fixed.");
+            addSeedExercise("Captain's Chair Knee Raise", "Core", "Beginner", "Machine: Captain's Chair / Roman Chair", "Support body on forearm pads with back pressed against support and raise knees toward chest.");
+            addSeedExercise("Seated Ab Crunch Machine", "Core", "Beginner", "Machine: Abdominal Crunch Machine", "Grip top handles, brace core, and curl torso forward against resistance pad without pulling with arms.");
+            addSeedExercise("Treadmill Incline Power Walk / Jog", "Full Body", "Beginner", "Machine: Motorized Gym Treadmill", "Set incline to 4–8% at a brisk walking or jogging pace to burn calories and condition the lower body.");
+            addSeedExercise("Stationary Rowing Ergometer", "Full Body", "Beginner", "Machine: Indoor Concept Rower", "Drive with legs first, hinge back slightly, and pull handle to lower ribs in a smooth continuous rhythm.");
+
+            // 11 Free Weight & Bodyweight Workouts (No Machine Required)
             addSeedExercise("Push-Up", "Chest", "Beginner", "Bodyweight", "Keep body in a straight plank line, lower chest to floor, and press back up.");
-            addSeedExercise("Bodyweight Squat", "Legs", "Beginner", "Bodyweight", "Stand shoulder-width apart, sit hips back and down keeping chest upright, then stand.");
-            addSeedExercise("Forward Lunge", "Legs", "Beginner", "Bodyweight", "Step forward with one leg, lower hips until both knees form 90-degree angles, push back.");
-            addSeedExercise("Forearm Plank", "Core", "Beginner", "Bodyweight", "Hold a rigid straight-body position supported on forearms and toes with braced core.");
-            addSeedExercise("Glute Bridge", "Legs", "Beginner", "Bodyweight", "Lie on back with knees bent, drive through heels to lift hips until aligned with knees.");
-            addSeedExercise("Mountain Climbers", "Full Body", "Beginner", "Bodyweight", "From high plank position, alternate driving knees toward chest at a steady brisk pace.");
+            addSeedExercise("Bodyweight Air Squat", "Legs", "Beginner", "Bodyweight", "Stand shoulder-width apart, sit hips back and down keeping chest upright, then stand.");
+            addSeedExercise("Forward Walking Lunge", "Legs", "Beginner", "Bodyweight", "Step forward with one leg, lower hips until both knees form 90-degree angles, push back.");
+            addSeedExercise("Forearm Plank Hold", "Core", "Beginner", "Bodyweight", "Hold a rigid straight-body position supported on forearms and toes with braced core.");
             addSeedExercise("Bicycle Crunches", "Core", "Beginner", "Bodyweight", "Lie on back, alternate touching elbow to opposite knee while extending the other leg.");
-            addSeedExercise("Burpees", "Full Body", "Intermediate", "Bodyweight", "Drop into a squat with hands on floor, kick feet back to plank, return to squat, and jump.");
-            addSeedExercise("Pull-Up", "Back", "Advanced", "Bodyweight", "Grip overhead bar slightly wider than shoulders and pull chin cleanly above the bar.");
             addSeedExercise("Dumbbell Goblet Squat", "Legs", "Beginner", "Dumbbells", "Hold one dumbbell vertically at chest height and perform a controlled full squat.");
-            addSeedExercise("Dumbbell Chest Press", "Chest", "Beginner", "Dumbbells", "Lie on flat bench and press dumbbells from chest level up until arms are extended.");
+            addSeedExercise("Flat Dumbbell Chest Press", "Chest", "Beginner", "Dumbbells", "Lie on flat bench and press dumbbells from chest level up until arms are extended.");
             addSeedExercise("One-Arm Dumbbell Row", "Back", "Beginner", "Dumbbells", "Support one hand on bench, keep back flat, and pull dumbbell toward hip crease.");
             addSeedExercise("Seated Dumbbell Shoulder Press", "Shoulders", "Beginner", "Dumbbells", "Sit upright on bench and press dumbbells overhead without arching the lower back.");
-            addSeedExercise("Dumbbell Bicep Curl", "Arms", "Beginner", "Dumbbells", "Stand tall with elbows tucked at sides and curl dumbbells upward with full control.");
-            addSeedExercise("Overhead Dumbbell Tricep Extension", "Arms", "Beginner", "Dumbbells", "Hold dumbbell overhead with both hands, lower behind head by bending elbows, and extend.");
-            addSeedExercise("Dumbbell Romanian Deadlift", "Legs", "Intermediate", "Dumbbells", "Hinge at the hips with a slight knee bend, lowering dumbbells along shins, then squeeze glutes.");
-            addSeedExercise("Dumbbell Lateral Raise", "Shoulders", "Beginner", "Dumbbells", "Raise dumbbells out to the sides to shoulder height with a slight bend in the elbows.");
-            addSeedExercise("Lat Pulldown (Machine)", "Back", "Beginner", "Machine", "Sit at pulldown station, lean back slightly, and pull wide bar down to upper chest.");
-            addSeedExercise("Seated Cable Row", "Back", "Beginner", "Machine", "Sit tall with feet braced, pull handle to midsection while squeezing shoulder blades together.");
-            addSeedExercise("Leg Press (Machine)", "Legs", "Beginner", "Machine", "Place feet hip-width on sled platform, lower weight until knees reach 90 degrees, press up.");
-            addSeedExercise("Chest Press Machine", "Chest", "Beginner", "Machine", "Adjust seat height so handles align with mid-chest and press forward smoothly.");
-            addSeedExercise("Cable Tricep Pushdown", "Arms", "Beginner", "Machine", "Keep elbows pinned to sides and push rope or bar attachment down until arms lock out.");
+            addSeedExercise("Alternating Dumbbell Bicep Curl", "Arms", "Beginner", "Dumbbells", "Stand tall with elbows tucked at sides and curl dumbbells upward with full control.");
             addSeedExercise("Barbell Bench Press", "Chest", "Intermediate", "Barbell", "Lie on flat bench, unrack barbell, lower with control to mid-chest, and press upward.");
-            addSeedExercise("Barbell Back Squat", "Legs", "Intermediate", "Barbell", "Rest barbell across upper traps, brace core, squat to parallel, and drive back up.");
 
             WorkoutPlan initialPlan = BusinessRules.generateRuleBasedPlan(
                     uCarlos.userId, "Weight Loss", "Beginner", 3, "Dumbbells", exercises);
@@ -1058,13 +1167,13 @@ public class gymsyncapp extends JFrame {
 
             // Info Tiles
             y += 28;
-            y = drawDetailTile(g2, 18, y, w - 36, "FITNESS LEVEL & DEMOGRAPHICS",
+            y = drawDetailTile(g2, 18, y, w - 36, "FITNESS LEVEL & PROFILE",
                     (member.fitnessLevel != null ? member.fitnessLevel : "Beginner") + "  •  " +
-                    (member.gender != null ? member.gender : "N/A") + "  •   Born: " +
-                    (member.birthdate != null ? member.birthdate : "N/A"));
+                    (member.gender != null ? member.gender : "Unspecified") +
+                    (member.birthdate != null ? ("  •  Born: " + member.birthdate) : ""));
 
             y = drawDetailTile(g2, 18, y, w - 36, "CONTACT & ADDRESS",
-                    member.contactNo + "  •  " + (member.address != null ? member.address : "Imus, Cavite"));
+                    member.contactNo + ((member.address != null && !member.address.isEmpty()) ? ("  •  " + member.address) : "  •  Address optional"));
 
             y = drawDetailTile(g2, 18, y, w - 36, "EMERGENCY CONTACT",
                     (member.emergencyContactName != null ? member.emergencyContactName : "N/A") +
@@ -1091,6 +1200,486 @@ public class gymsyncapp extends JFrame {
             g2.setFont(new Font("SansSerif", Font.BOLD, 12));
             g2.drawString(val, x + 14, y + 38);
             return y + 58;
+        }
+    }
+
+
+    /**
+     * Play Store style Animated Workout Demonstration & Target Muscle Anatomy Card.
+     * Displays:
+     *   1. Pulsing Front & Back Human Muscle Anatomy Map highlighting the exact target muscle group.
+     *   2. Live animated workout motion demonstration (or attached GIF/PNG image via ImageIcon).
+     *   3. Machine Requirement Badge ("⚙ REQUIRES GYM MACHINE" vs "✓ NO MACHINE NEEDED").
+     *   4. Coaching cues & "Attach Custom GIF / Image" button.
+     */
+    private class WorkoutVisualCard extends JPanel {
+        private Exercise exercise;
+        private int animTick = 0;
+        private final javax.swing.Timer animTimer;
+        private ImageIcon activeGifIcon;
+        private String loadedSourceLabel = "Built-In 60FPS Engine";
+
+        public WorkoutVisualCard() {
+            setOpaque(false);
+            setPreferredSize(new Dimension(385, 0));
+            setLayout(new BorderLayout());
+
+            JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
+            bottomBar.setOpaque(false);
+
+            JButton btnLocalGif = createStyledButton("🖼 Local GIF / File", CARD_HIGHLIGHT, CYBER_CYAN);
+            JButton btnUrlGif   = createStyledButton("🌐 Sync GIF URL (Offline Cache)", ELECTRIC_INDIGO, Color.WHITE);
+
+            btnLocalGif.addActionListener(e -> {
+                if (exercise == null) return;
+                JFileChooser fc = new JFileChooser();
+                fc.setDialogTitle("Select Animated GIF or Image for " + exercise.name);
+                if (fc.showOpenDialog(gymsyncapp.this) == JFileChooser.APPROVE_OPTION) {
+                    try {
+                        java.io.File src = fc.getSelectedFile();
+                        java.io.File imgDir = new java.io.File("images");
+                        if (!imgDir.exists()) imgDir.mkdirs();
+                        java.io.File dest = new java.io.File(imgDir, exercise.getDefaultGifFilename());
+                        java.nio.file.Files.copy(src.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        exercise.customGifOrImagePath = dest.getAbsolutePath();
+                        loadGifForExercise(exercise);
+                        JOptionPane.showMessageDialog(gymsyncapp.this,
+                                "Saved to local offline cache:\n" + dest.getPath() + "\nThis workout GIF will now load 100% offline!",
+                                "Offline GIF Cached", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception ex) {
+                        exercise.customGifOrImagePath = fc.getSelectedFile().getAbsolutePath();
+                        loadGifForExercise(exercise);
+                    }
+                }
+            });
+
+            btnUrlGif.addActionListener(e -> {
+                if (exercise == null) return;
+                String urlStr = JOptionPane.showInputDialog(gymsyncapp.this,
+                        "Paste any direct .gif or .png URL (from Fitness Programer, ExerciseDB, or GitHub)\n" +
+                        "to download and cache offline for '" + exercise.name + "':",
+                        "Sync Online GIF to Offline Cache", JOptionPane.QUESTION_MESSAGE);
+                if (urlStr == null || urlStr.trim().isEmpty()) return;
+                try {
+                    java.io.File imgDir = new java.io.File("images");
+                    if (!imgDir.exists()) imgDir.mkdirs();
+                    java.io.File dest = new java.io.File(imgDir, exercise.getDefaultGifFilename());
+                    try (java.io.InputStream in = new java.net.URL(urlStr.trim()).openStream()) {
+                        java.nio.file.Files.copy(in, dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    exercise.customGifOrImagePath = dest.getAbsolutePath();
+                    loadGifForExercise(exercise);
+                    JOptionPane.showMessageDialog(gymsyncapp.this,
+                            "Downloaded and cached offline to:\n" + dest.getPath() + "\nWorks 100% offline even without Wi-Fi!",
+                            "GIF Synced & Cached Offline", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(gymsyncapp.this,
+                            "Could not download URL (" + ex.getMessage() + ").\nUsing built-in offline biomechanical animation instead.",
+                            "Offline Fallback Active", JOptionPane.WARNING_MESSAGE);
+                }
+            });
+
+            bottomBar.add(btnLocalGif);
+            bottomBar.add(btnUrlGif);
+            add(bottomBar, BorderLayout.SOUTH);
+
+            animTimer = new javax.swing.Timer(75, e -> {
+                animTick = (animTick + 1) % 24;
+                if (isShowing()) {
+                    repaint();
+                }
+            });
+            animTimer.start();
+        }
+
+        private void loadGifForExercise(Exercise ex) {
+            activeGifIcon = null;
+            loadedSourceLabel = "Offline Biomechanical Engine";
+            if (ex == null) return;
+
+            String[] candidatePaths = new String[]{
+                    ex.customGifOrImagePath,
+                    "images/" + ex.getDefaultGifFilename(),
+                    "GymSync_NetBeans_Project/images/" + ex.getDefaultGifFilename(),
+                    "images/" + ex.muscleGroup.toLowerCase().replace(" ", "_") + ".gif"
+            };
+            for (String path : candidatePaths) {
+                if (path != null && !path.isEmpty()) {
+                    java.io.File f = new java.io.File(path);
+                    if (f.exists() && f.length() > 0) {
+                        activeGifIcon = new ImageIcon(f.getAbsolutePath());
+                        activeGifIcon.setImageObserver(this);
+                        loadedSourceLabel = "Offline GIF (" + f.getName() + ")";
+                        break;
+                    }
+                }
+            }
+            repaint();
+        }
+
+        public void setExercise(Exercise ex) {
+            this.exercise = ex;
+            loadGifForExercise(ex);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            g2.setColor(CARD_SURFACE);
+            g2.fillRoundRect(0, 0, w - 1, h - 1, 24, 24);
+            g2.setColor(BORDER_SUBTLE);
+            g2.drawRoundRect(0, 0, w - 1, h - 1, 24, 24);
+
+            if (exercise == null) {
+                g2.setColor(CYBER_CYAN);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 13));
+                g2.drawString("🏋️ WORKOUT & MUSCLE TARGET PREVIEW", 22, 36);
+                g2.setColor(TEXT_SECONDARY);
+                g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
+                g2.drawString("Tap any workout row to view its", 22, 72);
+                g2.drawString("anatomical muscle map, animated GIF,", 22, 94);
+                g2.drawString("and machine requirement details.", 22, 116);
+                g2.dispose();
+                return;
+            }
+
+            boolean needsMachine = exercise.requiresMachine();
+            Color headerStart = needsMachine ? ELECTRIC_INDIGO : new Color(5, 150, 105);
+            Color headerEnd   = needsMachine ? VIOLET_GLOW     : NEON_EMERALD;
+
+            // Top Gradient Header Banner
+            g2.setPaint(new GradientPaint(0, 0, headerStart, w, 90, headerEnd));
+            g2.fillRoundRect(10, 10, w - 20, 90, 18, 18);
+
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 15));
+            String title = exercise.name.length() > 30 ? exercise.name.substring(0, 28) + "…" : exercise.name;
+            g2.drawString(title, 20, 36);
+
+            String machTag = needsMachine
+                    ? "⚙ MACHINE: " + exercise.equipment.replace("Machine: ", "")
+                    : "✓ NO MACHINE (" + exercise.equipment.toUpperCase() + ")";
+            g2.setColor(new Color(11, 15, 25, 185));
+            g2.fillRoundRect(18, 48, w - 36, 26, 12, 12);
+            g2.setColor(needsMachine ? AMBER_GOLD : NEON_EMERALD);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+            g2.drawString(machTag.length() > 44 ? machTag.substring(0, 42) + "…" : machTag, 28, 65);
+
+            // Visual Canvas (210px tall)
+            int canvasY = 108;
+            int canvasH = 212;
+            g2.setColor(BG_OBSIDIAN);
+            g2.fillRoundRect(12, canvasY, w - 24, canvasH, 18, 18);
+            g2.setColor(BORDER_SUBTLE);
+            g2.drawRoundRect(12, canvasY, w - 24, canvasH, 18, 18);
+
+            // If user attached a custom external GIF/PNG, show it; otherwise render crisp vector Anatomical Red Muscle Map + Exercise-Specific Motion
+            if (exercise.customGifOrImagePath != null && activeGifIcon != null && activeGifIcon.getIconWidth() > 0) {
+                g2.drawImage(activeGifIcon.getImage(), 18, canvasY + 6, w - 36, canvasH - 12, this);
+            } else {
+                double phase = Math.abs(12 - animTick) / 12.0;
+                boolean pulse = (animTick % 4 < 2);
+
+                // Left Half: Anatomical Body Map with Red Primary & Orange Secondary Muscle Highlights (like Fitness Programer)
+                g2.setColor(CORAL_RED);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+                g2.drawString("● PRIMARY MUSCLE MAP", 24, canvasY + 18);
+                drawAnatomicalMuscleMap(g2, 96, canvasY + 108, exercise.muscleGroup, pulse);
+
+                g2.setColor(BORDER_SUBTLE);
+                g2.drawLine(w / 2 - 4, canvasY + 10, w / 2 - 4, canvasY + canvasH - 26);
+
+                // Right Half: Exercise-Specific Biomechanical Animation
+                g2.setColor(CYBER_CYAN);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+                g2.drawString("⚡ LIVE WORKOUT MOTION", w / 2 + 8, canvasY + 18);
+                drawExerciseSpecificMotion(g2, (w * 3) / 4 - 2, canvasY + 105, exercise, phase);
+
+                // Legend Strip at bottom of visual canvas
+                g2.setColor(BG_SURFACE);
+                g2.fillRoundRect(16, canvasY + canvasH - 24, w - 32, 20, 8, 8);
+                g2.setColor(CORAL_RED);
+                g2.fillRect(24, canvasY + canvasH - 18, 8, 8);
+                g2.setColor(TEXT_PRIMARY);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+                g2.drawString("Primary", 36, canvasY + canvasH - 10);
+
+                g2.setColor(AMBER_GOLD);
+                g2.fillRect(88, canvasY + canvasH - 18, 8, 8);
+                g2.setColor(TEXT_SECONDARY);
+                g2.drawString("Secondary", 100, canvasY + canvasH - 10);
+
+                g2.setColor(NEON_EMERALD);
+                g2.drawString("● " + loadedSourceLabel, 175, canvasY + canvasH - 10);
+            }
+
+            // Primary & Secondary Muscles Tile
+            int ty = canvasY + canvasH + 10;
+            g2.setColor(CARD_HIGHLIGHT);
+            g2.fillRoundRect(12, ty, w - 24, 52, 14, 14);
+            g2.setColor(CORAL_RED);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+            g2.drawString("PRIMARY TARGET: " + exercise.getPrimaryMuscles().toUpperCase(), 22, ty + 18);
+            g2.setColor(AMBER_GOLD);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+            g2.drawString("Secondary: " + exercise.getSecondaryMuscles(), 22, ty + 38);
+
+            // Step-by-Step Cues Tile
+            ty += 60;
+            g2.setColor(CARD_HIGHLIGHT);
+            g2.fillRoundRect(12, ty, w - 24, 78, 14, 14);
+            g2.setColor(TEXT_MUTED);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+            g2.drawString("FORM & MACHINE SETUP CUES (" + exercise.difficulty.toUpperCase() + ")", 22, ty + 16);
+            g2.setColor(TEXT_PRIMARY);
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
+            drawWrappedText(g2, exercise.description, 22, ty + 34, w - 44, 15);
+
+            g2.dispose();
+        }
+
+        private void drawAnatomicalMuscleMap(Graphics2D g2, int cx, int cy, String mg, boolean pulse) {
+            Color baseBody = new Color(45, 58, 78);
+            Color outline  = new Color(148, 163, 184);
+            Color primCol  = pulse ? new Color(244, 63, 94) : new Color(225, 29, 72); // Glowing Red Primary Muscle
+            Color secCol   = new Color(251, 146, 60, 210);                             // Orange Secondary Muscle
+
+            String m = mg != null ? mg.toLowerCase() : "";
+
+            // Head & Neck
+            g2.setColor(baseBody);
+            g2.fillOval(cx - 11, cy - 68, 22, 24);
+            g2.setColor(outline);
+            g2.drawOval(cx - 11, cy - 68, 22, 24);
+            g2.setColor(baseBody);
+            g2.fillRect(cx - 4, cy - 44, 8, 7);
+
+            // Deltoids (Shoulders)
+            Color deltCol = m.contains("shoulder") ? primCol : ((m.contains("chest") || m.contains("back") || m.contains("full")) ? secCol : baseBody);
+            g2.setColor(deltCol);
+            g2.fillOval(cx - 33, cy - 38, 16, 18);
+            g2.fillOval(cx + 17, cy - 38, 16, 18);
+
+            // Torso Base
+            g2.setColor(baseBody);
+            g2.fillRoundRect(cx - 21, cy - 37, 42, 48, 10, 10);
+
+            // Back Lats (V-Taper Wings)
+            if (m.contains("back") || m.contains("full")) {
+                g2.setColor(primCol);
+                int[] lx = {cx - 21, cx - 29, cx - 18};
+                int[] ly = {cy - 32, cy - 12, cy + 4};
+                g2.fillPolygon(lx, ly, 3);
+                int[] rx = {cx + 21, cx + 29, cx + 18};
+                int[] ry = {cy - 32, cy - 12, cy + 4};
+                g2.fillPolygon(rx, ry, 3);
+                g2.fillRoundRect(cx - 17, cy - 34, 34, 24, 6, 6);
+            }
+
+            // Pectorals (Chest)
+            Color chestCol = (m.contains("chest") || m.contains("full")) ? primCol : (m.contains("shoulder") ? secCol : new Color(62, 76, 99));
+            g2.setColor(chestCol);
+            g2.fillRoundRect(cx - 19, cy - 35, 17, 17, 5, 5);
+            g2.fillRoundRect(cx + 2, cy - 35, 17, 17, 5, 5);
+
+            // Core / 6-Pack Abs
+            Color abCol = (m.contains("core") || m.contains("full")) ? primCol : ((m.contains("leg") || m.contains("back")) ? secCol : new Color(55, 68, 90));
+            g2.setColor(abCol);
+            for (int r = 0; r < 3; r++) {
+                int ay = cy - 15 + r * 8;
+                g2.fillRoundRect(cx - 11, ay, 9, 6, 3, 3);
+                g2.fillRoundRect(cx + 2, ay, 9, 6, 3, 3);
+            }
+
+            // Arms (Biceps & Triceps)
+            Color armCol = m.contains("arm") ? primCol : ((m.contains("chest") || m.contains("back") || m.contains("shoulder") || m.contains("full")) ? secCol : baseBody);
+            g2.setColor(armCol);
+            g2.fillRoundRect(cx - 35, cy - 20, 11, 34, 6, 6);
+            g2.fillRoundRect(cx + 24, cy - 20, 11, 34, 6, 6);
+
+            // Legs (Quads, Hamstrings & Calves)
+            Color legCol = (m.contains("leg") || m.contains("full")) ? primCol : baseBody;
+            g2.setColor(legCol);
+            g2.fillRoundRect(cx - 19, cy + 12, 16, 32, 6, 6);
+            g2.fillRoundRect(cx + 3, cy + 12, 16, 32, 6, 6);
+            g2.fillRoundRect(cx - 17, cy + 45, 13, 26, 5, 5);
+            g2.fillRoundRect(cx + 4, cy + 45, 13, 26, 5, 5);
+        }
+
+        private void drawExerciseSpecificMotion(Graphics2D g2, int mx, int my, Exercise ex, double phase) {
+            int off = (int) (phase * 26);
+            String n = ex.name != null ? ex.name.toLowerCase() : "";
+            boolean isMach = ex.requiresMachine();
+
+            if (isMach) {
+                g2.setColor(new Color(71, 85, 105));
+                g2.setStroke(new BasicStroke(2.2f));
+                g2.drawRoundRect(mx - 58, my - 60, 116, 112, 10, 10);
+                // Animated selectorized weight stack on left of machine frame
+                for (int p = 0; p < 5; p++) {
+                    int py = my + 34 - p * 9 - (p >= 2 ? off / 2 : 0);
+                    g2.setColor(p >= 2 ? AMBER_GOLD : new Color(71, 85, 105));
+                    g2.fillRoundRect(mx - 52, py, 18, 6, 3, 3);
+                }
+            }
+
+            int cx = mx + (isMach ? 10 : 0);
+            g2.setStroke(new BasicStroke(4f));
+
+            if (n.contains("pulldown") || n.contains("pull-up")) {
+                int barY = my - 44 + off;
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx - 8, my - 14, 16, 16);
+                g2.setColor(CORAL_RED);
+                g2.fillRoundRect(cx - 13, my + 2, 26, 30, 6, 6);
+                g2.drawLine(cx - 12, my + 6, cx - 24, barY);
+                g2.drawLine(cx + 12, my + 6, cx + 24, barY);
+                g2.setColor(CYBER_CYAN);
+                g2.drawLine(cx - 34, barY, cx + 34, barY);
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawLine(cx, my - 58, cx, barY);
+            } else if (n.contains("row") && !n.contains("ergometer")) {
+                int hx = cx - 24 + off;
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx + 4, my - 24, 15, 15);
+                g2.setColor(CORAL_RED);
+                g2.fillRoundRect(cx, my - 8, 20, 30, 6, 6);
+                g2.setColor(TEXT_SECONDARY);
+                g2.drawLine(cx + 4, my + 22, cx - 22, my + 26);
+                g2.setColor(CORAL_RED);
+                g2.drawLine(cx + 4, my + 2, hx, my + 4);
+                g2.setColor(CYBER_CYAN);
+                g2.drawLine(cx - 36, my + 4, hx, my + 4);
+            } else if (n.contains("leg press") || n.contains("hack squat")) {
+                int sx = cx + 6 + off / 2;
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx - 28, my + 2, 14, 14);
+                g2.setColor(TEXT_SECONDARY);
+                g2.drawLine(cx - 22, my + 16, cx - 8, my + 32);
+                g2.setColor(CORAL_RED);
+                g2.drawLine(cx - 8, my + 32, cx, my + 10);
+                g2.drawLine(cx, my + 10, sx, my - 6);
+                g2.setColor(CYBER_CYAN);
+                g2.drawLine(sx - 8, my - 20, sx + 8, my + 10);
+            } else if (n.contains("extension") || n.contains("hamstring")) {
+                int py = my + 32 - off;
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx - 14, my - 26, 14, 14);
+                g2.setColor(TEXT_SECONDARY);
+                g2.fillRoundRect(cx - 16, my - 10, 16, 24, 5, 5);
+                g2.setColor(CORAL_RED);
+                g2.drawLine(cx - 4, my + 12, cx + 12, my + 12);
+                g2.drawLine(cx + 12, my + 12, cx + 24, py);
+                g2.setColor(NEON_EMERALD);
+                g2.fillOval(cx + 18, py - 5, 10, 10);
+            } else if (n.contains("squat") || n.contains("lunge") || n.contains("calf")) {
+                int hy = my - 8 + (n.contains("calf") ? -off / 3 : off / 2);
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx - 8, hy - 32, 16, 16);
+                g2.setColor(TEXT_SECONDARY);
+                g2.fillRoundRect(cx - 11, hy - 15, 22, 24, 5, 5);
+                g2.setColor(CORAL_RED);
+                g2.drawLine(cx - 5, hy + 10, cx - 16, hy + 26);
+                g2.drawLine(cx + 5, hy + 10, cx + 16, hy + 26);
+                g2.drawLine(cx - 16, hy + 26, cx - 8, my + 44);
+                g2.drawLine(cx + 16, hy + 26, cx + 8, my + 44);
+            } else if (n.contains("curl") || n.contains("pushdown") || n.contains("tricep")) {
+                int hy = n.contains("curl") ? (my + 20 - off) : (my - 6 + off);
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx - 8, my - 30, 16, 16);
+                g2.setColor(TEXT_SECONDARY);
+                g2.fillRoundRect(cx - 12, my - 12, 24, 30, 6, 6);
+                g2.setColor(CORAL_RED);
+                g2.drawLine(cx - 12, my - 6, cx - 22, hy);
+                g2.drawLine(cx + 12, my - 6, cx + 22, hy);
+                g2.setColor(NEON_EMERALD);
+                g2.drawLine(cx - 28, hy, cx + 28, hy);
+            } else if (n.contains("treadmill") || n.contains("ergometer")) {
+                int stride = (int) ((phase - 0.5) * 24);
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx - 8, my - 32, 16, 16);
+                g2.setColor(CORAL_RED);
+                g2.fillRoundRect(cx - 10, my - 15, 20, 26, 5, 5);
+                g2.drawLine(cx - 4, my + 11, cx - 14 + stride, my + 38);
+                g2.drawLine(cx + 4, my + 11, cx + 14 - stride, my + 38);
+                g2.setColor(CYBER_CYAN);
+                g2.drawLine(cx - 32, my + 42, cx + 32, my + 42);
+            } else {
+                // Pressing / Fly / Core movements
+                int by = my - 12 - off;
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx - 9, my - 14, 18, 18);
+                g2.setColor(CORAL_RED);
+                g2.fillRoundRect(cx - 14, my + 6, 28, 32, 6, 6);
+                g2.drawLine(cx - 14, my + 12, cx - 26, by);
+                g2.drawLine(cx + 14, my + 12, cx + 26, by);
+                g2.setColor(CYBER_CYAN);
+                g2.drawLine(cx - 36, by, cx + 36, by);
+                g2.setColor(NEON_EMERALD);
+                g2.fillRoundRect(cx - 40, by - 8, 7, 16, 3, 3);
+                g2.fillRoundRect(cx + 33, by - 8, 7, 16, 3, 3);
+            }
+
+            // Rep contraction meter bar
+            g2.setColor(INPUT_BG);
+            g2.fillRoundRect(mx - 48, my + 56, 96, 10, 6, 6);
+            g2.setColor(NEON_EMERALD);
+            g2.fillRoundRect(mx - 48, my + 56, Math.max(12, (int) (96 * (1.0 - phase))), 10, 6, 6);
+        }
+
+        private void drawWrappedText(Graphics2D g2, String text, int x, int y, int maxW, int lineH) {
+            if (text == null) return;
+            FontMetrics fm = g2.getFontMetrics();
+            String[] words = text.split(" ");
+            StringBuilder line = new StringBuilder();
+            int curY = y;
+            for (String w : words) {
+                String test = line.length() == 0 ? w : line + " " + w;
+                if (fm.stringWidth(test) > maxW) {
+                    g2.drawString(line.toString(), x, curY);
+                    line = new StringBuilder(w);
+                    curY += lineH;
+                } else {
+                    line = new StringBuilder(test);
+                }
+            }
+            if (line.length() > 0) {
+                g2.drawString(line.toString(), x, curY);
+            }
+        }
+    }
+
+    private static class MachineBadgeRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+            final String text = value != null ? value.toString() : "";
+            final boolean isMachine = text.startsWith("⚙") || text.toLowerCase().contains("machine");
+            JLabel lbl = new JLabel(text, SwingConstants.LEFT) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(isSelected ? TABLE_SELECT : (row % 2 == 0 ? TABLE_EVEN_ROW : TABLE_ALT_ROW));
+                    g2.fillRect(0, 0, getWidth(), getHeight());
+
+                    g2.setColor(isMachine ? new Color(99, 102, 241, 55) : new Color(16, 185, 129, 40));
+                    g2.fillRoundRect(6, 5, getWidth() - 12, getHeight() - 10, 12, 12);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            lbl.setBorder(new EmptyBorder(0, 14, 0, 10));
+            lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
+            lbl.setForeground(isMachine ? new Color(165, 180, 252) : NEON_EMERALD);
+            return lbl;
         }
     }
 
@@ -1621,10 +2210,10 @@ public class gymsyncapp extends JFrame {
         JTextField tfFirst     = createDarkTextField(isNew ? "" : existing.firstName);
         JTextField tfLast      = createDarkTextField(isNew ? "" : existing.lastName);
         JTextField tfContact   = createDarkTextField(isNew ? "09" : existing.contactNo);
-        JTextField tfBirthdate = createDarkTextField(isNew ? "2002-05-15" : (existing.birthdate != null ? existing.birthdate.toString() : ""));
-        JComboBox<String> cbGender = createDarkComboBox(new String[]{"Male", "Female", "Other"});
+        JTextField tfBirthdate = createDarkTextField(isNew ? "" : (existing.birthdate != null ? existing.birthdate.toString() : ""));
+        JComboBox<String> cbGender = createDarkComboBox(new String[]{"Male", "Female", "Other", "Prefer not to say"});
         if (!isNew && existing.gender != null) cbGender.setSelectedItem(existing.gender);
-        JTextField tfAddress   = createDarkTextField(isNew ? "Imus, Cavite" : (existing.address != null ? existing.address : ""));
+        JTextField tfAddress   = createDarkTextField(isNew ? "" : (existing.address != null ? existing.address : ""));
         JTextField tfEmName    = createDarkTextField(isNew ? "" : (existing.emergencyContactName != null ? existing.emergencyContactName : ""));
         JTextField tfEmPhone   = createDarkTextField(isNew ? "09" : (existing.emergencyContactNo != null ? existing.emergencyContactNo : ""));
         JComboBox<String> cbFitness = createDarkComboBox(new String[]{"Beginner", "Intermediate", "Advanced"});
@@ -1635,12 +2224,12 @@ public class gymsyncapp extends JFrame {
         addFormRow(form, "First Name *:", tfFirst);
         addFormRow(form, "Last Name *:", tfLast);
         addFormRow(form, "Contact No. *:", tfContact);
-        addFormRow(form, "Birthdate (YYYY-MM-DD) *:", tfBirthdate);
-        addFormRow(form, "Gender *:", cbGender);
-        addFormRow(form, "Address *:", tfAddress);
         addFormRow(form, "Emergency Contact Name *:", tfEmName);
         addFormRow(form, "Emergency Contact No. *:", tfEmPhone);
         addFormRow(form, "Fitness Level *:", cbFitness);
+        addFormRow(form, "Gender (optional):", cbGender);
+        addFormRow(form, "Birthdate (YYYY-MM-DD, optional):", tfBirthdate);
+        addFormRow(form, "Address (optional):", tfAddress);
 
         LocalDate start = LocalDate.now();
         LocalDate end = start.plusMonths(1);
@@ -1668,11 +2257,16 @@ public class gymsyncapp extends JFrame {
             String emName = tfEmName.getText().trim();
             String emPhone = tfEmPhone.getText().trim();
 
-            if (uname.isEmpty() || fn.isEmpty() || ln.isEmpty() || contact.isEmpty()
-                    || bdateStr.isEmpty() || emName.isEmpty() || emPhone.isEmpty()) {
+            if (uname.isEmpty() || fn.isEmpty() || ln.isEmpty() || contact.isEmpty()) {
                 JOptionPane.showMessageDialog(dlg,
-                        "All required member fields (*) including emergency contact must be filled.",
+                        "Username, First Name, Last Name, and Contact No. are required (*).",
                         "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (emName.isEmpty() || emPhone.isEmpty() || emPhone.equals("09")) {
+                JOptionPane.showMessageDialog(dlg,
+                        "Emergency Contact Name and Phone No. are mandatory (*) for member safety in case of a gym accident.",
+                        "Emergency Contact Required", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             if (isNew && rawPass.length() < 4) {
@@ -1687,14 +2281,16 @@ public class gymsyncapp extends JFrame {
                         "Duplicate Username", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            LocalDate parsedBirthdate;
-            try {
-                parsedBirthdate = LocalDate.parse(bdateStr);
-            } catch (DateTimeParseException ex) {
-                JOptionPane.showMessageDialog(dlg,
-                        "Birthdate must be in YYYY-MM-DD format (e.g., 2002-05-15).",
-                        "Invalid Date Format", JOptionPane.WARNING_MESSAGE);
-                return;
+            LocalDate parsedBirthdate = null;
+            if (!bdateStr.isEmpty()) {
+                try {
+                    parsedBirthdate = LocalDate.parse(bdateStr);
+                } catch (DateTimeParseException ex) {
+                    JOptionPane.showMessageDialog(dlg,
+                            "If provided, Birthdate must be in YYYY-MM-DD format (e.g., 2002-05-15), or leave it blank.",
+                            "Invalid Date Format", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
             }
 
             User u = isNew ? new User() : existing;
@@ -1891,35 +2487,71 @@ public class gymsyncapp extends JFrame {
     }
 
     private JPanel buildExerciseLibraryTab() {
-        JPanel panel = new JPanel(new BorderLayout(14, 14));
+        JPanel panel = new JPanel(new BorderLayout(16, 16));
         panel.setBackground(BG_OBSIDIAN);
         panel.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        String[] cols = {"ID", "Exercise Name", "Muscle Group", "Difficulty", "Equipment", "Form & Execution Cues"};
+        String[] cols = {"ID", "Workout Name", "Target Muscle", "Level", "Machine / Equipment Indicator", "Form Cues"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         JTable table = new JTable(model);
         styleTable(table);
+        table.getColumnModel().getColumn(4).setCellRenderer(new MachineBadgeRenderer());
+
+        WorkoutVisualCard visualCard = new WorkoutVisualCard();
+
+        JCheckBox chkShowMachines = new JCheckBox("⚙ Show Gym Machine Workouts", true);
+        chkShowMachines.setOpaque(false);
+        chkShowMachines.setForeground(CYBER_CYAN);
+        chkShowMachines.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        JCheckBox chkShowFree = new JCheckBox("✓ Show Free-Weight / Bodyweight", true);
+        chkShowFree.setOpaque(false);
+        chkShowFree.setForeground(NEON_EMERALD);
+        chkShowFree.setFont(new Font("SansSerif", Font.BOLD, 12));
 
         Runnable refresh = () -> {
             model.setRowCount(0);
+            boolean showM = chkShowMachines.isSelected();
+            boolean showF = chkShowFree.isSelected();
             for (Exercise ex : repo.getAllExercises()) {
+                if (ex.requiresMachine() && !showM) continue;
+                if (!ex.requiresMachine() && !showF) continue;
                 model.addRow(new Object[]{
-                        ex.exerciseId, ex.name, ex.muscleGroup, ex.difficulty, ex.equipment, ex.description
+                        ex.exerciseId, ex.name, ex.muscleGroup, ex.difficulty, ex.getMachineBadgeText(), ex.description
                 });
             }
+            if (table.getRowCount() > 0) {
+                table.setRowSelectionInterval(0, 0);
+            } else {
+                visualCard.setExercise(null);
+            }
         };
+
+        table.getSelectionModel().addListSelectionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) return;
+            int id = (int) model.getValueAt(table.convertRowIndexToModel(row), 0);
+            Exercise selected = repo.getAllExercises().stream().filter(x -> x.exerciseId == id).findFirst().orElse(null);
+            visualCard.setExercise(selected);
+        });
+
+        chkShowMachines.addActionListener(e -> refresh.run());
+        chkShowFree.addActionListener(e -> refresh.run());
         refresh.run();
 
         RoundedCardPanel top = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 20);
         top.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 10));
-        JButton btnAdd = createGradientButton("+ Add Exercise", NEON_EMERALD, CYBER_CYAN);
+        JButton btnAdd = createGradientButton("+ Add Workout / Machine", NEON_EMERALD, CYBER_CYAN);
         JButton btnEdit = createStyledButton("✎ Edit Selected", ELECTRIC_INDIGO, Color.WHITE);
         JButton btnDel = createStyledButton("🗑 Delete", CORAL_RED, Color.WHITE);
         top.add(btnAdd);
         top.add(btnEdit);
         top.add(btnDel);
+        top.add(Box.createHorizontalStrut(12));
+        top.add(chkShowMachines);
+        top.add(chkShowFree);
 
         ActionListener addOrEdit = e -> {
             boolean isEdit = (e.getSource() == btnEdit);
@@ -1927,10 +2559,10 @@ public class gymsyncapp extends JFrame {
             if (isEdit) {
                 int row = table.getSelectedRow();
                 if (row < 0) {
-                    JOptionPane.showMessageDialog(this, "Select an exercise first.");
+                    JOptionPane.showMessageDialog(this, "Select a workout first.");
                     return;
                 }
-                int id = (int) model.getValueAt(row, 0);
+                int id = (int) model.getValueAt(table.convertRowIndexToModel(row), 0);
                 target = repo.getAllExercises().stream().filter(x -> x.exerciseId == id).findFirst().orElse(null);
             }
             JTextField tfName = new JTextField(target != null ? target.name : "");
@@ -1938,31 +2570,74 @@ public class gymsyncapp extends JFrame {
             if (target != null) cbGroup.setSelectedItem(target.muscleGroup);
             JComboBox<String> cbDiff = new JComboBox<>(new String[]{"Beginner", "Intermediate", "Advanced"});
             if (target != null) cbDiff.setSelectedItem(target.difficulty);
-            JComboBox<String> cbEquip = new JComboBox<>(new String[]{"Bodyweight", "Dumbbells", "Machine", "Barbell"});
+
+            JCheckBox chkNeedsMachine = new JCheckBox("This workout requires a Gym Machine", target == null || target.requiresMachine());
+            String[] equipOptions = new String[]{
+                    "Machine: Lat Pulldown Station",
+                    "Machine: Seated Cable Row Station",
+                    "Machine: Assisted Dip & Chin-Up Machine",
+                    "Machine: Converging Chest Press Machine",
+                    "Machine: Pec Deck Fly Station",
+                    "Machine: Angled Smith Machine",
+                    "Machine: 45-Degree Leg Press Sled",
+                    "Machine: Quad Extension Machine",
+                    "Machine: Prone Leg Curl Machine",
+                    "Machine: Standing Calf Machine",
+                    "Machine: Linear Hack Squat Sled",
+                    "Machine: Overhead Press Machine",
+                    "Machine: Dual Adjustable Pulley Tower",
+                    "Machine: High Pulley Cable Station",
+                    "Machine: Bicep Preacher Curl Machine",
+                    "Machine: Captain's Chair / Roman Chair",
+                    "Machine: Abdominal Crunch Machine",
+                    "Machine: Motorized Gym Treadmill",
+                    "Machine: Indoor Concept Rower",
+                    "Bodyweight",
+                    "Dumbbells",
+                    "Barbell"
+            };
+            JComboBox<String> cbEquip = new JComboBox<>(equipOptions);
+            cbEquip.setEditable(true);
             if (target != null) cbEquip.setSelectedItem(target.equipment);
+
+            chkNeedsMachine.addActionListener(ev -> {
+                if (!chkNeedsMachine.isSelected()) {
+                    cbEquip.setSelectedItem("Dumbbells");
+                } else if (!cbEquip.getSelectedItem().toString().toLowerCase().contains("machine")) {
+                    cbEquip.setSelectedItem("Machine: Lat Pulldown Station");
+                }
+            });
+
             JTextArea taDesc = new JTextArea(target != null ? target.description : "", 3, 24);
             taDesc.setLineWrap(true);
             taDesc.setWrapStyleWord(true);
 
             Object[] fields = {
-                    "Exercise Name *:", tfName,
-                    "Muscle Group *:", cbGroup,
-                    "Difficulty *:", cbDiff,
-                    "Equipment *:", cbEquip,
-                    "Instructions *:", new JScrollPane(taDesc)
+                    "Workout Name *:", tfName,
+                    "Target Muscle Group *:", cbGroup,
+                    "Difficulty Level *:", cbDiff,
+                    "Machine Requirement Toggle:", chkNeedsMachine,
+                    "Gym Machine / Equipment *:", cbEquip,
+                    "Form & Execution Cues *:", new JScrollPane(taDesc)
             };
             int res = JOptionPane.showConfirmDialog(this, fields,
-                    isEdit ? "Edit Exercise" : "Add Exercise to Library", JOptionPane.OK_CANCEL_OPTION);
+                    isEdit ? "Edit Workout & Machine Settings" : "Add New Workout / Gym Machine", JOptionPane.OK_CANCEL_OPTION);
             if (res == JOptionPane.OK_OPTION) {
                 if (tfName.getText().trim().isEmpty() || taDesc.getText().trim().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Exercise name and instructions are required.");
+                    JOptionPane.showMessageDialog(this, "Workout name and instructions are required.");
                     return;
                 }
                 Exercise ex = isEdit && target != null ? target : new Exercise();
                 ex.name = tfName.getText().trim();
                 ex.muscleGroup = (String) cbGroup.getSelectedItem();
                 ex.difficulty = (String) cbDiff.getSelectedItem();
-                ex.equipment = (String) cbEquip.getSelectedItem();
+                String chosenEq = cbEquip.getSelectedItem() != null ? cbEquip.getSelectedItem().toString().trim() : "Bodyweight";
+                if (chkNeedsMachine.isSelected() && !chosenEq.toLowerCase().contains("machine")) {
+                    chosenEq = "Machine: " + chosenEq;
+                } else if (!chkNeedsMachine.isSelected() && chosenEq.toLowerCase().startsWith("machine:")) {
+                    chosenEq = "Dumbbells";
+                }
+                ex.equipment = chosenEq;
                 ex.description = taDesc.getText().trim();
                 repo.saveExercise(ex);
                 refresh.run();
@@ -1974,13 +2649,14 @@ public class gymsyncapp extends JFrame {
         btnDel.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row < 0) return;
-            int id = (int) model.getValueAt(row, 0);
+            int id = (int) model.getValueAt(table.convertRowIndexToModel(row), 0);
             repo.deleteExercise(id);
             refresh.run();
         });
 
         panel.add(top, BorderLayout.NORTH);
         panel.add(wrapDarkScrollPane(table), BorderLayout.CENTER);
+        panel.add(visualCard, BorderLayout.EAST);
         return panel;
     }
 
@@ -2095,13 +2771,13 @@ public class gymsyncapp extends JFrame {
     }
 
     private JPanel buildMemberWorkoutTab(User targetMember) {
-        JPanel panel = new JPanel(new BorderLayout(14, 14));
+        JPanel panel = new JPanel(new BorderLayout(16, 16));
         panel.setBackground(BG_OBSIDIAN);
         panel.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        // Top Play Store Fitness Questionnaire Card
+        // Top Play Store Fitness Questionnaire Card with Machine Toggle
         RoundedCardPanel topControls = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 22);
-        topControls.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 12));
+        topControls.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
 
         JComboBox<String> cbGoal = createDarkComboBox(new String[]{
                 "Weight Loss", "Muscle Gain", "General Fitness", "Strength Foundation"
@@ -2113,66 +2789,110 @@ public class gymsyncapp extends JFrame {
         JComboBox<Integer> cbDays = createDarkComboBox(new Integer[]{2, 3, 4, 5});
         cbDays.setSelectedItem(3);
         JComboBox<String> cbEquip = createDarkComboBox(new String[]{
-                "Full Gym", "Dumbbells", "Bodyweight", "Machine"
+                "Full Gym", "Gym Machines Only", "Dumbbells", "Bodyweight"
         });
 
-        JButton btnGenerate = createGradientButton("⚡ Generate Smart Plan", NEON_EMERALD, CYBER_CYAN);
+        // Interactive Check / Uncheck Machine Toggle
+        JCheckBox chkUseMachines = new JCheckBox("⚙ Include Gym Machines", true);
+        chkUseMachines.setOpaque(false);
+        chkUseMachines.setForeground(CYBER_CYAN);
+        chkUseMachines.setFont(new Font("SansSerif", Font.BOLD, 12));
+        chkUseMachines.setToolTipText("Check to include gym machines; uncheck for free-weights/bodyweight only");
+
+        JButton btnGenerate = createGradientButton("⚡ Generate Plan", NEON_EMERALD, CYBER_CYAN);
         JButton btnCustom = createGradientButton("+ Custom Builder", ELECTRIC_INDIGO, VIOLET_GLOW);
 
-        topControls.add(createChipLabel("1. GOAL"));
+        topControls.add(createChipLabel("GOAL:"));
         topControls.add(cbGoal);
-        topControls.add(createChipLabel("2. LEVEL"));
+        topControls.add(createChipLabel("LEVEL:"));
         topControls.add(cbLevel);
-        topControls.add(createChipLabel("3. DAYS/WK"));
+        topControls.add(createChipLabel("DAYS:"));
         topControls.add(cbDays);
-        topControls.add(createChipLabel("4. EQUIPMENT"));
+        topControls.add(createChipLabel("ZONE:"));
         topControls.add(cbEquip);
+        topControls.add(chkUseMachines);
         topControls.add(btnGenerate);
         topControls.add(btnCustom);
 
         JLabel planHeaderLbl = new JLabel("Current Active Workout Plan:");
-        planHeaderLbl.setFont(new Font("SansSerif", Font.BOLD, 15));
+        planHeaderLbl.setFont(new Font("SansSerif", Font.BOLD, 14));
         planHeaderLbl.setForeground(NEON_EMERALD);
 
-        String[] cols = {"Training Day", "Exercise Name", "Target Muscle", "Equipment", "Sets", "Target Reps"};
+        String[] cols = {"Day", "Workout Name", "Target Muscle", "Machine / Equipment Indicator", "Sets", "Reps"};
         DefaultTableModel exModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         JTable exTable = new JTable(exModel);
         styleTable(exTable);
+        exTable.getColumnModel().getColumn(3).setCellRenderer(new MachineBadgeRenderer());
+
+        WorkoutVisualCard visualCard = new WorkoutVisualCard();
 
         Runnable loadLatestPlan = () -> {
             exModel.setRowCount(0);
             List<WorkoutPlan> plans = repo.getWorkoutPlansByUser(targetMember.userId);
             if (plans.isEmpty()) {
-                planHeaderLbl.setText("No workout plan yet — use the 4-Input Smart Generator or Custom Builder above!");
+                planHeaderLbl.setText("No workout plan yet — use the Smart Generator or Custom Builder above!");
+                visualCard.setExercise(null);
                 return;
             }
             WorkoutPlan latest = plans.get(0);
             planHeaderLbl.setText("🔥 ACTIVE PLAN #" + latest.workoutPlanId + " [" + latest.planType.toUpperCase() + "]  •  " +
-                    latest.goal + "  (Created: " + latest.dateCreated + ")");
+                    latest.goal + "  (Tap any row for animated muscle & machine demo)");
+            boolean showMachines = chkUseMachines.isSelected();
             for (WorkoutPlanExercise item : latest.exercises) {
+                boolean isMach = item.equipment != null && item.equipment.toLowerCase().contains("machine");
+                if (!showMachines && isMach) continue;
+                String badge = isMach ? ("⚙ " + item.equipment.replace("Machine: ", "")) : ("✓ No Machine (" + item.equipment + ")");
                 exModel.addRow(new Object[]{
-                        item.dayOfWeek, item.exerciseName, item.muscleGroup, item.equipment, item.sets + " sets", item.reps
+                        item.dayOfWeek, item.exerciseName, item.muscleGroup, badge, item.sets + " sets", item.reps
                 });
             }
+            if (exTable.getRowCount() > 0) {
+                exTable.setRowSelectionInterval(0, 0);
+            }
         };
+
+        exTable.getSelectionModel().addListSelectionListener(e -> {
+            int row = exTable.getSelectedRow();
+            if (row < 0) return;
+            String exName = exModel.getValueAt(exTable.convertRowIndexToModel(row), 1).toString();
+            Exercise matched = repo.getAllExercises().stream()
+                    .filter(x -> x.name.equalsIgnoreCase(exName))
+                    .findFirst().orElse(null);
+            visualCard.setExercise(matched);
+        });
+
+        chkUseMachines.addActionListener(e -> {
+            if (!chkUseMachines.isSelected() && "Gym Machines Only".equals(cbEquip.getSelectedItem())) {
+                cbEquip.setSelectedItem("Dumbbells");
+            }
+            loadLatestPlan.run();
+        });
+
         loadLatestPlan.run();
 
         btnGenerate.addActionListener(e -> {
+            String eqPref = (String) cbEquip.getSelectedItem();
+            boolean useMach = chkUseMachines.isSelected();
+            if (!useMach && ("Full Gym".equals(eqPref) || "Gym Machines Only".equals(eqPref))) {
+                eqPref = "Dumbbells";
+            }
             WorkoutPlan generated = BusinessRules.generateRuleBasedPlan(
                     targetMember.userId,
                     (String) cbGoal.getSelectedItem(),
                     (String) cbLevel.getSelectedItem(),
                     (Integer) cbDays.getSelectedItem(),
-                    (String) cbEquip.getSelectedItem(),
+                    eqPref,
+                    useMach,
                     repo.getAllExercises()
             );
             repo.saveWorkoutPlan(generated);
             loadLatestPlan.run();
             JOptionPane.showMessageDialog(this,
                     "Smart weekly workout plan generated in < 1 second!\n" +
-                    "Routine: " + generated.goal + " (" + generated.exercises.size() + " exercises)",
+                    "Routine: " + generated.goal + "\n" +
+                    "Machine Toggle: " + (useMach ? "Gym Machines Included (⚙)" : "No Machines — Free Weight/Bodyweight Only (✓)"),
                     "Workout Plan Ready", JOptionPane.INFORMATION_MESSAGE);
         });
 
@@ -2185,6 +2905,7 @@ public class gymsyncapp extends JFrame {
 
         panel.add(topControls, BorderLayout.NORTH);
         panel.add(centerBox, BorderLayout.CENTER);
+        panel.add(visualCard, BorderLayout.EAST);
         return panel;
     }
 
@@ -2329,19 +3050,78 @@ public class gymsyncapp extends JFrame {
     }
 
     private JPanel buildReadOnlyExerciseBrowser() {
-        JPanel panel = new JPanel(new BorderLayout(12, 12));
+        JPanel panel = new JPanel(new BorderLayout(16, 16));
         panel.setBackground(BG_OBSIDIAN);
         panel.setBorder(new EmptyBorder(16, 20, 16, 20));
-        String[] cols = {"ID", "Exercise Name", "Muscle Group", "Difficulty", "Equipment", "Execution Cues"};
+
+        RoundedCardPanel filterBar = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 20);
+        filterBar.setLayout(new FlowLayout(FlowLayout.LEFT, 14, 10));
+        JLabel filterLbl = new JLabel("🏋️ Filter Gym Floor Workouts & Machines:");
+        filterLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        filterLbl.setForeground(TEXT_PRIMARY);
+
+        JCheckBox chkMachines = new JCheckBox("⚙ Needs Gym Machine", true);
+        chkMachines.setOpaque(false);
+        chkMachines.setForeground(CYBER_CYAN);
+        chkMachines.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        JCheckBox chkNoMachine = new JCheckBox("✓ No Machine (Free Weight / Bodyweight)", true);
+        chkNoMachine.setOpaque(false);
+        chkNoMachine.setForeground(NEON_EMERALD);
+        chkNoMachine.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        JComboBox<String> cbMuscleFilter = createDarkComboBox(new String[]{
+                "All Muscle Groups", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full Body"
+        });
+
+        filterBar.add(filterLbl);
+        filterBar.add(chkMachines);
+        filterBar.add(chkNoMachine);
+        filterBar.add(createChipLabel("MUSCLE:"));
+        filterBar.add(cbMuscleFilter);
+
+        String[] cols = {"ID", "Workout Name", "Target Muscle", "Difficulty", "Machine / Equipment Indicator", "Execution Cues"};
         DefaultTableModel m = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        for (Exercise ex : repo.getAllExercises()) {
-            m.addRow(new Object[]{ex.exerciseId, ex.name, ex.muscleGroup, ex.difficulty, ex.equipment, ex.description});
-        }
         JTable t = new JTable(m);
         styleTable(t);
+        t.getColumnModel().getColumn(4).setCellRenderer(new MachineBadgeRenderer());
+
+        WorkoutVisualCard visualCard = new WorkoutVisualCard();
+
+        Runnable populate = () -> {
+            m.setRowCount(0);
+            String mgFilter = (String) cbMuscleFilter.getSelectedItem();
+            for (Exercise ex : repo.getAllExercises()) {
+                if (ex.requiresMachine() && !chkMachines.isSelected()) continue;
+                if (!ex.requiresMachine() && !chkNoMachine.isSelected()) continue;
+                if (!"All Muscle Groups".equals(mgFilter) && !ex.muscleGroup.equalsIgnoreCase(mgFilter)) continue;
+                m.addRow(new Object[]{ex.exerciseId, ex.name, ex.muscleGroup, ex.difficulty, ex.getMachineBadgeText(), ex.description});
+            }
+            if (t.getRowCount() > 0) {
+                t.setRowSelectionInterval(0, 0);
+            } else {
+                visualCard.setExercise(null);
+            }
+        };
+
+        t.getSelectionModel().addListSelectionListener(e -> {
+            int row = t.getSelectedRow();
+            if (row < 0) return;
+            int id = (int) m.getValueAt(t.convertRowIndexToModel(row), 0);
+            Exercise sel = repo.getAllExercises().stream().filter(x -> x.exerciseId == id).findFirst().orElse(null);
+            visualCard.setExercise(sel);
+        });
+
+        chkMachines.addActionListener(e -> populate.run());
+        chkNoMachine.addActionListener(e -> populate.run());
+        cbMuscleFilter.addActionListener(e -> populate.run());
+        populate.run();
+
+        panel.add(filterBar, BorderLayout.NORTH);
         panel.add(wrapDarkScrollPane(t), BorderLayout.CENTER);
+        panel.add(visualCard, BorderLayout.EAST);
         return panel;
     }
 

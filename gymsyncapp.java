@@ -441,16 +441,19 @@ public class gymsyncapp extends JFrame {
 
         public void initializeDatabase() {
             seedInMemoryDefaults();
-            try {
-                Connection conn = DriverManager.getConnection(JDBC_URL);
+            try (Connection conn = DriverManager.getConnection(JDBC_URL)) {
                 jdbcAvailable = true;
                 createTablesIfNotExist(conn);
                 syncIfDatabaseEmpty(conn);
                 loadFromJdbc(conn);
-                conn.close();
             } catch (SQLException ex) {
                 jdbcAvailable = false;
+                System.err.println("[DataRepository] JDBC initialization failed, using in-memory fallback: " + ex.getMessage());
             }
+        }
+
+        private void logSqlError(String operation, SQLException ex) {
+            System.err.println("[DataRepository] " + operation + " failed: " + ex.getMessage());
         }
 
         public boolean isJdbcConnected() {
@@ -458,10 +461,14 @@ public class gymsyncapp extends JFrame {
         }
 
         private void createTablesIfNotExist(Connection conn) throws SQLException {
+            boolean isMySql = JDBC_URL.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:");
+            String pkAuto = isMySql ? "INTEGER PRIMARY KEY AUTO_INCREMENT" : "INTEGER PRIMARY KEY AUTOINCREMENT";
             try (Statement st = conn.createStatement()) {
-                st.execute("PRAGMA foreign_keys = ON;");
+                if (!isMySql) {
+                    st.execute("PRAGMA foreign_keys = ON;");
+                }
                 st.execute("CREATE TABLE IF NOT EXISTS User (" +
-                        "user_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "user_id " + pkAuto + "," +
                         "username VARCHAR(50) NOT NULL UNIQUE," +
                         "password_hash VARCHAR(64) NOT NULL," +
                         "role VARCHAR(15) NOT NULL," +
@@ -476,27 +483,27 @@ public class gymsyncapp extends JFrame {
                         "fitness_level VARCHAR(20) NULL," +
                         "date_registered DATE NOT NULL)");
                 st.execute("CREATE TABLE IF NOT EXISTS Membership (" +
-                        "membership_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "membership_id " + pkAuto + "," +
                         "user_id INTEGER NOT NULL," +
                         "start_date DATE NOT NULL," +
                         "end_date DATE NOT NULL," +
                         "FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE)");
                 st.execute("CREATE TABLE IF NOT EXISTS Exercise (" +
-                        "exercise_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "exercise_id " + pkAuto + "," +
                         "name VARCHAR(100) NOT NULL UNIQUE," +
                         "muscle_group VARCHAR(40) NOT NULL," +
                         "difficulty VARCHAR(20) NOT NULL," +
                         "equipment VARCHAR(50) NOT NULL," +
                         "description TEXT NOT NULL)");
                 st.execute("CREATE TABLE IF NOT EXISTS WorkoutPlan (" +
-                        "workout_plan_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "workout_plan_id " + pkAuto + "," +
                         "user_id INTEGER NOT NULL," +
                         "plan_type VARCHAR(20) NOT NULL," +
                         "goal VARCHAR(60) NOT NULL," +
                         "date_created DATE NOT NULL," +
                         "FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE)");
                 st.execute("CREATE TABLE IF NOT EXISTS WorkoutPlanExercise (" +
-                        "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "id " + pkAuto + "," +
                         "workout_plan_id INTEGER NOT NULL," +
                         "exercise_id INTEGER NOT NULL," +
                         "day_of_week VARCHAR(20) NOT NULL," +
@@ -837,7 +844,9 @@ public class gymsyncapp extends JFrame {
                         ps.setString(13, u.fitnessLevel);
                         ps.setString(14, u.dateRegistered.toString());
                         ps.executeUpdate();
-                    } catch (SQLException ignored) {}
+                    } catch (SQLException sqlEx) {
+                        logSqlError("JDBC write", sqlEx);
+                    }
                 }
             } else {
                 for (int i = 0; i < users.size(); i++) {
@@ -866,7 +875,9 @@ public class gymsyncapp extends JFrame {
                         ps.setString(12, u.fitnessLevel);
                         ps.setInt(13, u.userId);
                         ps.executeUpdate();
-                    } catch (SQLException ignored) {}
+                    } catch (SQLException sqlEx) {
+                        logSqlError("JDBC write", sqlEx);
+                    }
                 }
             }
             return u;
@@ -881,7 +892,9 @@ public class gymsyncapp extends JFrame {
                      PreparedStatement ps = conn.prepareStatement("DELETE FROM User WHERE user_id=?")) {
                     ps.setInt(1, userId);
                     ps.executeUpdate();
-                } catch (SQLException ignored) {}
+                } catch (SQLException sqlEx) {
+                    logSqlError("JDBC write", sqlEx);
+                }
             }
         }
 
@@ -901,7 +914,9 @@ public class gymsyncapp extends JFrame {
                     ps.setString(3, m.startDate.toString());
                     ps.setString(4, m.endDate.toString());
                     ps.executeUpdate();
-                } catch (SQLException ignored) {}
+                } catch (SQLException sqlEx) {
+                    logSqlError("JDBC write", sqlEx);
+                }
             }
             return m;
         }
@@ -921,7 +936,9 @@ public class gymsyncapp extends JFrame {
                         ps.setString(5, ex.equipment);
                         ps.setString(6, ex.description);
                         ps.executeUpdate();
-                    } catch (SQLException ignored) {}
+                    } catch (SQLException sqlEx) {
+                        logSqlError("JDBC write", sqlEx);
+                    }
                 }
             } else {
                 for (int i = 0; i < exercises.size(); i++) {
@@ -941,7 +958,9 @@ public class gymsyncapp extends JFrame {
                         ps.setString(5, ex.description);
                         ps.setInt(6, ex.exerciseId);
                         ps.executeUpdate();
-                    } catch (SQLException ignored) {}
+                    } catch (SQLException sqlEx) {
+                        logSqlError("JDBC write", sqlEx);
+                    }
                 }
             }
         }
@@ -953,7 +972,9 @@ public class gymsyncapp extends JFrame {
                      PreparedStatement ps = conn.prepareStatement("DELETE FROM Exercise WHERE exercise_id=?")) {
                     ps.setInt(1, exerciseId);
                     ps.executeUpdate();
-                } catch (SQLException ignored) {}
+                } catch (SQLException sqlEx) {
+                    logSqlError("JDBC write", sqlEx);
+                }
             }
         }
 
@@ -995,7 +1016,9 @@ public class gymsyncapp extends JFrame {
                             ps.executeUpdate();
                         }
                     }
-                } catch (SQLException ignored) {}
+                } catch (SQLException sqlEx) {
+                    logSqlError("JDBC write", sqlEx);
+                }
             }
         }
     }
@@ -1260,23 +1283,36 @@ public class gymsyncapp extends JFrame {
                         "to download and cache offline for '" + exercise.name + "':",
                         "Sync Online GIF to Offline Cache", JOptionPane.QUESTION_MESSAGE);
                 if (urlStr == null || urlStr.trim().isEmpty()) return;
-                try {
-                    java.io.File imgDir = new java.io.File("images");
-                    if (!imgDir.exists()) imgDir.mkdirs();
-                    java.io.File dest = new java.io.File(imgDir, exercise.getDefaultGifFilename());
-                    try (java.io.InputStream in = new java.net.URL(urlStr.trim()).openStream()) {
-                        java.nio.file.Files.copy(in, dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                final String trimmedUrl = urlStr.trim();
+                new SwingWorker<java.io.File, Void>() {
+                    @Override
+                    protected java.io.File doInBackground() throws Exception {
+                        java.io.File imgDir = new java.io.File("images");
+                        if (!imgDir.exists()) imgDir.mkdirs();
+                        java.io.File dest = new java.io.File(imgDir, exercise.getDefaultGifFilename());
+                        try (java.io.InputStream in = java.net.URI.create(trimmedUrl).toURL().openStream()) {
+                            java.nio.file.Files.copy(in, dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        }
+                        return dest;
                     }
-                    exercise.customGifOrImagePath = dest.getAbsolutePath();
-                    loadGifForExercise(exercise);
-                    JOptionPane.showMessageDialog(gymsyncapp.this,
-                            "Downloaded and cached offline to:\n" + dest.getPath() + "\nWorks 100% offline even without Wi-Fi!",
-                            "GIF Synced & Cached Offline", JOptionPane.INFORMATION_MESSAGE);
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(gymsyncapp.this,
-                            "Could not download URL (" + ex.getMessage() + ").\nUsing built-in offline biomechanical animation instead.",
-                            "Offline Fallback Active", JOptionPane.WARNING_MESSAGE);
-                }
+
+                    @Override
+                    protected void done() {
+                        try {
+                            java.io.File dest = get();
+                            exercise.customGifOrImagePath = dest.getAbsolutePath();
+                            loadGifForExercise(exercise);
+                            JOptionPane.showMessageDialog(gymsyncapp.this,
+                                    "Downloaded and cached offline to:\n" + dest.getPath() + "\nWorks 100% offline even without Wi-Fi!",
+                                    "GIF Synced & Cached Offline", JOptionPane.INFORMATION_MESSAGE);
+                        } catch (Exception ex) {
+                            Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                            JOptionPane.showMessageDialog(gymsyncapp.this,
+                                    "Could not download URL (" + cause.getMessage() + ").\nUsing built-in offline biomechanical animation instead.",
+                                    "Offline Fallback Active", JOptionPane.WARNING_MESSAGE);
+                        }
+                    }
+                }.execute();
             });
 
             bottomBar.add(btnLocalGif);

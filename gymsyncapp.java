@@ -427,7 +427,16 @@ public class gymsyncapp extends JFrame {
 
     public static class DataRepository {
         private static final String JDBC_URL = System.getProperty("gymsync.db.url", "jdbc:sqlite:gymsync.db");
+        private static final String JDBC_USER = System.getProperty("gymsync.db.user", "");
+        private static final String JDBC_PASS = System.getProperty("gymsync.db.password", "");
         private boolean jdbcAvailable = false;
+
+        private static Connection openConnection() throws SQLException {
+            if (!JDBC_USER.isEmpty()) {
+                return DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS);
+            }
+            return openConnection();
+        }
 
         private final List<User> users = new ArrayList<>();
         private final List<Membership> memberships = new ArrayList<>();
@@ -441,7 +450,7 @@ public class gymsyncapp extends JFrame {
 
         public void initializeDatabase() {
             seedInMemoryDefaults();
-            try (Connection conn = DriverManager.getConnection(JDBC_URL)) {
+            try (Connection conn = openConnection()) {
                 jdbcAvailable = true;
                 createTablesIfNotExist(conn);
                 syncIfDatabaseEmpty(conn);
@@ -519,49 +528,63 @@ public class gymsyncapp extends JFrame {
                  ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM User")) {
                 if (rs.next() && rs.getInt(1) > 0) return;
             }
-            for (User u : users) {
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO User (user_id, username, password_hash, role, first_name, last_name, " +
-                                "contact_no, birthdate, gender, address, emergency_contact_name, emergency_contact_no, " +
-                                "fitness_level, date_registered) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
-                    ps.setInt(1, u.userId);
-                    ps.setString(2, u.username);
-                    ps.setString(3, u.passwordHash);
-                    ps.setString(4, u.role);
-                    ps.setString(5, u.firstName);
-                    ps.setString(6, u.lastName);
-                    ps.setString(7, u.contactNo);
-                    ps.setString(8, u.birthdate != null ? u.birthdate.toString() : null);
-                    ps.setString(9, u.gender);
-                    ps.setString(10, u.address);
-                    ps.setString(11, u.emergencyContactName);
-                    ps.setString(12, u.emergencyContactNo);
-                    ps.setString(13, u.fitnessLevel);
-                    ps.setString(14, u.dateRegistered.toString());
-                    ps.executeUpdate();
+            boolean prevAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                for (User u : users) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO User (user_id, username, password_hash, role, first_name, last_name, " +
+                                    "contact_no, birthdate, gender, address, emergency_contact_name, emergency_contact_no, " +
+                                    "fitness_level, date_registered) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
+                        ps.setInt(1, u.userId);
+                        ps.setString(2, u.username);
+                        ps.setString(3, u.passwordHash);
+                        ps.setString(4, u.role);
+                        ps.setString(5, u.firstName);
+                        ps.setString(6, u.lastName);
+                        ps.setString(7, u.contactNo);
+                        ps.setString(8, u.birthdate != null ? u.birthdate.toString() : null);
+                        ps.setString(9, u.gender);
+                        ps.setString(10, u.address);
+                        ps.setString(11, u.emergencyContactName);
+                        ps.setString(12, u.emergencyContactNo);
+                        ps.setString(13, u.fitnessLevel);
+                        ps.setString(14, u.dateRegistered.toString());
+                        ps.executeUpdate();
+                    }
                 }
-            }
-            for (Membership m : memberships) {
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO Membership (membership_id, user_id, start_date, end_date) VALUES (?,?,?,?)")) {
-                    ps.setInt(1, m.membershipId);
-                    ps.setInt(2, m.userId);
-                    ps.setString(3, m.startDate.toString());
-                    ps.setString(4, m.endDate.toString());
-                    ps.executeUpdate();
+                for (Membership m : memberships) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO Membership (membership_id, user_id, start_date, end_date) VALUES (?,?,?,?)")) {
+                        ps.setInt(1, m.membershipId);
+                        ps.setInt(2, m.userId);
+                        ps.setString(3, m.startDate.toString());
+                        ps.setString(4, m.endDate.toString());
+                        ps.executeUpdate();
+                    }
                 }
-            }
-            for (Exercise ex : exercises) {
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO Exercise (exercise_id, name, muscle_group, difficulty, equipment, description) VALUES (?,?,?,?,?,?)")) {
-                    ps.setInt(1, ex.exerciseId);
-                    ps.setString(2, ex.name);
-                    ps.setString(3, ex.muscleGroup);
-                    ps.setString(4, ex.difficulty);
-                    ps.setString(5, ex.equipment);
-                    ps.setString(6, ex.description);
-                    ps.executeUpdate();
+                for (Exercise ex : exercises) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO Exercise (exercise_id, name, muscle_group, difficulty, equipment, description) VALUES (?,?,?,?,?,?)")) {
+                        ps.setInt(1, ex.exerciseId);
+                        ps.setString(2, ex.name);
+                        ps.setString(3, ex.muscleGroup);
+                        ps.setString(4, ex.difficulty);
+                        ps.setString(5, ex.equipment);
+                        ps.setString(6, ex.description);
+                        ps.executeUpdate();
+                    }
                 }
+                conn.commit();
+            } catch (SQLException ex) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    ex.addSuppressed(rollbackEx);
+                }
+                throw ex;
+            } finally {
+                conn.setAutoCommit(prevAutoCommit);
             }
         }
 
@@ -824,7 +847,7 @@ public class gymsyncapp extends JFrame {
                 if (u.dateRegistered == null) u.dateRegistered = LocalDate.now();
                 users.add(u);
                 if (jdbcAvailable) {
-                    try (Connection conn = DriverManager.getConnection(JDBC_URL);
+                    try (Connection conn = openConnection();
                          PreparedStatement ps = conn.prepareStatement(
                                  "INSERT INTO User (user_id, username, password_hash, role, first_name, last_name, " +
                                  "contact_no, birthdate, gender, address, emergency_contact_name, emergency_contact_no, " +
@@ -856,7 +879,7 @@ public class gymsyncapp extends JFrame {
                     }
                 }
                 if (jdbcAvailable) {
-                    try (Connection conn = DriverManager.getConnection(JDBC_URL);
+                    try (Connection conn = openConnection();
                          PreparedStatement ps = conn.prepareStatement(
                                  "UPDATE User SET username=?, password_hash=?, role=?, first_name=?, last_name=?, " +
                                  "contact_no=?, birthdate=?, gender=?, address=?, emergency_contact_name=?, " +
@@ -888,7 +911,7 @@ public class gymsyncapp extends JFrame {
             memberships.removeIf(m -> m.userId == userId);
             workoutPlans.removeIf(wp -> wp.userId == userId);
             if (jdbcAvailable) {
-                try (Connection conn = DriverManager.getConnection(JDBC_URL);
+                try (Connection conn = openConnection();
                      PreparedStatement ps = conn.prepareStatement("DELETE FROM User WHERE user_id=?")) {
                     ps.setInt(1, userId);
                     ps.executeUpdate();
@@ -906,7 +929,7 @@ public class gymsyncapp extends JFrame {
             m.endDate = endDate;
             memberships.add(m);
             if (jdbcAvailable) {
-                try (Connection conn = DriverManager.getConnection(JDBC_URL);
+                try (Connection conn = openConnection();
                      PreparedStatement ps = conn.prepareStatement(
                              "INSERT INTO Membership (membership_id, user_id, start_date, end_date) VALUES (?,?,?,?)")) {
                     ps.setInt(1, m.membershipId);
@@ -926,7 +949,7 @@ public class gymsyncapp extends JFrame {
                 ex.exerciseId = nextExerciseId++;
                 exercises.add(ex);
                 if (jdbcAvailable) {
-                    try (Connection conn = DriverManager.getConnection(JDBC_URL);
+                    try (Connection conn = openConnection();
                          PreparedStatement ps = conn.prepareStatement(
                                  "INSERT INTO Exercise (exercise_id, name, muscle_group, difficulty, equipment, description) VALUES (?,?,?,?,?,?)")) {
                         ps.setInt(1, ex.exerciseId);
@@ -948,7 +971,7 @@ public class gymsyncapp extends JFrame {
                     }
                 }
                 if (jdbcAvailable) {
-                    try (Connection conn = DriverManager.getConnection(JDBC_URL);
+                    try (Connection conn = openConnection();
                          PreparedStatement ps = conn.prepareStatement(
                                  "UPDATE Exercise SET name=?, muscle_group=?, difficulty=?, equipment=?, description=? WHERE exercise_id=?")) {
                         ps.setString(1, ex.name);
@@ -968,7 +991,7 @@ public class gymsyncapp extends JFrame {
         public void deleteExercise(int exerciseId) {
             exercises.removeIf(e -> e.exerciseId == exerciseId);
             if (jdbcAvailable) {
-                try (Connection conn = DriverManager.getConnection(JDBC_URL);
+                try (Connection conn = openConnection();
                      PreparedStatement ps = conn.prepareStatement("DELETE FROM Exercise WHERE exercise_id=?")) {
                     ps.setInt(1, exerciseId);
                     ps.executeUpdate();
@@ -994,7 +1017,7 @@ public class gymsyncapp extends JFrame {
             }
             workoutPlans.add(0, plan);
             if (jdbcAvailable) {
-                try (Connection conn = DriverManager.getConnection(JDBC_URL)) {
+                try (Connection conn = openConnection()) {
                     try (PreparedStatement ps = conn.prepareStatement(
                             "INSERT INTO WorkoutPlan (workout_plan_id, user_id, plan_type, goal, date_created) VALUES (?,?,?,?,?)")) {
                         ps.setInt(1, plan.workoutPlanId);
@@ -3366,7 +3389,7 @@ public class gymsyncapp extends JFrame {
                     Color pillBg;
                     if ("Active".equalsIgnoreCase(st)) {
                         pillBg = new Color(16, 185, 129, 45);
-                    } else if (st.toLowerCase().contains("expiring")) {
+                    } else if (st.toLowerCase(Locale.ROOT).contains("expiring")) {
                         pillBg = new Color(245, 158, 11, 50);
                     } else {
                         pillBg = new Color(244, 63, 94, 50);
@@ -3381,7 +3404,7 @@ public class gymsyncapp extends JFrame {
             if ("Active".equalsIgnoreCase(st)) {
                 lbl.setForeground(NEON_EMERALD);
                 lbl.setText("● ACTIVE");
-            } else if (st.toLowerCase().contains("expiring")) {
+            } else if (st.toLowerCase(Locale.ROOT).contains("expiring")) {
                 lbl.setForeground(AMBER_GOLD);
                 lbl.setText("● EXPIRING");
             } else {

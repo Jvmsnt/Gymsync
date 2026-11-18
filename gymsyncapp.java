@@ -2,14 +2,11 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.plaf.basic.BasicComboBoxUI;
-import javax.swing.plaf.basic.BasicScrollBarUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.RoundRectangle2D;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -36,7 +33,7 @@ import java.util.stream.Collectors;
  * ============================================================================
  */
 @SuppressWarnings({"serial", "unchecked"})
-public class gymsyncapp extends JFrame {
+public final class gymsyncapp extends JFrame {
     private static final long serialVersionUID = 1L;
 
     // ── Play Store Fitness App Dark & Neon Theme Palette ──
@@ -140,13 +137,17 @@ public class gymsyncapp extends JFrame {
         public String description;
         public String customGifOrImagePath;
 
-        public boolean requiresMachine() {
+        public static boolean isMachineEquipment(String equipment) {
             if (equipment == null) return false;
-            String eq = equipment.toLowerCase();
+            String eq = equipment.toLowerCase(Locale.ROOT);
             return eq.contains("machine") || eq.contains("cable") || eq.contains("pulley")
                     || eq.contains("sled") || eq.contains("station") || eq.contains("tower")
                     || eq.contains("treadmill") || eq.contains("rower") || eq.contains("chair")
                     || eq.contains("pec deck") || eq.contains("smith");
+        }
+
+        public boolean requiresMachine() {
+            return isMachineEquipment(equipment);
         }
 
         public String getMachineBadgeText() {
@@ -355,9 +356,8 @@ public class gymsyncapp extends JFrame {
         }
 
         private static boolean matchesEquipment(String exEquip, String pref, boolean includeMachines) {
-            String eq = exEquip != null ? exEquip.toLowerCase() : "";
-            boolean isMachine = eq.contains("machine") || eq.contains("station") || eq.contains("sled")
-                    || eq.contains("tower") || eq.contains("treadmill") || eq.contains("rower") || eq.contains("chair");
+            String eq = exEquip != null ? exEquip.toLowerCase(Locale.ROOT) : "";
+            boolean isMachine = Exercise.isMachineEquipment(exEquip);
             if (!includeMachines && isMachine) return false;
             if (pref.equalsIgnoreCase("Full Gym")) return true;
             if (pref.equalsIgnoreCase("Gym Machines Only")) return isMachine;
@@ -426,16 +426,33 @@ public class gymsyncapp extends JFrame {
     // ========================================================================
 
     public static class DataRepository {
-        private static final String JDBC_URL = System.getProperty("gymsync.db.url", "jdbc:sqlite:gymsync.db");
-        private static final String JDBC_USER = System.getProperty("gymsync.db.user", "");
-        private static final String JDBC_PASS = System.getProperty("gymsync.db.password", "");
+        private static String getConfig(String propKey, String envKey, String defaultVal) {
+            String val = System.getProperty(propKey);
+            if (val != null && !val.trim().isEmpty()) return val.trim();
+            val = System.getenv(envKey);
+            if (val != null && !val.trim().isEmpty()) return val.trim();
+            return defaultVal;
+        }
+
+        private static final String JDBC_URL = getConfig("gymsync.db.url", "GYMSYNC_DB_URL", "jdbc:sqlite:gymsync.db");
+        private static final String JDBC_USER = getConfig("gymsync.db.user", "GYMSYNC_DB_USER", "");
+        private static final String JDBC_PASS = getConfig("gymsync.db.password", "GYMSYNC_DB_PASSWORD", "");
         private boolean jdbcAvailable = false;
 
+        public boolean isMySql() {
+            return JDBC_URL.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:");
+        }
+
         private static Connection openConnection() throws SQLException {
-            if (!JDBC_USER.isEmpty()) {
-                return DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS);
+            Connection conn = !JDBC_USER.isEmpty()
+                    ? DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)
+                    : DriverManager.getConnection(JDBC_URL);
+            if (!JDBC_URL.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:")) {
+                try (Statement st = conn.createStatement()) {
+                    st.execute("PRAGMA foreign_keys = ON;");
+                }
             }
-            return openConnection();
+            return conn;
         }
 
         private final List<User> users = new ArrayList<>();
@@ -573,6 +590,29 @@ public class gymsyncapp extends JFrame {
                         ps.setString(5, ex.equipment);
                         ps.setString(6, ex.description);
                         ps.executeUpdate();
+                    }
+                }
+                for (WorkoutPlan wp : workoutPlans) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO WorkoutPlan (workout_plan_id, user_id, plan_type, goal, date_created) VALUES (?,?,?,?,?)")) {
+                        ps.setInt(1, wp.workoutPlanId);
+                        ps.setInt(2, wp.userId);
+                        ps.setString(3, wp.planType);
+                        ps.setString(4, wp.goal);
+                        ps.setString(5, wp.dateCreated.toString());
+                        ps.executeUpdate();
+                    }
+                    for (WorkoutPlanExercise wpe : wp.exercises) {
+                        try (PreparedStatement ps = conn.prepareStatement(
+                                "INSERT INTO WorkoutPlanExercise (id, workout_plan_id, exercise_id, day_of_week, sets, reps) VALUES (?,?,?,?,?,?)")) {
+                            ps.setInt(1, wpe.id);
+                            ps.setInt(2, wpe.workoutPlanId);
+                            ps.setInt(3, wpe.exerciseId);
+                            ps.setString(4, wpe.dayOfWeek);
+                            ps.setInt(5, wpe.sets);
+                            ps.setString(6, wpe.reps);
+                            ps.executeUpdate();
+                        }
                     }
                 }
                 conn.commit();
@@ -988,7 +1028,16 @@ public class gymsyncapp extends JFrame {
             }
         }
 
+        public boolean isExerciseUsedInPlans(int exerciseId) {
+            return workoutPlans.stream()
+                    .flatMap(wp -> wp.exercises.stream())
+                    .anyMatch(wpe -> wpe.exerciseId == exerciseId);
+        }
+
         public void deleteExercise(int exerciseId) {
+            if (isExerciseUsedInPlans(exerciseId)) {
+                return;
+            }
             exercises.removeIf(e -> e.exerciseId == exerciseId);
             if (jdbcAvailable) {
                 try (Connection conn = openConnection();
@@ -1018,26 +1067,40 @@ public class gymsyncapp extends JFrame {
             workoutPlans.add(0, plan);
             if (jdbcAvailable) {
                 try (Connection conn = openConnection()) {
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "INSERT INTO WorkoutPlan (workout_plan_id, user_id, plan_type, goal, date_created) VALUES (?,?,?,?,?)")) {
-                        ps.setInt(1, plan.workoutPlanId);
-                        ps.setInt(2, plan.userId);
-                        ps.setString(3, plan.planType);
-                        ps.setString(4, plan.goal);
-                        ps.setString(5, plan.dateCreated.toString());
-                        ps.executeUpdate();
-                    }
-                    for (WorkoutPlanExercise wpe : plan.exercises) {
+                    boolean prevAutoCommit = conn.getAutoCommit();
+                    conn.setAutoCommit(false);
+                    try {
                         try (PreparedStatement ps = conn.prepareStatement(
-                                "INSERT INTO WorkoutPlanExercise (id, workout_plan_id, exercise_id, day_of_week, sets, reps) VALUES (?,?,?,?,?,?)")) {
-                            ps.setInt(1, wpe.id);
-                            ps.setInt(2, wpe.workoutPlanId);
-                            ps.setInt(3, wpe.exerciseId);
-                            ps.setString(4, wpe.dayOfWeek);
-                            ps.setInt(5, wpe.sets);
-                            ps.setString(6, wpe.reps);
+                                "INSERT INTO WorkoutPlan (workout_plan_id, user_id, plan_type, goal, date_created) VALUES (?,?,?,?,?)")) {
+                            ps.setInt(1, plan.workoutPlanId);
+                            ps.setInt(2, plan.userId);
+                            ps.setString(3, plan.planType);
+                            ps.setString(4, plan.goal);
+                            ps.setString(5, plan.dateCreated.toString());
                             ps.executeUpdate();
                         }
+                        for (WorkoutPlanExercise wpe : plan.exercises) {
+                            try (PreparedStatement ps = conn.prepareStatement(
+                                    "INSERT INTO WorkoutPlanExercise (id, workout_plan_id, exercise_id, day_of_week, sets, reps) VALUES (?,?,?,?,?,?)")) {
+                                ps.setInt(1, wpe.id);
+                                ps.setInt(2, wpe.workoutPlanId);
+                                ps.setInt(3, wpe.exerciseId);
+                                ps.setString(4, wpe.dayOfWeek);
+                                ps.setInt(5, wpe.sets);
+                                ps.setString(6, wpe.reps);
+                                ps.executeUpdate();
+                            }
+                        }
+                        conn.commit();
+                    } catch (SQLException sqlEx) {
+                        try {
+                            conn.rollback();
+                        } catch (SQLException rollbackEx) {
+                            sqlEx.addSuppressed(rollbackEx);
+                        }
+                        throw sqlEx;
+                    } finally {
+                        conn.setAutoCommit(prevAutoCommit);
                     }
                 } catch (SQLException sqlEx) {
                     logSqlError("JDBC write", sqlEx);
@@ -1351,6 +1414,20 @@ public class gymsyncapp extends JFrame {
             animTimer.start();
         }
 
+        @Override
+        public void addNotify() {
+            super.addNotify();
+            if (!animTimer.isRunning()) {
+                animTimer.start();
+            }
+        }
+
+        @Override
+        public void removeNotify() {
+            animTimer.stop();
+            super.removeNotify();
+        }
+
         private void loadGifForExercise(Exercise ex) {
             activeGifIcon = null;
             loadedSourceLabel = "Offline Biomechanical Engine";
@@ -1439,8 +1516,8 @@ public class gymsyncapp extends JFrame {
             g2.setColor(BORDER_SUBTLE);
             g2.drawRoundRect(12, canvasY, w - 24, canvasH, 18, 18);
 
-            // If user attached a custom external GIF/PNG, show it; otherwise render crisp vector Anatomical Red Muscle Map + Exercise-Specific Motion
-            if (exercise.customGifOrImagePath != null && activeGifIcon != null && activeGifIcon.getIconWidth() > 0) {
+            // If a local/cached GIF/PNG was loaded, show it; otherwise render crisp vector Anatomical Red Muscle Map + Exercise-Specific Motion
+            if (activeGifIcon != null && activeGifIcon.getIconWidth() > 0) {
                 g2.drawImage(activeGifIcon.getImage(), 18, canvasY + 6, w - 36, canvasH - 12, this);
             } else {
                 double phase = Math.abs(12 - animTick) / 12.0;
@@ -1959,7 +2036,9 @@ public class gymsyncapp extends JFrame {
         JPanel rightBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         rightBox.setOpaque(false);
 
-        String dbTag = repo.isJdbcConnected() ? "● SQLite JDBC Live" : "● Instant Memory DB";
+        String dbTag = repo.isJdbcConnected()
+                ? (repo.isMySql() ? "● MySQL JDBC Live" : "● SQLite JDBC Live")
+                : "● Instant Memory DB";
         JLabel userChip = new JLabel(currentUser.getFullName() + "  •  " + currentUser.role.toUpperCase() + "  (" + dbTag + ")");
         userChip.setFont(new Font("SansSerif", Font.BOLD, 12));
         userChip.setForeground(TEXT_SECONDARY);
@@ -2019,6 +2098,10 @@ public class gymsyncapp extends JFrame {
                     b.putClientProperty("active", isThis);
                     b.setForeground(isThis ? Color.WHITE : TEXT_SECONDARY);
                     b.repaint();
+                }
+                Object onTabSelected = entry.getValue().getClientProperty("onTabSelected");
+                if (onTabSelected instanceof Runnable) {
+                    ((Runnable) onTabSelected).run();
                 }
                 contentLayout.show(contentArea, key);
             });
@@ -2091,11 +2174,11 @@ public class gymsyncapp extends JFrame {
         JButton btnRegister = createGradientButton("+ New Member (1-Mo)", NEON_EMERALD, new Color(5, 150, 105));
         JButton btnRenew = createGradientButton("↻ Renew +1 Month", ELECTRIC_INDIGO, CYBER_CYAN);
         JButton btnEdit = createStyledButton("✎ Edit Profile", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        JButton btnDel = allowDelete ? createStyledButton("🗑 Delete", CORAL_RED, Color.WHITE) : null;
         actionBtns.add(btnRegister);
         actionBtns.add(btnRenew);
         actionBtns.add(btnEdit);
-        if (allowDelete) {
-            JButton btnDel = createStyledButton("🗑 Delete", CORAL_RED, Color.WHITE);
+        if (btnDel != null) {
             actionBtns.add(btnDel);
         }
 
@@ -2225,8 +2308,7 @@ public class gymsyncapp extends JFrame {
             }
         });
 
-        if (allowDelete && actionBtns.getComponentCount() >= 4) {
-            JButton btnDel = (JButton) actionBtns.getComponent(3);
+        if (btnDel != null) {
             btnDel.addActionListener(e -> {
                 int viewRow = table.getSelectedRow();
                 if (viewRow < 0) {
@@ -2244,6 +2326,7 @@ public class gymsyncapp extends JFrame {
             });
         }
 
+        container.putClientProperty("onTabSelected", refreshTable);
         container.add(topBar, BorderLayout.NORTH);
         container.add(wrapDarkScrollPane(table), BorderLayout.CENTER);
         container.add(passCard, BorderLayout.EAST);
@@ -2454,6 +2537,7 @@ public class gymsyncapp extends JFrame {
         banner.add(info, BorderLayout.WEST);
         banner.add(btnRefresh, BorderLayout.EAST);
 
+        panel.putClientProperty("onTabSelected", loadAlerts);
         panel.add(banner, BorderLayout.NORTH);
         panel.add(wrapDarkScrollPane(table), BorderLayout.CENTER);
         return panel;
@@ -2530,16 +2614,27 @@ public class gymsyncapp extends JFrame {
 
         btnDeleteUser.addActionListener(e -> {
             int row = table.getSelectedRow();
-            if (row < 0) return;
-            int id = (int) model.getValueAt(row, 0);
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "Please select a user account to delete.");
+                return;
+            }
+            int modelRow = table.convertRowIndexToModel(row);
+            int id = (int) model.getValueAt(modelRow, 0);
             if (id == currentUser.userId) {
                 JOptionPane.showMessageDialog(this, "You cannot delete your own active Admin account.");
                 return;
             }
-            repo.deleteUser(id);
-            refresh.run();
+            String username = String.valueOf(model.getValueAt(modelRow, 1));
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Delete user account " + username + " (#" + id + ")?",
+                    "Confirm Account Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                repo.deleteUser(id);
+                refresh.run();
+            }
         });
 
+        panel.putClientProperty("onTabSelected", refresh);
         panel.add(top, BorderLayout.NORTH);
         panel.add(wrapDarkScrollPane(table), BorderLayout.CENTER);
         return panel;
@@ -2707,12 +2802,29 @@ public class gymsyncapp extends JFrame {
 
         btnDel.addActionListener(e -> {
             int row = table.getSelectedRow();
-            if (row < 0) return;
-            int id = (int) model.getValueAt(table.convertRowIndexToModel(row), 0);
-            repo.deleteExercise(id);
-            refresh.run();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "Please select an exercise to delete.");
+                return;
+            }
+            int modelRow = table.convertRowIndexToModel(row);
+            int id = (int) model.getValueAt(modelRow, 0);
+            String exName = String.valueOf(model.getValueAt(modelRow, 1));
+            if (repo.isExerciseUsedInPlans(id)) {
+                JOptionPane.showMessageDialog(this,
+                        "Cannot delete '" + exName + "' because it is currently assigned to one or more Workout Plans.",
+                        "Exercise In Use", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Delete exercise '" + exName + "' (#" + id + ") from the library?",
+                    "Confirm Exercise Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                repo.deleteExercise(id);
+                refresh.run();
+            }
         });
 
+        panel.putClientProperty("onTabSelected", refresh);
         panel.add(top, BorderLayout.NORTH);
         panel.add(wrapDarkScrollPane(table), BorderLayout.CENTER);
         panel.add(visualCard, BorderLayout.EAST);
@@ -2797,6 +2909,7 @@ public class gymsyncapp extends JFrame {
         south.setOpaque(false);
         south.add(btnRefresh);
 
+        panel.putClientProperty("onTabSelected", buildReportContent);
         panel.add(kpiRow, BorderLayout.NORTH);
         panel.add(tablesGrid, BorderLayout.CENTER);
         panel.add(south, BorderLayout.SOUTH);
@@ -2900,7 +3013,7 @@ public class gymsyncapp extends JFrame {
                     latest.goal + "  (Tap any row for animated muscle & machine demo)");
             boolean showMachines = chkUseMachines.isSelected();
             for (WorkoutPlanExercise item : latest.exercises) {
-                boolean isMach = item.equipment != null && item.equipment.toLowerCase().contains("machine");
+                boolean isMach = Exercise.isMachineEquipment(item.equipment);
                 if (!showMachines && isMach) continue;
                 String badge = isMach ? ("⚙ " + item.equipment.replace("Machine: ", "")) : ("✓ No Machine (" + item.equipment + ")");
                 exModel.addRow(new Object[]{
@@ -2986,10 +3099,8 @@ public class gymsyncapp extends JFrame {
         lbl.setFont(new Font("SansSerif", Font.BOLD, 13));
         lbl.setForeground(TEXT_PRIMARY);
         JComboBox<String> memberCombo = createDarkComboBox(new String[]{});
-        List<User> members = repo.getMembers();
-        for (User m : members) {
-            memberCombo.addItem(m.userId + " - " + m.getFullName() + " (" + m.fitnessLevel + ")");
-        }
+        List<User> members = new ArrayList<>();
+
         selectorBar.add(lbl);
         selectorBar.add(memberCombo);
 
@@ -3005,9 +3116,35 @@ public class gymsyncapp extends JFrame {
             dynamicHolder.revalidate();
             dynamicHolder.repaint();
         };
-        memberCombo.addActionListener(e -> loadSelectedMemberPlanner.run());
-        loadSelectedMemberPlanner.run();
 
+        Runnable refreshMembers = () -> {
+            int selectedUserId = -1;
+            int prevIdx = memberCombo.getSelectedIndex();
+            if (prevIdx >= 0 && prevIdx < members.size()) {
+                selectedUserId = members.get(prevIdx).userId;
+            }
+            members.clear();
+            members.addAll(repo.getMembers());
+            ActionListener[] listeners = memberCombo.getActionListeners();
+            for (ActionListener al : listeners) memberCombo.removeActionListener(al);
+            memberCombo.removeAllItems();
+            int restoreIdx = 0;
+            for (int i = 0; i < members.size(); i++) {
+                User m = members.get(i);
+                memberCombo.addItem(m.userId + " - " + m.getFullName() + " (" + m.fitnessLevel + ")");
+                if (m.userId == selectedUserId) restoreIdx = i;
+            }
+            if (!members.isEmpty()) {
+                memberCombo.setSelectedIndex(restoreIdx);
+            }
+            for (ActionListener al : listeners) memberCombo.addActionListener(al);
+            loadSelectedMemberPlanner.run();
+        };
+
+        memberCombo.addActionListener(e -> loadSelectedMemberPlanner.run());
+        refreshMembers.run();
+
+        wrapper.putClientProperty("onTabSelected", refreshMembers);
         wrapper.add(selectorBar, BorderLayout.NORTH);
         wrapper.add(dynamicHolder, BorderLayout.CENTER);
         return wrapper;

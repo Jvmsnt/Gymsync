@@ -1,6 +1,6 @@
 -- ============================================================================
 -- GYMSYNC: Gym Membership and Workout Plan Management System
--- Database Schema, Views, Seed Data, and Report Queries (SQLite & MySQL Ready)
+-- Database Schema, Views, Seed Data, and Report Queries (MySQL 8.0+ Ready)
 -- Prepared for:
 --   Musnit, Jhan Vince Aaron (Project Manager / DB Schema & Exercise Data)
 --   Teston, Christian (Developer / JDBC & Business Logic)
@@ -8,7 +8,12 @@
 --   Texon, Broderick (UI/UX Designer / Java Swing Layouts)
 -- ============================================================================
 
-PRAGMA foreign_keys = ON;
+CREATE DATABASE IF NOT EXISTS gymsync
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+USE gymsync;
+
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- Drop existing tables in reverse dependency order for clean re-initialization
 DROP VIEW IF EXISTS vw_member_status;
@@ -17,6 +22,8 @@ DROP TABLE IF EXISTS WorkoutPlan;
 DROP TABLE IF EXISTS Membership;
 DROP TABLE IF EXISTS Exercise;
 DROP TABLE IF EXISTS User;
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================================
 -- 1. TABLE DEFINITIONS (5 Core Entities from Proposal Section 7)
@@ -27,7 +34,7 @@ DROP TABLE IF EXISTS User;
 -- Member-only fields (birthdate, emergency_contact_name, emergency_contact_no,
 -- fitness_level) are populated when role = 'Member'.
 CREATE TABLE User (
-    user_id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id                INT          AUTO_INCREMENT PRIMARY KEY,
     username               VARCHAR(50)  NOT NULL UNIQUE,
     password_hash          VARCHAR(64)  NOT NULL, -- SHA-256 hex digest
     role                   VARCHAR(15)  NOT NULL CHECK (role IN ('Admin', 'Staff', 'Member')),
@@ -41,14 +48,14 @@ CREATE TABLE User (
     emergency_contact_no   VARCHAR(25)  NULL,
     fitness_level          VARCHAR(20)  NULL CHECK (fitness_level IN ('Beginner', 'Intermediate', 'Advanced') OR fitness_level IS NULL),
     date_registered        DATE         NOT NULL DEFAULT (CURRENT_DATE)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 1.2 Membership Entity
 -- Tracks month-to-month membership periods for each Member.
 -- Active/Expired status is dynamically computed from the latest end_date.
 CREATE TABLE Membership (
-    membership_id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id                INTEGER NOT NULL,
+    membership_id          INT     AUTO_INCREMENT PRIMARY KEY,
+    user_id                INT     NOT NULL,
     start_date             DATE    NOT NULL,
     end_date               DATE    NOT NULL,
     CONSTRAINT fk_membership_user
@@ -56,40 +63,40 @@ CREATE TABLE Membership (
         ON DELETE CASCADE,
     CONSTRAINT chk_membership_dates
         CHECK (end_date >= start_date)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 1.3 Exercise Entity
 -- Master exercise library managed by Administrators and used by Workout Plans.
 CREATE TABLE Exercise (
-    exercise_id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    exercise_id            INT          AUTO_INCREMENT PRIMARY KEY,
     name                   VARCHAR(100) NOT NULL UNIQUE,
     muscle_group           VARCHAR(40)  NOT NULL, -- Chest, Back, Legs, Shoulders, Arms, Core, Full Body
     difficulty             VARCHAR(20)  NOT NULL CHECK (difficulty IN ('Beginner', 'Intermediate', 'Advanced')),
-    equipment              VARCHAR(50)  NOT NULL, -- Bodyweight, Dumbbells, Barbell, Machine, Cable
+    equipment              VARCHAR(50)  NOT NULL, -- Bodyweight, Dumbbells, Barbell, Machine: ...
     description            TEXT         NOT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 1.4 WorkoutPlan Entity
 -- Header table for either rule-based ('suggested') or member-built ('custom') plans.
 CREATE TABLE WorkoutPlan (
-    workout_plan_id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id                INTEGER     NOT NULL,
+    workout_plan_id        INT         AUTO_INCREMENT PRIMARY KEY,
+    user_id                INT         NOT NULL,
     plan_type              VARCHAR(20) NOT NULL CHECK (plan_type IN ('suggested', 'custom')),
     goal                   VARCHAR(60) NOT NULL, -- Weight Loss, Muscle Gain, General Fitness, Strength
     date_created           DATE        NOT NULL DEFAULT (CURRENT_DATE),
     CONSTRAINT fk_workoutplan_user
         FOREIGN KEY (user_id) REFERENCES User(user_id)
         ON DELETE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 1.5 WorkoutPlanExercise Entity
 -- Associative detail rows mapping Exercises to specific days, sets, and reps in a WorkoutPlan.
 CREATE TABLE WorkoutPlanExercise (
-    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
-    workout_plan_id        INTEGER     NOT NULL,
-    exercise_id            INTEGER     NOT NULL,
+    id                     INT         AUTO_INCREMENT PRIMARY KEY,
+    workout_plan_id        INT         NOT NULL,
+    exercise_id            INT         NOT NULL,
     day_of_week            VARCHAR(20) NOT NULL, -- Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
-    sets                   INTEGER     NOT NULL CHECK (sets >= 1 AND sets <= 20),
+    sets                   INT         NOT NULL CHECK (sets >= 1 AND sets <= 20),
     reps                   VARCHAR(25) NOT NULL, -- e.g. '10-12', '15', '30 sec'
     CONSTRAINT fk_wpe_plan
         FOREIGN KEY (workout_plan_id) REFERENCES WorkoutPlan(workout_plan_id)
@@ -97,19 +104,19 @@ CREATE TABLE WorkoutPlanExercise (
     CONSTRAINT fk_wpe_exercise
         FOREIGN KEY (exercise_id) REFERENCES Exercise(exercise_id)
         ON DELETE RESTRICT
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Indexes for fast (<5 second) Front Desk lookups and reporting
 CREATE INDEX idx_user_role_name ON User(role, last_name, first_name);
-CREATE INDEX idx_membership_user_end ON Membership(user_id, end_date DESC);
+CREATE INDEX idx_membership_user_end ON Membership(user_id, end_date);
 CREATE INDEX idx_exercise_filter ON Exercise(difficulty, equipment, muscle_group);
-CREATE INDEX idx_workoutplan_user ON WorkoutPlan(user_id, date_created DESC);
+CREATE INDEX idx_workoutplan_user ON WorkoutPlan(user_id, date_created);
 
 -- ============================================================================
 -- 2. DYNAMIC STATUS VIEW (vw_member_status)
 -- Computes Active vs. Expired from the latest Membership.end_date
 -- ============================================================================
-CREATE VIEW vw_member_status AS
+CREATE OR REPLACE VIEW vw_member_status AS
 SELECT
     u.user_id,
     u.username,
@@ -124,10 +131,10 @@ SELECT
     m.start_date    AS latest_start_date,
     m.end_date      AS latest_end_date,
     CASE
-        WHEN m.end_date IS NOT NULL AND m.end_date >= DATE('now') THEN 'Active'
+        WHEN m.end_date IS NOT NULL AND m.end_date >= CURDATE() THEN 'Active'
         ELSE 'Expired'
     END AS computed_status,
-    CAST(JULIANDAY(m.end_date) - JULIANDAY(DATE('now')) AS INTEGER) AS days_remaining
+    DATEDIFF(m.end_date, CURDATE()) AS days_remaining
 FROM User u
 LEFT JOIN Membership m
     ON m.membership_id = (
@@ -170,7 +177,7 @@ INSERT INTO User (
 (6, 'sofia_l', '5600376e863d2f57a053518f324ad3840b0bc2348b573af281a7b7cbe7a228c6', 'Member', 'Sofia', 'Lim', '0922-555-0204',
  '2004-07-30', 'Female', 'Bucandala, Imus, Cavite', 'Grace Lim', '0922-555-0296', 'Beginner', '2026-10-12'),
 (7, 'kevin_t', '5600376e863d2f57a053518f324ad3840b0bc2348b573af281a7b7cbe7a228c6', 'Member', 'Kevin', 'Torres', '0923-555-0205',
- '1995-12-08', 'Male', 'Palico IV, Imus, Cavite', 'diana Torres', '0923-555-0295', 'Advanced', '2026-06-20'),
+ '1995-12-08', 'Male', 'Palico IV, Imus, Cavite', 'Diana Torres', '0923-555-0295', 'Advanced', '2026-06-20'),
 (8, 'hannah_g', '5600376e863d2f57a053518f324ad3840b0bc2348b573af281a7b7cbe7a228c6', 'Member', 'Hannah', 'Garcia', '0924-555-0206',
  '2001-09-25', 'Female', 'Medicion I-A, Imus, Cavite', 'Noel Garcia', '0924-555-0294', 'Beginner', '2026-09-28');
 
@@ -182,21 +189,21 @@ INSERT INTO User (
 
 INSERT INTO Membership (membership_id, user_id, start_date, end_date) VALUES
 -- Carlos Mendoza: renewed twice, currently ACTIVE (expires in 18 days)
-(1,  3, DATE('now', '-72 days'), DATE('now', '-42 days')),
-(2,  3, DATE('now', '-42 days'), DATE('now', '-12 days')),
-(3,  3, DATE('now', '-12 days'), DATE('now', '+18 days')),
+(1,  3, DATE_SUB(CURDATE(), INTERVAL 72 DAY), DATE_SUB(CURDATE(), INTERVAL 42 DAY)),
+(2,  3, DATE_SUB(CURDATE(), INTERVAL 42 DAY), DATE_SUB(CURDATE(), INTERVAL 12 DAY)),
+(3,  3, DATE_SUB(CURDATE(), INTERVAL 12 DAY), DATE_ADD(CURDATE(), INTERVAL 18 DAY)),
 -- Angela Reyes: renewed once, EXPIRING SOON (expires in 4 days)
-(4,  4, DATE('now', '-56 days'), DATE('now', '-26 days')),
-(5,  4, DATE('now', '-26 days'), DATE('now', '+4 days')),
+(4,  4, DATE_SUB(CURDATE(), INTERVAL 56 DAY), DATE_SUB(CURDATE(), INTERVAL 26 DAY)),
+(5,  4, DATE_SUB(CURDATE(), INTERVAL 26 DAY), DATE_ADD(CURDATE(), INTERVAL 4 DAY)),
 -- Mark Dela Cruz: EXPIRED 9 days ago (appears in Front Desk Expired Alert List)
-(6,  5, DATE('now', '-69 days'), DATE('now', '-39 days')),
-(7,  5, DATE('now', '-39 days'), DATE('now', '-9 days')),
+(6,  5, DATE_SUB(CURDATE(), INTERVAL 69 DAY), DATE_SUB(CURDATE(), INTERVAL 39 DAY)),
+(7,  5, DATE_SUB(CURDATE(), INTERVAL 39 DAY), DATE_SUB(CURDATE(), INTERVAL 9 DAY)),
 -- Sofia Lim: New beginner member, ACTIVE (expires in 22 days)
-(8,  6, DATE('now', '-8 days'),  DATE('now', '+22 days')),
+(8,  6, DATE_SUB(CURDATE(), INTERVAL 8 DAY),  DATE_ADD(CURDATE(), INTERVAL 22 DAY)),
 -- Kevin Torres: EXPIRED 15 days ago (appears in Front Desk Expired Alert List)
-(9,  7, DATE('now', '-45 days'), DATE('now', '-15 days')),
+(9,  7, DATE_SUB(CURDATE(), INTERVAL 45 DAY), DATE_SUB(CURDATE(), INTERVAL 15 DAY)),
 -- Hannah Garcia: EXPIRING SOON (expires in 2 days)
-(10, 8, DATE('now', '-28 days'), DATE('now', '+2 days'));
+(10, 8, DATE_SUB(CURDATE(), INTERVAL 28 DAY), DATE_ADD(CURDATE(), INTERVAL 2 DAY));
 
 -- ============================================================================
 -- 5. SEED DATA: EXERCISE LIBRARY (32 Exercises Including 21 Gym Machines)
@@ -241,40 +248,40 @@ INSERT INTO Exercise (exercise_id, name, muscle_group, difficulty, equipment, de
 -- ============================================================================
 
 INSERT INTO WorkoutPlan (workout_plan_id, user_id, plan_type, goal, date_created) VALUES
-(1, 3, 'suggested', 'Weight Loss (Beginner - 3 Days - Dumbbells)', DATE('now', '-10 days')),
-(2, 6, 'suggested', 'General Fitness (Beginner - 3 Days - Full Gym)', DATE('now', '-7 days')),
-(3, 4, 'custom',    'Muscle Gain & Lower Body Focus', DATE('now', '-14 days'));
+(1, 3, 'suggested', 'Weight Loss (Beginner - 3 Days - Dumbbells)', DATE_SUB(CURDATE(), INTERVAL 10 DAY)),
+(2, 6, 'suggested', 'General Fitness (Beginner - 3 Days - Full Gym)', DATE_SUB(CURDATE(), INTERVAL 7 DAY)),
+(3, 4, 'custom',    'Muscle Gain & Lower Body Focus', DATE_SUB(CURDATE(), INTERVAL 14 DAY));
 
 INSERT INTO WorkoutPlanExercise (workout_plan_id, exercise_id, day_of_week, sets, reps) VALUES
--- Plan 1: Carlos Mendoza (Beginner Suggested Plan - 3 Days)
-(1, 10, 'Monday',    3, '12-15'),
-(1, 11, 'Monday',    3, '12-15'),
-(1, 4,  'Monday',    3, '30 sec'),
-(1, 12, 'Wednesday', 3, '12-15'),
-(1, 13, 'Wednesday', 3, '12-15'),
-(1, 6,  'Wednesday', 3, '30 sec'),
-(1, 3,  'Friday',    3, '12 each leg'),
-(1, 14, 'Friday',    3, '12-15'),
-(1, 7,  'Friday',    3, '15'),
+-- Plan 1: Carlos Mendoza (Beginner Suggested Plan - 3 Days - Dumbbells/Bodyweight)
+(1, 27, 'Monday',    3, '12-15'), -- Dumbbell Goblet Squat
+(1, 28, 'Monday',    3, '12-15'), -- Flat Dumbbell Chest Press
+(1, 25, 'Monday',    3, '30 sec'), -- Forearm Plank Hold
+(1, 29, 'Wednesday', 3, '12-15'), -- One-Arm Dumbbell Row
+(1, 30, 'Wednesday', 3, '12-15'), -- Seated Dumbbell Shoulder Press
+(1, 26, 'Wednesday', 3, '15'),    -- Bicycle Crunches
+(1, 24, 'Friday',    3, '12 each leg'), -- Forward Walking Lunge
+(1, 31, 'Friday',    3, '12-15'), -- Alternating Dumbbell Bicep Curl
+(1, 22, 'Friday',    3, '10-12'), -- Push-Up
 
 -- Plan 2: Sofia Lim (Beginner Suggested Plan - 3 Days Full Gym)
-(2, 20, 'Monday',    3, '10-12'),
-(2, 21, 'Monday',    3, '10-12'),
-(2, 4,  'Monday',    3, '30 sec'),
-(2, 18, 'Wednesday', 3, '10-12'),
-(2, 13, 'Wednesday', 3, '10-12'),
-(2, 5,  'Wednesday', 3, '12-15'),
-(2, 10, 'Friday',    3, '10-12'),
-(2, 19, 'Friday',    3, '10-12'),
-(2, 7,  'Friday',    3, '15'),
+(2, 7,  'Monday',    3, '10-12'), -- 45° Leg Press Machine
+(2, 4,  'Monday',    3, '10-12'), -- Seated Chest Press Machine
+(2, 25, 'Monday',    3, '30 sec'), -- Forearm Plank Hold
+(2, 1,  'Wednesday', 3, '10-12'), -- Lat Pulldown Machine
+(2, 12, 'Wednesday', 3, '10-12'), -- Seated Shoulder Press Machine
+(2, 19, 'Wednesday', 3, '12-15'), -- Seated Ab Crunch Machine
+(2, 27, 'Friday',    3, '10-12'), -- Dumbbell Goblet Squat
+(2, 2,  'Friday',    3, '10-12'), -- Seated Cable Row Machine
+(2, 20, 'Friday',    1, '15 min'), -- Treadmill Incline Power Walk / Jog
 
--- Plan 3: Angela Reyes (Custom Plan)
-(3, 24, 'Monday',    4, '8-10'),
-(3, 16, 'Monday',    4, '10-12'),
-(3, 23, 'Wednesday', 4, '8-10'),
-(3, 18, 'Wednesday', 4, '10-12'),
-(3, 20, 'Friday',    4, '10-12'),
-(3, 17, 'Friday',    3, '12-15');
+-- Plan 3: Angela Reyes (Custom Plan - Intermediate)
+(3, 11, 'Monday',    4, '8-10'),  -- Hack Squat Machine
+(3, 9,  'Monday',    4, '10-12'), -- Lying Hamstring Curl Machine
+(3, 32, 'Wednesday', 4, '8-10'),  -- Barbell Bench Press
+(3, 1,  'Wednesday', 4, '10-12'), -- Lat Pulldown Machine
+(3, 7,  'Friday',    4, '10-12'), -- 45° Leg Press Machine
+(3, 14, 'Friday',    3, '12-15'); -- Cable Lateral Raise
 
 -- ============================================================================
 -- 7. STANDARD REPORT QUERIES (Proposal Section 4 & Section 6)
@@ -290,7 +297,7 @@ INSERT INTO WorkoutPlanExercise (workout_plan_id, exercise_id, day_of_week, sets
 -- ORDER BY days_remaining ASC;
 
 -- REPORT C: Monthly Membership Renewals Count
--- SELECT STRFTIME('%Y-%m', start_date) AS renewal_month, COUNT(*) AS total_memberships
+-- SELECT DATE_FORMAT(start_date, '%Y-%m') AS renewal_month, COUNT(*) AS total_memberships
 -- FROM Membership
--- GROUP BY STRFTIME('%Y-%m', start_date)
+-- GROUP BY DATE_FORMAT(start_date, '%Y-%m')
 -- ORDER BY renewal_month DESC;

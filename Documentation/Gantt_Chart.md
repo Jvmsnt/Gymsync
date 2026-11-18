@@ -2,7 +2,7 @@
 
 > **Tech Stack:** Java, Java Swing, MySQL  
 > **Repository:** `C:\Users\Aaron Musnit\Documents\GitHub\Gymsync`  
-> **Last Updated:** 2026-11-15
+> **Last Updated:** 2026-11-17
 
 ```mermaid
 gantt
@@ -20,9 +20,9 @@ gantt
     Swing UI & Custom Cards / Renderers          :done, c3, 2026-11-05, 5d
 
     section 3. Testing, Docs & Final Presentation
-    UI Screenshots & Documentation               :active, d1, 2026-11-10, 5d
-    End-to-End Testing & Bug Fixes               :active, d2, 2026-11-15, 3d
-    Final PowerPoint Presentation                :active, d3, 2026-11-15, 4d
+    UI Screenshots & Documentation               :done, d1, 2026-11-10, 5d
+    End-to-End Testing & Bug Fixes               :done, d2, 2026-11-15, 3d
+    Final PowerPoint Presentation (Dec Defense)  :active, d3, 2026-11-18, 14d
 ```
 
 ## Milestone Status
@@ -33,5 +33,6 @@ gantt
 | Database | MySQL Schema & Seed | `gymsync_database_schema_and_seed.sql` | Done |
 | Backend | Models, Security, Business Rules, DataRepository | `gymsyncapp.java` | Done |
 | Frontend | Java Swing UI & Custom Components | `gymsyncapp.java` | Done |
+| Testing & Fixes | JDBC Connection, MySQL SQL, & UI Sync Fixes | `gymsyncapp.java`, `gymsync_database_schema_and_seed.sql` | Done |
 | Documentation | UI Screenshots & Gantt Chart | `Documentation/` | In Progress |
-| Presentation | Final Case Study PowerPoint | `Documentation/Gymsync_Final_Presentation.pptx` | In Progress |
+| Presentation | Final Case Study PowerPoint (December Defense) | Deferred until December | Pending |

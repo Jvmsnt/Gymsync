@@ -36,29 +36,29 @@ import java.util.stream.Collectors;
 public final class gymsyncapp extends JFrame {
     private static final long serialVersionUID = 1L;
 
-    // ── Play Store Fitness App Dark & Neon Theme Palette ──
-    public static final Color BG_OBSIDIAN     = new Color(11, 15, 25);    // #0B0F19 Main App Canvas
-    public static final Color BG_SURFACE      = new Color(18, 25, 38);    // #121926 Secondary Surface
-    public static final Color CARD_SURFACE    = new Color(28, 37, 54);    // #1C2536 Elevated Card
-    public static final Color CARD_HIGHLIGHT  = new Color(37, 49, 71);    // #253147 Hover/Inner Card
-    public static final Color BORDER_SUBTLE   = new Color(51, 65, 85);    // #334155 Card Outline
-    public static final Color INPUT_BG        = new Color(15, 23, 42);    // #0F172A Dark Input Pill
+    // ── Precision Dark Console Palette (Restrained Zinc + Emerald Accent) ──
+    public static final Color BG_OBSIDIAN     = new Color(9, 9, 11);      // #09090B Main App Canvas
+    public static final Color BG_SURFACE      = new Color(17, 17, 20);    // #111114 Secondary Surface
+    public static final Color CARD_SURFACE    = new Color(24, 24, 27);    // #18181B Elevated Card
+    public static final Color CARD_HIGHLIGHT  = new Color(39, 39, 42);    // #27272A Hover/Inner Card
+    public static final Color BORDER_SUBTLE   = new Color(46, 46, 52);    // #2E2E34 Crisp 1px Hairline
+    public static final Color INPUT_BG        = new Color(12, 12, 15);    // #0C0C0F Recessed Input
 
-    public static final Color TEXT_PRIMARY    = new Color(248, 250, 252); // #F8FAFC Crisp White
-    public static final Color TEXT_SECONDARY  = new Color(148, 163, 184); // #94A3B8 Muted Slate
-    public static final Color TEXT_MUTED      = new Color(100, 116, 139); // #64748B Sub-label
+    public static final Color TEXT_PRIMARY    = new Color(244, 244, 245); // #F4F4F5 Crisp Off-White
+    public static final Color TEXT_SECONDARY  = new Color(161, 161, 170); // #A1A1AA Muted Zinc
+    public static final Color TEXT_MUTED      = new Color(113, 113, 122); // #71717A Sub-label
 
-    // Play Store Vibrant Accents & Gradients
-    public static final Color NEON_EMERALD    = new Color(16, 185, 129);  // #10B981 Active / Primary CTA
-    public static final Color CYBER_CYAN      = new Color(6, 182, 212);   // #06B6D4 Secondary Gradient
-    public static final Color ELECTRIC_INDIGO = new Color(99, 102, 241);  // #6366F1 Brand Accent
-    public static final Color VIOLET_GLOW     = new Color(139, 92, 246);  // #8B5CF6 Secondary Accent
+    // Focused Brand & Semantic Accents (No Rainbow Gradients)
+    public static final Color NEON_EMERALD    = new Color(16, 185, 129);  // #10B981 Primary Brand / Active
+    public static final Color CYBER_CYAN      = new Color(20, 184, 166);  // #14B8A6 Muted Teal Support
+    public static final Color ELECTRIC_INDIGO = new Color(63, 63, 70);    // #3F3F46 Neutral Slate Accent
+    public static final Color VIOLET_GLOW     = new Color(82, 82, 91);    // #52525B Subtle Graphite
     public static final Color CORAL_RED       = new Color(244, 63, 94);   // #F43F5E Expired / Danger
     public static final Color AMBER_GOLD      = new Color(245, 158, 11);  // #F59E0B Expiring Soon Warning
 
-    public static final Color TABLE_EVEN_ROW  = new Color(24, 33, 48);
-    public static final Color TABLE_ALT_ROW   = new Color(19, 27, 40);
-    public static final Color TABLE_SELECT    = new Color(55, 48, 163);
+    public static final Color TABLE_EVEN_ROW  = new Color(20, 20, 24);
+    public static final Color TABLE_ALT_ROW   = new Color(15, 15, 18);
+    public static final Color TABLE_SELECT    = new Color(20, 52, 43);
 
     private final DataRepository repo;
     private final CardLayout rootCardLayout = new CardLayout();
@@ -189,12 +189,12 @@ public final class gymsyncapp extends JFrame {
                 case 30: return "ex_30_dumbbell_shoulder_press.gif";
                 case 31: return "ex_31_dumbbell_bicep_curl.gif";
                 case 32: return "ex_32_barbell_bench_press.gif";
-                default: return muscleGroup.toLowerCase().replace(" ", "_") + ".gif";
+                default: return (muscleGroup != null ? muscleGroup.toLowerCase(Locale.ROOT).replace(" ", "_") : "general") + ".gif";
             }
         }
 
         public String getPrimaryMuscles() {
-            String n = name != null ? name.toLowerCase() : "";
+            String n = name != null ? name.toLowerCase(Locale.ROOT) : "";
             if (n.contains("pulldown") || n.contains("pull-up")) return "Latissimus Dorsi, Upper Lats";
             if (n.contains("row") && !n.contains("ergometer")) return "Middle Back (Rhomboids, Traps), Lats";
             if (n.contains("incline")) return "Upper Pectoralis Major (Clavicular)";
@@ -213,7 +213,7 @@ public final class gymsyncapp extends JFrame {
         }
 
         public String getSecondaryMuscles() {
-            String mg = muscleGroup != null ? muscleGroup.toLowerCase() : "";
+            String mg = muscleGroup != null ? muscleGroup.toLowerCase(Locale.ROOT) : "";
             if (mg.contains("chest")) return "Anterior Deltoids, Triceps Brachii";
             if (mg.contains("back")) return "Biceps Brachii, Rear Deltoids, Forearms";
             if (mg.contains("leg")) return "Hamstrings, Calves, Core Stabilizers";
@@ -236,6 +236,13 @@ public final class gymsyncapp extends JFrame {
         public String goal;
         public LocalDate dateCreated;
         public List<WorkoutPlanExercise> exercises = new ArrayList<>();
+
+        @Override
+        public String toString() {
+            String typeLabel = planType != null ? planType.toUpperCase(Locale.ROOT) : "PLAN";
+            String dateLabel = dateCreated != null ? " (" + dateCreated + ")" : "";
+            return "#" + workoutPlanId + " [" + typeLabel + "] " + goal + dateLabel;
+        }
     }
 
     public static class WorkoutPlanExercise {
@@ -315,18 +322,24 @@ public final class gymsyncapp extends JFrame {
                     .collect(Collectors.toList());
 
             if (pool.isEmpty()) {
+                pool = allExercises.stream()
+                        .filter(ex -> includeMachines || !ex.requiresMachine())
+                        .collect(Collectors.toList());
+            }
+            if (pool.isEmpty()) {
                 pool = new ArrayList<>(allExercises);
             }
 
             int defaultSets;
             String defaultReps;
-            if (goal.toLowerCase().contains("weight loss")) {
+            String goalLower = goal != null ? goal.toLowerCase(Locale.ROOT) : "";
+            if (goalLower.contains("weight loss")) {
                 defaultSets = 3;
                 defaultReps = "12-15";
-            } else if (goal.toLowerCase().contains("muscle")) {
+            } else if (goalLower.contains("muscle")) {
                 defaultSets = 4;
                 defaultReps = "8-12";
-            } else if (goal.toLowerCase().contains("strength")) {
+            } else if (goalLower.contains("strength")) {
                 defaultSets = 4;
                 defaultReps = "6-8";
             } else {
@@ -439,15 +452,19 @@ public final class gymsyncapp extends JFrame {
         private static final String JDBC_PASS = getConfig("gymsync.db.password", "GYMSYNC_DB_PASSWORD", "");
         private boolean jdbcAvailable = false;
 
-        public boolean isMySql() {
+        private static boolean isMySqlUrl() {
             return JDBC_URL.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:");
+        }
+
+        public boolean isMySql() {
+            return isMySqlUrl();
         }
 
         private static Connection openConnection() throws SQLException {
             Connection conn = !JDBC_USER.isEmpty()
                     ? DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)
                     : DriverManager.getConnection(JDBC_URL);
-            if (!JDBC_URL.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:")) {
+            if (!isMySqlUrl()) {
                 try (Statement st = conn.createStatement()) {
                     st.execute("PRAGMA foreign_keys = ON;");
                 }
@@ -487,8 +504,9 @@ public final class gymsyncapp extends JFrame {
         }
 
         private void createTablesIfNotExist(Connection conn) throws SQLException {
-            boolean isMySql = JDBC_URL.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:");
+            boolean isMySql = isMySqlUrl();
             String pkAuto = isMySql ? "INTEGER PRIMARY KEY AUTO_INCREMENT" : "INTEGER PRIMARY KEY AUTOINCREMENT";
+            String tableSuffix = isMySql ? " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" : "";
             try (Statement st = conn.createStatement()) {
                 if (!isMySql) {
                     st.execute("PRAGMA foreign_keys = ON;");
@@ -507,27 +525,27 @@ public final class gymsyncapp extends JFrame {
                         "emergency_contact_name VARCHAR(100) NULL," +
                         "emergency_contact_no VARCHAR(25) NULL," +
                         "fitness_level VARCHAR(20) NULL," +
-                        "date_registered DATE NOT NULL)");
+                        "date_registered DATE NOT NULL)" + tableSuffix);
                 st.execute("CREATE TABLE IF NOT EXISTS Membership (" +
                         "membership_id " + pkAuto + "," +
                         "user_id INTEGER NOT NULL," +
                         "start_date DATE NOT NULL," +
                         "end_date DATE NOT NULL," +
-                        "FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE)");
+                        "FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE)" + tableSuffix);
                 st.execute("CREATE TABLE IF NOT EXISTS Exercise (" +
                         "exercise_id " + pkAuto + "," +
                         "name VARCHAR(100) NOT NULL UNIQUE," +
                         "muscle_group VARCHAR(40) NOT NULL," +
                         "difficulty VARCHAR(20) NOT NULL," +
-                        "equipment VARCHAR(50) NOT NULL," +
-                        "description TEXT NOT NULL)");
+                        "equipment VARCHAR(80) NOT NULL," +
+                        "description TEXT NOT NULL)" + tableSuffix);
                 st.execute("CREATE TABLE IF NOT EXISTS WorkoutPlan (" +
                         "workout_plan_id " + pkAuto + "," +
                         "user_id INTEGER NOT NULL," +
                         "plan_type VARCHAR(20) NOT NULL," +
-                        "goal VARCHAR(60) NOT NULL," +
+                        "goal VARCHAR(120) NOT NULL," +
                         "date_created DATE NOT NULL," +
-                        "FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE)");
+                        "FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE)" + tableSuffix);
                 st.execute("CREATE TABLE IF NOT EXISTS WorkoutPlanExercise (" +
                         "id " + pkAuto + "," +
                         "workout_plan_id INTEGER NOT NULL," +
@@ -536,7 +554,7 @@ public final class gymsyncapp extends JFrame {
                         "sets INTEGER NOT NULL," +
                         "reps VARCHAR(25) NOT NULL," +
                         "FOREIGN KEY (workout_plan_id) REFERENCES WorkoutPlan(workout_plan_id) ON DELETE CASCADE," +
-                        "FOREIGN KEY (exercise_id) REFERENCES Exercise(exercise_id))");
+                        "FOREIGN KEY (exercise_id) REFERENCES Exercise(exercise_id) ON DELETE RESTRICT)" + tableSuffix);
             }
         }
 
@@ -628,6 +646,14 @@ public final class gymsyncapp extends JFrame {
             }
         }
 
+        private static LocalDate parseSqlDate(String raw, LocalDate fallback) {
+            if (raw == null) return fallback;
+            String trimmed = raw.trim();
+            if (trimmed.isEmpty()) return fallback;
+            if (trimmed.length() > 10) trimmed = trimmed.substring(0, 10);
+            return LocalDate.parse(trimmed);
+        }
+
         private void loadFromJdbc(Connection conn) throws SQLException {
             users.clear();
             try (Statement st = conn.createStatement();
@@ -641,15 +667,13 @@ public final class gymsyncapp extends JFrame {
                     u.firstName = rs.getString("first_name");
                     u.lastName = rs.getString("last_name");
                     u.contactNo = rs.getString("contact_no");
-                    String bdate = rs.getString("birthdate");
-                    u.birthdate = (bdate != null && !bdate.isEmpty()) ? LocalDate.parse(bdate) : null;
+                    u.birthdate = parseSqlDate(rs.getString("birthdate"), null);
                     u.gender = rs.getString("gender");
                     u.address = rs.getString("address");
                     u.emergencyContactName = rs.getString("emergency_contact_name");
                     u.emergencyContactNo = rs.getString("emergency_contact_no");
                     u.fitnessLevel = rs.getString("fitness_level");
-                    String dreg = rs.getString("date_registered");
-                    u.dateRegistered = (dreg != null && !dreg.isEmpty()) ? LocalDate.parse(dreg) : LocalDate.now();
+                    u.dateRegistered = parseSqlDate(rs.getString("date_registered"), LocalDate.now());
                     users.add(u);
                     nextUserId = Math.max(nextUserId, u.userId + 1);
                 }
@@ -662,8 +686,8 @@ public final class gymsyncapp extends JFrame {
                     Membership m = new Membership();
                     m.membershipId = rs.getInt("membership_id");
                     m.userId = rs.getInt("user_id");
-                    m.startDate = LocalDate.parse(rs.getString("start_date"));
-                    m.endDate = LocalDate.parse(rs.getString("end_date"));
+                    m.startDate = parseSqlDate(rs.getString("start_date"), LocalDate.now());
+                    m.endDate = parseSqlDate(rs.getString("end_date"), LocalDate.now());
                     memberships.add(m);
                     nextMembershipId = Math.max(nextMembershipId, m.membershipId + 1);
                 }
@@ -695,7 +719,7 @@ public final class gymsyncapp extends JFrame {
                     wp.userId = rs.getInt("user_id");
                     wp.planType = rs.getString("plan_type");
                     wp.goal = rs.getString("goal");
-                    wp.dateCreated = LocalDate.parse(rs.getString("date_created"));
+                    wp.dateCreated = parseSqlDate(rs.getString("date_created"), LocalDate.now());
                     workoutPlans.add(wp);
                     planMap.put(wp.workoutPlanId, wp);
                     nextPlanId = Math.max(nextPlanId, wp.workoutPlanId + 1);
@@ -744,9 +768,12 @@ public final class gymsyncapp extends JFrame {
             User uHannah = addSeedUser("hannah_g", "member123", "Member", "Hannah", "Garcia", "0924-555-0206",
                     LocalDate.of(2001, 9, 25), "Female", "Medicion I-A, Imus, Cavite", "Noel Garcia", "0924-555-0294", "Beginner", today.minusDays(28));
 
+            addSeedMembership(uCarlos.userId, today.minusDays(72), today.minusDays(42));
             addSeedMembership(uCarlos.userId, today.minusDays(42), today.minusDays(12));
             addSeedMembership(uCarlos.userId, today.minusDays(12), today.plusDays(18));
+            addSeedMembership(uAngela.userId, today.minusDays(56), today.minusDays(26));
             addSeedMembership(uAngela.userId, today.minusDays(26), today.plusDays(4));
+            addSeedMembership(uMark.userId, today.minusDays(69), today.minusDays(39));
             addSeedMembership(uMark.userId, today.minusDays(39), today.minusDays(9));
             addSeedMembership(uSofia.userId, today.minusDays(8), today.plusDays(22));
             addSeedMembership(uKevin.userId, today.minusDays(45), today.minusDays(15));
@@ -788,14 +815,68 @@ public final class gymsyncapp extends JFrame {
             addSeedExercise("Alternating Dumbbell Bicep Curl", "Arms", "Beginner", "Dumbbells", "Stand tall with elbows tucked at sides and curl dumbbells upward with full control.");
             addSeedExercise("Barbell Bench Press", "Chest", "Intermediate", "Barbell", "Lie on flat bench, unrack barbell, lower with control to mid-chest, and press upward.");
 
-            WorkoutPlan initialPlan = BusinessRules.generateRuleBasedPlan(
-                    uCarlos.userId, "Weight Loss", "Beginner", 3, "Dumbbells", exercises);
-            initialPlan.workoutPlanId = nextPlanId++;
-            for (WorkoutPlanExercise wpe : initialPlan.exercises) {
-                wpe.id = nextPlanExId++;
-                wpe.workoutPlanId = initialPlan.workoutPlanId;
-            }
-            workoutPlans.add(initialPlan);
+            WorkoutPlan planCarlos = addSeedWorkoutPlan(
+                    uCarlos.userId, "suggested", "Weight Loss (Beginner - 3 Days - Dumbbells)", today.minusDays(10));
+            addSeedPlanExercise(planCarlos, 27, "Monday", 3, "12-15");
+            addSeedPlanExercise(planCarlos, 28, "Monday", 3, "12-15");
+            addSeedPlanExercise(planCarlos, 25, "Monday", 3, "30 sec");
+            addSeedPlanExercise(planCarlos, 29, "Wednesday", 3, "12-15");
+            addSeedPlanExercise(planCarlos, 30, "Wednesday", 3, "12-15");
+            addSeedPlanExercise(planCarlos, 26, "Wednesday", 3, "15");
+            addSeedPlanExercise(planCarlos, 24, "Friday", 3, "12 each leg");
+            addSeedPlanExercise(planCarlos, 31, "Friday", 3, "12-15");
+            addSeedPlanExercise(planCarlos, 22, "Friday", 3, "10-12");
+
+            WorkoutPlan planSofia = addSeedWorkoutPlan(
+                    uSofia.userId, "suggested", "General Fitness (Beginner - 3 Days - Full Gym)", today.minusDays(7));
+            addSeedPlanExercise(planSofia, 7, "Monday", 3, "10-12");
+            addSeedPlanExercise(planSofia, 4, "Monday", 3, "10-12");
+            addSeedPlanExercise(planSofia, 25, "Monday", 3, "30 sec");
+            addSeedPlanExercise(planSofia, 1, "Wednesday", 3, "10-12");
+            addSeedPlanExercise(planSofia, 12, "Wednesday", 3, "10-12");
+            addSeedPlanExercise(planSofia, 19, "Wednesday", 3, "12-15");
+            addSeedPlanExercise(planSofia, 27, "Friday", 3, "10-12");
+            addSeedPlanExercise(planSofia, 2, "Friday", 3, "10-12");
+            addSeedPlanExercise(planSofia, 20, "Friday", 1, "15 min");
+
+            WorkoutPlan planAngela = addSeedWorkoutPlan(
+                    uAngela.userId, "custom", "Muscle Gain & Lower Body Focus", today.minusDays(14));
+            addSeedPlanExercise(planAngela, 11, "Monday", 4, "8-10");
+            addSeedPlanExercise(planAngela, 9, "Monday", 4, "10-12");
+            addSeedPlanExercise(planAngela, 32, "Wednesday", 4, "8-10");
+            addSeedPlanExercise(planAngela, 1, "Wednesday", 4, "10-12");
+            addSeedPlanExercise(planAngela, 7, "Friday", 4, "10-12");
+            addSeedPlanExercise(planAngela, 14, "Friday", 3, "12-15");
+        }
+
+        private WorkoutPlan addSeedWorkoutPlan(int userId, String planType, String goal, LocalDate dateCreated) {
+            WorkoutPlan wp = new WorkoutPlan();
+            wp.workoutPlanId = nextPlanId++;
+            wp.userId = userId;
+            wp.planType = planType;
+            wp.goal = goal;
+            wp.dateCreated = dateCreated;
+            workoutPlans.add(0, wp);
+            return wp;
+        }
+
+        private void addSeedPlanExercise(WorkoutPlan plan, int exerciseId, String dayOfWeek, int sets, String reps) {
+            Exercise ex = exercises.stream()
+                    .filter(e -> e.exerciseId == exerciseId)
+                    .findFirst()
+                    .orElse(null);
+            if (ex == null) return;
+            WorkoutPlanExercise wpe = new WorkoutPlanExercise();
+            wpe.id = nextPlanExId++;
+            wpe.workoutPlanId = plan.workoutPlanId;
+            wpe.exerciseId = ex.exerciseId;
+            wpe.exerciseName = ex.name;
+            wpe.muscleGroup = ex.muscleGroup;
+            wpe.equipment = ex.equipment;
+            wpe.dayOfWeek = dayOfWeek;
+            wpe.sets = sets;
+            wpe.reps = reps;
+            plan.exercises.add(wpe);
         }
 
         private User addSeedUser(String username, String rawPass, String role, String fn, String ln,
@@ -984,6 +1065,12 @@ public final class gymsyncapp extends JFrame {
             return m;
         }
 
+        public boolean exerciseNameExists(String name, int excludeExerciseId) {
+            if (name == null) return false;
+            String trimmed = name.trim();
+            return exercises.stream().anyMatch(e -> e.exerciseId != excludeExerciseId && e.name.equalsIgnoreCase(trimmed));
+        }
+
         public void saveExercise(Exercise ex) {
             if (ex.exerciseId == 0) {
                 ex.exerciseId = nextExerciseId++;
@@ -1008,6 +1095,15 @@ public final class gymsyncapp extends JFrame {
                     if (exercises.get(i).exerciseId == ex.exerciseId) {
                         exercises.set(i, ex);
                         break;
+                    }
+                }
+                for (WorkoutPlan wp : workoutPlans) {
+                    for (WorkoutPlanExercise wpe : wp.exercises) {
+                        if (wpe.exerciseId == ex.exerciseId) {
+                            wpe.exerciseName = ex.name;
+                            wpe.muscleGroup = ex.muscleGroup;
+                            wpe.equipment = ex.equipment;
+                        }
                     }
                 }
                 if (jdbcAvailable) {
@@ -1090,6 +1186,40 @@ public final class gymsyncapp extends JFrame {
                                 ps.setString(6, wpe.reps);
                                 ps.executeUpdate();
                             }
+                        }
+                        conn.commit();
+                    } catch (SQLException sqlEx) {
+                        try {
+                            conn.rollback();
+                        } catch (SQLException rollbackEx) {
+                            sqlEx.addSuppressed(rollbackEx);
+                        }
+                        throw sqlEx;
+                    } finally {
+                        conn.setAutoCommit(prevAutoCommit);
+                    }
+                } catch (SQLException sqlEx) {
+                    logSqlError("JDBC write", sqlEx);
+                }
+            }
+        }
+
+        public void deleteWorkoutPlan(int workoutPlanId) {
+            workoutPlans.removeIf(wp -> wp.workoutPlanId == workoutPlanId);
+            if (jdbcAvailable) {
+                try (Connection conn = openConnection()) {
+                    boolean prevAutoCommit = conn.getAutoCommit();
+                    conn.setAutoCommit(false);
+                    try {
+                        try (PreparedStatement psChild = conn.prepareStatement(
+                                "DELETE FROM WorkoutPlanExercise WHERE workout_plan_id=?")) {
+                            psChild.setInt(1, workoutPlanId);
+                            psChild.executeUpdate();
+                        }
+                        try (PreparedStatement psParent = conn.prepareStatement(
+                                "DELETE FROM WorkoutPlan WHERE workout_plan_id=?")) {
+                            psParent.setInt(1, workoutPlanId);
+                            psParent.executeUpdate();
                         }
                         conn.commit();
                     } catch (SQLException sqlEx) {
@@ -1194,16 +1324,14 @@ public final class gymsyncapp extends JFrame {
             boolean isActive = (latest != null && "Active".equalsIgnoreCase(latest.getComputedStatus(today)));
             long daysLeft = latest != null ? latest.getDaysRemaining(today) : -999;
 
-            // Top Gradient Wallet Pass Banner
-            Color bannerStart = (member == null) ? ELECTRIC_INDIGO : (isActive ? new Color(13, 148, 136) : new Color(190, 18, 60));
-            Color bannerEnd   = (member == null) ? VIOLET_GLOW     : (isActive ? NEON_EMERALD : CORAL_RED);
-            g2.setPaint(new GradientPaint(0, 0, bannerStart, w, 135, bannerEnd));
-            g2.fillRoundRect(10, 10, w - 20, 135, 20, 20);
-
-            // Subtle decorative circles on the wallet banner
-            g2.setColor(new Color(255, 255, 255, 22));
-            g2.fillOval(w - 95, -15, 110, 110);
-            g2.fillOval(w - 55, 55, 80, 80);
+            // Top Wallet Pass Banner (Restrained Surface + Semantic Accent Bar)
+            Color accentColor = (member == null) ? TEXT_MUTED : (isActive ? NEON_EMERALD : CORAL_RED);
+            g2.setColor(BG_SURFACE);
+            g2.fillRoundRect(10, 10, w - 20, 135, 14, 14);
+            g2.setColor(BORDER_SUBTLE);
+            g2.drawRoundRect(10, 10, w - 20, 135, 14, 14);
+            g2.setColor(accentColor);
+            g2.fillRoundRect(10, 10, w - 20, 4, 4, 4);
 
             if (member == null) {
                 g2.setColor(Color.WHITE);
@@ -1271,8 +1399,8 @@ public final class gymsyncapp extends JFrame {
             g2.fillRoundRect(22, y, w - 44, 12, 10, 10);
             double ratio = isActive ? Math.max(0.08, Math.min(1.0, daysLeft / 30.0)) : 1.0;
             int fillW = (int) ((w - 44) * ratio);
-            g2.setPaint(new GradientPaint(22, y, bannerStart, 22 + fillW, y, bannerEnd));
-            g2.fillRoundRect(22, y, fillW, 12, 10, 10);
+            g2.setColor(accentColor);
+            g2.fillRoundRect(22, y, fillW, 8, 8, 8);
 
             // Info Tiles
             y += 28;
@@ -1337,7 +1465,7 @@ public final class gymsyncapp extends JFrame {
             bottomBar.setOpaque(false);
 
             JButton btnLocalGif = createStyledButton("🖼 Local GIF / File", CARD_HIGHLIGHT, CYBER_CYAN);
-            JButton btnUrlGif   = createStyledButton("🌐 Sync GIF URL (Offline Cache)", ELECTRIC_INDIGO, Color.WHITE);
+            JButton btnUrlGif   = createStyledButton("Sync GIF URL (Offline Cache)", CARD_HIGHLIGHT, TEXT_PRIMARY);
 
             btnLocalGif.addActionListener(e -> {
                 if (exercise == null) return;
@@ -1433,11 +1561,14 @@ public final class gymsyncapp extends JFrame {
             loadedSourceLabel = "Offline Biomechanical Engine";
             if (ex == null) return;
 
+            String mgSlug = ex.muscleGroup != null
+                    ? ex.muscleGroup.toLowerCase(Locale.ROOT).replace(" ", "_")
+                    : "general";
             String[] candidatePaths = new String[]{
                     ex.customGifOrImagePath,
                     "images/" + ex.getDefaultGifFilename(),
                     "GymSync_NetBeans_Project/images/" + ex.getDefaultGifFilename(),
-                    "images/" + ex.muscleGroup.toLowerCase().replace(" ", "_") + ".gif"
+                    "images/" + mgSlug + ".gif"
             };
             for (String path : candidatePaths) {
                 if (path != null && !path.isEmpty()) {
@@ -1474,9 +1605,9 @@ public final class gymsyncapp extends JFrame {
             g2.drawRoundRect(0, 0, w - 1, h - 1, 24, 24);
 
             if (exercise == null) {
-                g2.setColor(CYBER_CYAN);
-                g2.setFont(new Font("SansSerif", Font.BOLD, 13));
-                g2.drawString("🏋️ WORKOUT & MUSCLE TARGET PREVIEW", 22, 36);
+                g2.setColor(NEON_EMERALD);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 12));
+                g2.drawString("WORKOUT & MUSCLE TARGET PREVIEW", 22, 36);
                 g2.setColor(TEXT_SECONDARY);
                 g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
                 g2.drawString("Tap any workout row to view its", 22, 72);
@@ -1487,12 +1618,15 @@ public final class gymsyncapp extends JFrame {
             }
 
             boolean needsMachine = exercise.requiresMachine();
-            Color headerStart = needsMachine ? ELECTRIC_INDIGO : new Color(5, 150, 105);
-            Color headerEnd   = needsMachine ? VIOLET_GLOW     : NEON_EMERALD;
+            Color headerAccent = needsMachine ? AMBER_GOLD : NEON_EMERALD;
 
-            // Top Gradient Header Banner
-            g2.setPaint(new GradientPaint(0, 0, headerStart, w, 90, headerEnd));
-            g2.fillRoundRect(10, 10, w - 20, 90, 18, 18);
+            // Top Restrained Header Banner
+            g2.setColor(BG_SURFACE);
+            g2.fillRoundRect(10, 10, w - 20, 90, 12, 12);
+            g2.setColor(BORDER_SUBTLE);
+            g2.drawRoundRect(10, 10, w - 20, 90, 12, 12);
+            g2.setColor(headerAccent);
+            g2.fillRoundRect(10, 10, w - 20, 3, 3, 3);
 
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("SansSerif", Font.BOLD, 15));
@@ -1535,7 +1669,7 @@ public final class gymsyncapp extends JFrame {
                 // Right Half: Exercise-Specific Biomechanical Animation
                 g2.setColor(CYBER_CYAN);
                 g2.setFont(new Font("SansSerif", Font.BOLD, 10));
-                g2.drawString("⚡ LIVE WORKOUT MOTION", w / 2 + 8, canvasY + 18);
+                g2.drawString("LIVE WORKOUT MOTION", w / 2 + 8, canvasY + 18);
                 drawExerciseSpecificMotion(g2, (w * 3) / 4 - 2, canvasY + 105, exercise, phase);
 
                 // Legend Strip at bottom of visual canvas
@@ -1857,42 +1991,41 @@ public final class gymsyncapp extends JFrame {
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 int w = getWidth();
                 int h = getHeight();
-                g2.setPaint(new GradientPaint(0, 0, BG_OBSIDIAN, w, h, new Color(17, 24, 39)));
+                g2.setColor(BG_OBSIDIAN);
                 g2.fillRect(0, 0, w, h);
 
-                // Ambient neon glow orbs like Play Store fitness apps
-                g2.setColor(new Color(99, 102, 241, 28));
-                g2.fillOval(-120, -120, 480, 480);
-                g2.setColor(new Color(16, 185, 129, 24));
-                g2.fillOval(w - 380, h - 380, 500, 500);
+                // Subtle architectural grid lines instead of glowing AI blobs
+                g2.setColor(new Color(39, 39, 42, 70));
+                for (int x = 0; x < w; x += 48) g2.drawLine(x, 0, x, h);
+                for (int y = 0; y < h; y += 48) g2.drawLine(0, y, w, y);
                 g2.dispose();
             }
         };
 
-        RoundedCardPanel phoneCard = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 32);
+        RoundedCardPanel phoneCard = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 16);
         phoneCard.setLayout(new BoxLayout(phoneCard, BoxLayout.Y_AXIS));
-        phoneCard.setBorder(new EmptyBorder(28, 36, 28, 36));
-        phoneCard.setPreferredSize(new Dimension(440, 580));
+        phoneCard.setBorder(new EmptyBorder(28, 34, 28, 34));
+        phoneCard.setPreferredSize(new Dimension(430, 560));
 
-        // Top Gradient App Hero Banner inside Login Card
-        RoundedCardPanel heroBanner = new RoundedCardPanel(ELECTRIC_INDIGO, NEON_EMERALD, null, 24);
+        // Clean Editorial App Header inside Login Card
+        RoundedCardPanel heroBanner = new RoundedCardPanel(BG_SURFACE, BORDER_SUBTLE, 12);
         heroBanner.setLayout(new BoxLayout(heroBanner, BoxLayout.Y_AXIS));
-        heroBanner.setBorder(new EmptyBorder(20, 20, 20, 20));
-        heroBanner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+        heroBanner.setBorder(new EmptyBorder(18, 20, 18, 20));
+        heroBanner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 112));
 
-        JLabel badgeLbl = new JLabel("⚡ FITNESS & GYM MANAGEMENT APP");
-        badgeLbl.setFont(new Font("SansSerif", Font.BOLD, 11));
-        badgeLbl.setForeground(new Color(224, 242, 254));
+        JLabel badgeLbl = new JLabel("GYM OPERATIONS & WORKOUT SYSTEM");
+        badgeLbl.setFont(new Font("SansSerif", Font.BOLD, 10));
+        badgeLbl.setForeground(NEON_EMERALD);
         badgeLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel title = new JLabel("GYMSYNC");
-        title.setFont(new Font("SansSerif", Font.BOLD, 32));
-        title.setForeground(Color.WHITE);
+        title.setFont(new Font("SansSerif", Font.BOLD, 30));
+        title.setForeground(TEXT_PRIMARY);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel subtitle = new JLabel("Train Smarter • Instant Check-In • Custom Plans");
+        JLabel subtitle = new JLabel("Membership Tracking  •  Workout Plans  •  Live Roster");
         subtitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        subtitle.setForeground(new Color(240, 253, 244));
+        subtitle.setForeground(TEXT_SECONDARY);
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         heroBanner.add(badgeLbl);
@@ -1921,10 +2054,10 @@ public final class gymsyncapp extends JFrame {
         form.add(passLbl);
         form.add(passField);
 
-        JButton loginBtn = createGradientButton("SIGN IN TO GYMSYNC  →", NEON_EMERALD, CYBER_CYAN);
+        JButton loginBtn = createGradientButton("Sign In to GymSync  ->", NEON_EMERALD, new Color(5, 150, 105));
         loginBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        loginBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-        loginBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
+        loginBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        loginBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
 
         ActionListener doLogin = e -> {
             String u = userField.getText().trim();
@@ -1959,9 +2092,9 @@ public final class gymsyncapp extends JFrame {
 
         JPanel demoBtns = new JPanel(new GridLayout(1, 3, 8, 0));
         demoBtns.setOpaque(false);
-        JButton btnAdminDemo = createStyledButton("🛡 Admin", ELECTRIC_INDIGO, Color.WHITE);
-        JButton btnStaffDemo = createStyledButton("⚡ Staff", CYBER_CYAN, Color.WHITE);
-        JButton btnMemberDemo = createStyledButton("🔥 Member", NEON_EMERALD, Color.WHITE);
+        JButton btnAdminDemo = createStyledButton("Admin", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        JButton btnStaffDemo = createStyledButton("Staff", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        JButton btnMemberDemo = createStyledButton("Member", CARD_HIGHLIGHT, NEON_EMERALD);
         for (JButton b : new JButton[]{btnAdminDemo, btnStaffDemo, btnMemberDemo}) {
             b.setFont(new Font("SansSerif", Font.BOLD, 12));
             b.setBorder(new EmptyBorder(8, 6, 8, 6));
@@ -2011,24 +2144,26 @@ public final class gymsyncapp extends JFrame {
         JPanel brandBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         brandBox.setOpaque(false);
 
-        JLabel logoBadge = new JLabel(" ⚡ GYMSYNC ") {
+        JLabel logoBadge = new JLabel(" GYMSYNC ") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setPaint(new GradientPaint(0, 0, ELECTRIC_INDIGO, getWidth(), getHeight(), NEON_EMERALD));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+                g2.setColor(CARD_HIGHLIGHT);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.setColor(NEON_EMERALD);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        logoBadge.setFont(new Font("SansSerif", Font.BOLD, 15));
-        logoBadge.setForeground(Color.WHITE);
+        logoBadge.setFont(new Font("SansSerif", Font.BOLD, 14));
+        logoBadge.setForeground(TEXT_PRIMARY);
         logoBadge.setBorder(new EmptyBorder(6, 10, 6, 10));
 
         JLabel subTitleLbl = new JLabel(consoleSubtitle);
-        subTitleLbl.setFont(new Font("SansSerif", Font.BOLD, 15));
-        subTitleLbl.setForeground(TEXT_PRIMARY);
+        subTitleLbl.setFont(new Font("SansSerif", Font.BOLD, 14));
+        subTitleLbl.setForeground(TEXT_SECONDARY);
 
         brandBox.add(logoBadge);
         brandBox.add(subTitleLbl);
@@ -2043,7 +2178,7 @@ public final class gymsyncapp extends JFrame {
         userChip.setFont(new Font("SansSerif", Font.BOLD, 12));
         userChip.setForeground(TEXT_SECONDARY);
 
-        JButton logoutBtn = createStyledButton("Sign Out", CORAL_RED, Color.WHITE);
+        JButton logoutBtn = createStyledButton("Sign Out", CARD_HIGHLIGHT, TEXT_PRIMARY);
         logoutBtn.addActionListener(e -> showLoginScreen());
 
         rightBox.add(userChip);
@@ -2052,8 +2187,8 @@ public final class gymsyncapp extends JFrame {
         topRow.add(brandBox, BorderLayout.WEST);
         topRow.add(rightBox, BorderLayout.EAST);
 
-        // Row 2: Play Store Pill Navigation Tabs
-        JPanel navBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        // Row 2: Precision Console Navigation Tabs
+        JPanel navBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         navBar.setOpaque(false);
         navBar.setBorder(new EmptyBorder(0, 16, 8, 16));
 
@@ -2071,13 +2206,16 @@ public final class gymsyncapp extends JFrame {
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     boolean active = Boolean.TRUE.equals(getClientProperty("active"));
                     if (active) {
-                        g2.setPaint(new GradientPaint(0, 0, ELECTRIC_INDIGO, getWidth(), getHeight(), CYBER_CYAN));
-                    } else if (getModel().isRollover()) {
                         g2.setColor(CARD_HIGHLIGHT);
-                    } else {
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                        g2.setColor(BORDER_SUBTLE);
+                        g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                        g2.setColor(NEON_EMERALD);
+                        g2.fillRect(10, getHeight() - 3, Math.max(0, getWidth() - 20), 2);
+                    } else if (getModel().isRollover()) {
                         g2.setColor(CARD_SURFACE);
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                     }
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                     g2.dispose();
                     super.paintComponent(g);
                 }
@@ -2121,27 +2259,27 @@ public final class gymsyncapp extends JFrame {
 
     private JPanel buildStaffDashboard() {
         LinkedHashMap<String, JPanel> screens = new LinkedHashMap<>();
-        screens.put("⚡ Front Desk Check-In", buildFrontDeskMemberTab(false));
-        screens.put("🔔 Expiry Alerts", buildAlertListTab());
-        screens.put("🏋️ Workout Coach", buildStaffWorkoutHelperTab());
+        screens.put("Front Desk Check-In", buildFrontDeskMemberTab(false));
+        screens.put("Expiry Alerts", buildAlertListTab());
+        screens.put("Workout Coach", buildStaffWorkoutHelperTab());
         return buildAppShell("Front Desk Staff App", screens);
     }
 
     private JPanel buildAdminDashboard() {
         LinkedHashMap<String, JPanel> screens = new LinkedHashMap<>();
-        screens.put("⚡ Member Check-In & Renewals", buildFrontDeskMemberTab(true));
-        screens.put("📊 Analytics & Reports", buildReportsTab());
-        screens.put("🏋️ Exercise Library", buildExerciseLibraryTab());
-        screens.put("👥 User Accounts", buildAdminUserManagementTab());
-        screens.put("🔔 Expiry Alerts", buildAlertListTab());
+        screens.put("Member Check-In & Renewals", buildFrontDeskMemberTab(true));
+        screens.put("Analytics & Reports", buildReportsTab());
+        screens.put("Exercise Library", buildExerciseLibraryTab());
+        screens.put("User Accounts", buildAdminUserManagementTab());
+        screens.put("Expiry Alerts", buildAlertListTab());
         return buildAppShell("Administrator Control Center", screens);
     }
 
     private JPanel buildMemberDashboard() {
         LinkedHashMap<String, JPanel> screens = new LinkedHashMap<>();
-        screens.put("🪪 My Digital Gym Pass", buildMemberStatusTab(currentUser));
-        screens.put("🔥 My Workout Planner", buildMemberWorkoutTab(currentUser));
-        screens.put("📚 Exercise Library", buildReadOnlyExerciseBrowser());
+        screens.put("My Digital Gym Pass", buildMemberStatusTab(currentUser));
+        screens.put("My Workout Planner", buildMemberWorkoutTab(currentUser));
+        screens.put("Exercise Library", buildReadOnlyExerciseBrowser());
         return buildAppShell("Member Fitness Portal", screens);
     }
 
@@ -2201,6 +2339,11 @@ public final class gymsyncapp extends JFrame {
         DigitalMemberPassCard passCard = new DigitalMemberPassCard();
 
         Runnable refreshTable = () -> {
+            int selectedUserId = -1;
+            int prevViewRow = table.getSelectedRow();
+            if (prevViewRow >= 0) {
+                selectedUserId = (int) model.getValueAt(table.convertRowIndexToModel(prevViewRow), 0);
+            }
             model.setRowCount(0);
             LocalDate today = LocalDate.now();
             for (User m : repo.getMembers()) {
@@ -2219,7 +2362,19 @@ public final class gymsyncapp extends JFrame {
                 });
             }
             if (table.getRowCount() > 0) {
-                table.setRowSelectionInterval(0, 0);
+                int viewRowToSelect = 0;
+                if (selectedUserId != -1) {
+                    for (int vr = 0; vr < table.getRowCount(); vr++) {
+                        int mr = table.convertRowIndexToModel(vr);
+                        if ((int) model.getValueAt(mr, 0) == selectedUserId) {
+                            viewRowToSelect = vr;
+                            break;
+                        }
+                    }
+                }
+                table.setRowSelectionInterval(viewRowToSelect, viewRowToSelect);
+            } else {
+                passCard.setMemberData(null, null);
             }
         };
 
@@ -2376,8 +2531,8 @@ public final class gymsyncapp extends JFrame {
         LocalDate start = LocalDate.now();
         LocalDate end = start.plusMonths(1);
         JLabel membershipNote = new JLabel(isNew
-                ? "⚡ Automatic 1-Month Pass will be activated: " + start + " → " + end
-                : "ℹ Updating member profile details.");
+                ? "Automatic 1-Month Pass will be activated: " + start + " -> " + end
+                : "Updating member profile details.");
         membershipNote.setFont(new Font("SansSerif", Font.BOLD, 12));
         membershipNote.setForeground(NEON_EMERALD);
         membershipNote.setBorder(new EmptyBorder(4, 24, 4, 24));
@@ -2399,9 +2554,9 @@ public final class gymsyncapp extends JFrame {
             String emName = tfEmName.getText().trim();
             String emPhone = tfEmPhone.getText().trim();
 
-            if (uname.isEmpty() || fn.isEmpty() || ln.isEmpty() || contact.isEmpty()) {
+            if (uname.isEmpty() || fn.isEmpty() || ln.isEmpty() || contact.isEmpty() || contact.equals("09")) {
                 JOptionPane.showMessageDialog(dlg,
-                        "Username, First Name, Last Name, and Contact No. are required (*).",
+                        "Username, First Name, Last Name, and a valid Contact No. are required (*).",
                         "Validation Error", JOptionPane.WARNING_MESSAGE);
                 return;
             }
@@ -2573,16 +2728,16 @@ public final class gymsyncapp extends JFrame {
         top.add(btnDeleteUser);
 
         btnAddStaff.addActionListener(e -> {
-            JTextField tfUser = new JTextField();
-            JPasswordField pfPass = new JPasswordField();
-            JComboBox<String> cbRole = new JComboBox<>(new String[]{"Staff", "Admin"});
-            JTextField tfFirst = new JTextField();
-            JTextField tfLast = new JTextField();
-            JTextField tfContact = new JTextField("09");
+            JTextField tfUser = createDarkTextField("");
+            JPasswordField pfPass = createDarkPasswordField();
+            JComboBox<String> cbRole = createDarkComboBox(new String[]{"Staff", "Admin"});
+            JTextField tfFirst = createDarkTextField("");
+            JTextField tfLast = createDarkTextField("");
+            JTextField tfContact = createDarkTextField("09");
 
             Object[] fields = {
                     "Username *:", tfUser,
-                    "Password *:", pfPass,
+                    "Password (min 4 chars) *:", pfPass,
                     "Role *:", cbRole,
                     "First Name *:", tfFirst,
                     "Last Name *:", tfLast,
@@ -2592,8 +2747,15 @@ public final class gymsyncapp extends JFrame {
             if (res == JOptionPane.OK_OPTION) {
                 String un = tfUser.getText().trim();
                 String pw = new String(pfPass.getPassword()).trim();
-                if (un.isEmpty() || pw.isEmpty() || tfFirst.getText().trim().isEmpty() || tfLast.getText().trim().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "All fields are required.");
+                String fn = tfFirst.getText().trim();
+                String ln = tfLast.getText().trim();
+                String contact = tfContact.getText().trim();
+                if (un.isEmpty() || fn.isEmpty() || ln.isEmpty() || contact.isEmpty() || contact.equals("09")) {
+                    JOptionPane.showMessageDialog(this, "Username, First Name, Last Name, and a valid Contact No. are required.");
+                    return;
+                }
+                if (pw.length() < 4) {
+                    JOptionPane.showMessageDialog(this, "Password must be at least 4 characters.");
                     return;
                 }
                 if (repo.usernameExists(un, 0)) {
@@ -2603,9 +2765,9 @@ public final class gymsyncapp extends JFrame {
                 User u = new User();
                 u.username = un;
                 u.role = (String) cbRole.getSelectedItem();
-                u.firstName = tfFirst.getText().trim();
-                u.lastName = tfLast.getText().trim();
-                u.contactNo = tfContact.getText().trim();
+                u.firstName = fn;
+                u.lastName = ln;
+                u.contactNo = contact;
                 u.dateRegistered = LocalDate.now();
                 repo.saveUser(u, pw);
                 refresh.run();
@@ -2755,9 +2917,11 @@ public final class gymsyncapp extends JFrame {
             if (target != null) cbEquip.setSelectedItem(target.equipment);
 
             chkNeedsMachine.addActionListener(ev -> {
+                Object selItem = cbEquip.getSelectedItem();
+                String selStr = selItem != null ? selItem.toString() : "";
                 if (!chkNeedsMachine.isSelected()) {
                     cbEquip.setSelectedItem("Dumbbells");
-                } else if (!cbEquip.getSelectedItem().toString().toLowerCase().contains("machine")) {
+                } else if (!Exercise.isMachineEquipment(selStr)) {
                     cbEquip.setSelectedItem("Machine: Lat Pulldown Station");
                 }
             });
@@ -2777,22 +2941,34 @@ public final class gymsyncapp extends JFrame {
             int res = JOptionPane.showConfirmDialog(this, fields,
                     isEdit ? "Edit Workout & Machine Settings" : "Add New Workout / Gym Machine", JOptionPane.OK_CANCEL_OPTION);
             if (res == JOptionPane.OK_OPTION) {
-                if (tfName.getText().trim().isEmpty() || taDesc.getText().trim().isEmpty()) {
+                String exName = tfName.getText().trim();
+                String exDesc = taDesc.getText().trim();
+                if (exName.isEmpty() || exDesc.isEmpty()) {
                     JOptionPane.showMessageDialog(this, "Workout name and instructions are required.");
                     return;
                 }
+                int excludeId = (isEdit && target != null) ? target.exerciseId : 0;
+                if (repo.exerciseNameExists(exName, excludeId)) {
+                    JOptionPane.showMessageDialog(this,
+                            "An exercise named '" + exName + "' already exists in the library.",
+                            "Duplicate Exercise", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
                 Exercise ex = isEdit && target != null ? target : new Exercise();
-                ex.name = tfName.getText().trim();
+                ex.name = exName;
                 ex.muscleGroup = (String) cbGroup.getSelectedItem();
                 ex.difficulty = (String) cbDiff.getSelectedItem();
                 String chosenEq = cbEquip.getSelectedItem() != null ? cbEquip.getSelectedItem().toString().trim() : "Bodyweight";
-                if (chkNeedsMachine.isSelected() && !chosenEq.toLowerCase().contains("machine")) {
+                if (chosenEq.isEmpty()) {
+                    chosenEq = chkNeedsMachine.isSelected() ? "Machine: Gym Station" : "Bodyweight";
+                }
+                if (chkNeedsMachine.isSelected() && !Exercise.isMachineEquipment(chosenEq)) {
                     chosenEq = "Machine: " + chosenEq;
-                } else if (!chkNeedsMachine.isSelected() && chosenEq.toLowerCase().startsWith("machine:")) {
+                } else if (!chkNeedsMachine.isSelected() && Exercise.isMachineEquipment(chosenEq)) {
                     chosenEq = "Dumbbells";
                 }
                 ex.equipment = chosenEq;
-                ex.description = taDesc.getText().trim();
+                ex.description = exDesc;
                 repo.saveExercise(ex);
                 refresh.run();
             }
@@ -2852,7 +3028,9 @@ public final class gymsyncapp extends JFrame {
             int expiring7Count = 0;
 
             DefaultTableModel expSoonModel = new DefaultTableModel(
-                    new String[]{"Member", "End Date", "Remaining"}, 0);
+                    new String[]{"Member", "End Date", "Remaining"}, 0) {
+                @Override public boolean isCellEditable(int r, int c) { return false; }
+            };
 
             for (User m : repo.getMembers()) {
                 Membership latest = repo.getLatestMembership(m.userId);
@@ -2871,11 +3049,13 @@ public final class gymsyncapp extends JFrame {
 
             int totalMembers = activeCount + expiredCount;
             DefaultTableModel r1Model = new DefaultTableModel(
-                    new String[]{"Pass Status", "Members", "Share"}, 0);
+                    new String[]{"Pass Status", "Members", "Share"}, 0) {
+                @Override public boolean isCellEditable(int r, int c) { return false; }
+            };
             r1Model.addRow(new Object[]{"Active Passes", activeCount,
-                    totalMembers > 0 ? String.format("%.1f%%", (activeCount * 100.0) / totalMembers) : "0%"});
+                    totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (activeCount * 100.0) / totalMembers) : "0%"});
             r1Model.addRow(new Object[]{"Expired Passes", expiredCount,
-                    totalMembers > 0 ? String.format("%.1f%%", (expiredCount * 100.0) / totalMembers) : "0%"});
+                    totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (expiredCount * 100.0) / totalMembers) : "0%"});
             r1Model.addRow(new Object[]{"Total Registered", totalMembers, "100.0%"});
 
             Map<YearMonth, Integer> monthlyCounts = new TreeMap<>(Comparator.reverseOrder());
@@ -2884,7 +3064,9 @@ public final class gymsyncapp extends JFrame {
                 monthlyCounts.put(ym, monthlyCounts.getOrDefault(ym, 0) + 1);
             }
             DefaultTableModel r3Model = new DefaultTableModel(
-                    new String[]{"Month (YYYY-MM)", "Renewals"}, 0);
+                    new String[]{"Month (YYYY-MM)", "Renewals"}, 0) {
+                @Override public boolean isCellEditable(int r, int c) { return false; }
+            };
             for (Map.Entry<YearMonth, Integer> entry : monthlyCounts.entrySet()) {
                 r3Model.addRow(new Object[]{entry.getKey().toString(), entry.getValue()});
             }
@@ -2905,8 +3087,11 @@ public final class gymsyncapp extends JFrame {
 
         JButton btnRefresh = createGradientButton("↻ Refresh Live Analytics", ELECTRIC_INDIGO, CYBER_CYAN);
         btnRefresh.addActionListener(e -> buildReportContent.run());
-        JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton btnExportCsv = createGradientButton("⬇ Export Reports CSV", NEON_EMERALD, new Color(5, 150, 105));
+        btnExportCsv.addActionListener(e -> exportReportsCsv());
+        JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         south.setOpaque(false);
+        south.add(btnExportCsv);
         south.add(btnRefresh);
 
         panel.putClientProperty("onTabSelected", buildReportContent);
@@ -2914,6 +3099,86 @@ public final class gymsyncapp extends JFrame {
         panel.add(tablesGrid, BorderLayout.CENTER);
         panel.add(south, BorderLayout.SOUTH);
         return panel;
+    }
+
+    private void exportReportsCsv() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Export GymSync Management Reports (CSV)");
+        fc.setSelectedFile(new java.io.File("gymsync_reports_" + LocalDate.now() + ".csv"));
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        java.io.File target = fc.getSelectedFile();
+        if (!target.getName().toLowerCase(Locale.ROOT).endsWith(".csv")) {
+            target = new java.io.File(target.getParentFile(), target.getName() + ".csv");
+        }
+
+        LocalDate today = LocalDate.now();
+        int activeCount = 0;
+        int expiredCount = 0;
+        List<String[]> expiringRows = new ArrayList<>();
+        for (User m : repo.getMembers()) {
+            Membership latest = repo.getLatestMembership(m.userId);
+            String st = latest != null ? latest.getComputedStatus(today) : "Expired";
+            long days = latest != null ? latest.getDaysRemaining(today) : -999;
+            if ("Active".equalsIgnoreCase(st)) {
+                activeCount++;
+                if (days >= 0 && days <= 7) {
+                    expiringRows.add(new String[]{m.getFullName(), latest.endDate.toString(), String.valueOf(days)});
+                }
+            } else {
+                expiredCount++;
+            }
+        }
+        int totalMembers = activeCount + expiredCount;
+
+        Map<YearMonth, Integer> monthlyCounts = new TreeMap<>(Comparator.reverseOrder());
+        for (Membership m : repo.getAllMemberships()) {
+            YearMonth ym = YearMonth.from(m.startDate);
+            monthlyCounts.put(ym, monthlyCounts.getOrDefault(ym, 0) + 1);
+        }
+
+        StringBuilder csv = new StringBuilder();
+        csv.append("Report 1: Active vs. Expired Summary\n");
+        csv.append("Pass Status,Members,Share\n");
+        csv.append("Active Passes,").append(activeCount).append(',')
+                .append(totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (activeCount * 100.0) / totalMembers) : "0%")
+                .append('\n');
+        csv.append("Expired Passes,").append(expiredCount).append(',')
+                .append(totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (expiredCount * 100.0) / totalMembers) : "0%")
+                .append('\n');
+        csv.append("Total Registered,").append(totalMembers).append(",100.0%\n\n");
+
+        csv.append("Report 2: Memberships Expiring Within 7 Days\n");
+        csv.append("Member,End Date,Days Remaining\n");
+        for (String[] r : expiringRows) {
+            csv.append(escapeCsv(r[0])).append(',').append(r[1]).append(',').append(r[2]).append('\n');
+        }
+        csv.append('\n');
+
+        csv.append("Report 3: Monthly Renewals Log\n");
+        csv.append("Month (YYYY-MM),Renewals\n");
+        for (Map.Entry<YearMonth, Integer> entry : monthlyCounts.entrySet()) {
+            csv.append(entry.getKey()).append(',').append(entry.getValue()).append('\n');
+        }
+
+        try {
+            java.nio.file.Files.writeString(target.toPath(), csv.toString(), StandardCharsets.UTF_8);
+            JOptionPane.showMessageDialog(this,
+                    "Exported management summary reports to:\n" + target.getAbsolutePath(),
+                    "CSV Export Complete", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Could not export CSV file: " + ex.getMessage(),
+                    "Export Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private static String escapeCsv(String val) {
+        if (val == null) return "";
+        if (val.contains(",") || val.contains("\"") || val.contains("\n")) {
+            return "\"" + val.replace("\"", "\"\"") + "\"";
+        }
+        return val;
     }
 
     private JPanel buildMemberStatusTab(User member) {
@@ -2971,8 +3236,8 @@ public final class gymsyncapp extends JFrame {
         chkUseMachines.setFont(new Font("SansSerif", Font.BOLD, 12));
         chkUseMachines.setToolTipText("Check to include gym machines; uncheck for free-weights/bodyweight only");
 
-        JButton btnGenerate = createGradientButton("⚡ Generate Plan", NEON_EMERALD, CYBER_CYAN);
-        JButton btnCustom = createGradientButton("+ Custom Builder", ELECTRIC_INDIGO, VIOLET_GLOW);
+        JButton btnGenerate = createGradientButton("Generate Plan", NEON_EMERALD, new Color(5, 150, 105));
+        JButton btnCustom = createGradientButton("+ Custom Builder", CARD_HIGHLIGHT, CARD_HIGHLIGHT);
 
         topControls.add(createChipLabel("GOAL:"));
         topControls.add(cbGoal);
@@ -2990,6 +3255,20 @@ public final class gymsyncapp extends JFrame {
         planHeaderLbl.setFont(new Font("SansSerif", Font.BOLD, 14));
         planHeaderLbl.setForeground(NEON_EMERALD);
 
+        JComboBox<WorkoutPlan> cbSavedPlans = createDarkComboBox(new WorkoutPlan[0]);
+        cbSavedPlans.setMaximumRowCount(8);
+        JButton btnDeletePlan = createStyledButton("Delete Plan", CARD_HIGHLIGHT, CORAL_RED);
+
+        JPanel planHeaderBar = new JPanel(new BorderLayout(10, 6));
+        planHeaderBar.setOpaque(false);
+        JPanel planSelectorBar = new JPanel(new BorderLayout(8, 0));
+        planSelectorBar.setOpaque(false);
+        planSelectorBar.add(createChipLabel("SAVED PLANS:"), BorderLayout.WEST);
+        planSelectorBar.add(cbSavedPlans, BorderLayout.CENTER);
+        planSelectorBar.add(btnDeletePlan, BorderLayout.EAST);
+        planHeaderBar.add(planHeaderLbl, BorderLayout.NORTH);
+        planHeaderBar.add(planSelectorBar, BorderLayout.SOUTH);
+
         String[] cols = {"Day", "Workout Name", "Target Muscle", "Machine / Equipment Indicator", "Sets", "Reps"};
         DefaultTableModel exModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -3000,19 +3279,21 @@ public final class gymsyncapp extends JFrame {
 
         WorkoutVisualCard visualCard = new WorkoutVisualCard();
 
-        Runnable loadLatestPlan = () -> {
+        final boolean[] updatingPlanCombo = {false};
+
+        Runnable renderSelectedPlan = () -> {
             exModel.setRowCount(0);
-            List<WorkoutPlan> plans = repo.getWorkoutPlansByUser(targetMember.userId);
-            if (plans.isEmpty()) {
+            WorkoutPlan selected = (WorkoutPlan) cbSavedPlans.getSelectedItem();
+            if (selected == null) {
                 planHeaderLbl.setText("No workout plan yet — use the Smart Generator or Custom Builder above!");
                 visualCard.setExercise(null);
                 return;
             }
-            WorkoutPlan latest = plans.get(0);
-            planHeaderLbl.setText("🔥 ACTIVE PLAN #" + latest.workoutPlanId + " [" + latest.planType.toUpperCase() + "]  •  " +
-                    latest.goal + "  (Tap any row for animated muscle & machine demo)");
+            String typeTag = selected.planType != null ? selected.planType.toUpperCase(Locale.ROOT) : "PLAN";
+            planHeaderLbl.setText("ACTIVE PLAN #" + selected.workoutPlanId + " [" + typeTag + "]  •  " +
+                    selected.goal + "  (Tap any row for animated muscle & machine demo)");
             boolean showMachines = chkUseMachines.isSelected();
-            for (WorkoutPlanExercise item : latest.exercises) {
+            for (WorkoutPlanExercise item : selected.exercises) {
                 boolean isMach = Exercise.isMachineEquipment(item.equipment);
                 if (!showMachines && isMach) continue;
                 String badge = isMach ? ("⚙ " + item.equipment.replace("Machine: ", "")) : ("✓ No Machine (" + item.equipment + ")");
@@ -3022,8 +3303,58 @@ public final class gymsyncapp extends JFrame {
             }
             if (exTable.getRowCount() > 0) {
                 exTable.setRowSelectionInterval(0, 0);
+            } else {
+                visualCard.setExercise(null);
             }
         };
+
+        java.util.function.Consumer<Boolean> refreshPlans = selectNewest -> {
+            WorkoutPlan prev = (WorkoutPlan) cbSavedPlans.getSelectedItem();
+            int prevId = (!selectNewest && prev != null) ? prev.workoutPlanId : -1;
+            List<WorkoutPlan> plans = repo.getWorkoutPlansByUser(targetMember.userId);
+            updatingPlanCombo[0] = true;
+            try {
+                cbSavedPlans.removeAllItems();
+                int restoreIdx = 0;
+                for (int i = 0; i < plans.size(); i++) {
+                    WorkoutPlan wp = plans.get(i);
+                    cbSavedPlans.addItem(wp);
+                    if (wp.workoutPlanId == prevId) {
+                        restoreIdx = i;
+                    }
+                }
+                boolean hasPlans = !plans.isEmpty();
+                cbSavedPlans.setEnabled(hasPlans);
+                btnDeletePlan.setEnabled(hasPlans);
+                if (hasPlans) {
+                    cbSavedPlans.setSelectedIndex(restoreIdx);
+                }
+            } finally {
+                updatingPlanCombo[0] = false;
+            }
+            renderSelectedPlan.run();
+        };
+
+        Runnable refreshPlansKeepSelection = () -> refreshPlans.accept(false);
+        Runnable refreshPlansSelectNewest = () -> refreshPlans.accept(true);
+
+        cbSavedPlans.addActionListener(e -> {
+            if (!updatingPlanCombo[0]) {
+                renderSelectedPlan.run();
+            }
+        });
+
+        btnDeletePlan.addActionListener(e -> {
+            WorkoutPlan selected = (WorkoutPlan) cbSavedPlans.getSelectedItem();
+            if (selected == null) return;
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Delete workout plan #" + selected.workoutPlanId + " (" + selected.goal + ")?",
+                    "Confirm Delete Plan", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                repo.deleteWorkoutPlan(selected.workoutPlanId);
+                refreshPlansSelectNewest.run();
+            }
+        });
 
         exTable.getSelectionModel().addListSelectionListener(e -> {
             int row = exTable.getSelectedRow();
@@ -3035,14 +3366,21 @@ public final class gymsyncapp extends JFrame {
             visualCard.setExercise(matched);
         });
 
+        cbEquip.addActionListener(e -> {
+            if ("Gym Machines Only".equals(cbEquip.getSelectedItem()) && !chkUseMachines.isSelected()) {
+                chkUseMachines.setSelected(true);
+                renderSelectedPlan.run();
+            }
+        });
+
         chkUseMachines.addActionListener(e -> {
             if (!chkUseMachines.isSelected() && "Gym Machines Only".equals(cbEquip.getSelectedItem())) {
                 cbEquip.setSelectedItem("Dumbbells");
             }
-            loadLatestPlan.run();
+            renderSelectedPlan.run();
         });
 
-        loadLatestPlan.run();
+        refreshPlansSelectNewest.run();
 
         btnGenerate.addActionListener(e -> {
             String eqPref = (String) cbEquip.getSelectedItem();
@@ -3060,7 +3398,7 @@ public final class gymsyncapp extends JFrame {
                     repo.getAllExercises()
             );
             repo.saveWorkoutPlan(generated);
-            loadLatestPlan.run();
+            refreshPlansSelectNewest.run();
             JOptionPane.showMessageDialog(this,
                     "Smart weekly workout plan generated in < 1 second!\n" +
                     "Routine: " + generated.goal + "\n" +
@@ -3068,13 +3406,14 @@ public final class gymsyncapp extends JFrame {
                     "Workout Plan Ready", JOptionPane.INFORMATION_MESSAGE);
         });
 
-        btnCustom.addActionListener(e -> showCustomPlanBuilderDialog(targetMember, loadLatestPlan));
+        btnCustom.addActionListener(e -> showCustomPlanBuilderDialog(targetMember, refreshPlansSelectNewest));
 
         JPanel centerBox = new JPanel(new BorderLayout(0, 10));
         centerBox.setOpaque(false);
-        centerBox.add(planHeaderLbl, BorderLayout.NORTH);
+        centerBox.add(planHeaderBar, BorderLayout.NORTH);
         centerBox.add(wrapDarkScrollPane(exTable), BorderLayout.CENTER);
 
+        panel.putClientProperty("onTabSelected", refreshPlansKeepSelection);
         panel.add(topControls, BorderLayout.NORTH);
         panel.add(centerBox, BorderLayout.CENTER);
         panel.add(visualCard, BorderLayout.EAST);
@@ -3095,7 +3434,7 @@ public final class gymsyncapp extends JFrame {
 
         RoundedCardPanel selectorBar = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 18);
         selectorBar.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 10));
-        JLabel lbl = new JLabel("🏋️ Select Member to Build Workout Plan For:");
+        JLabel lbl = new JLabel("Select Member to Build Workout Plan For:");
         lbl.setFont(new Font("SansSerif", Font.BOLD, 13));
         lbl.setForeground(TEXT_PRIMARY);
         JComboBox<String> memberCombo = createDarkComboBox(new String[]{});
@@ -3182,6 +3521,7 @@ public final class gymsyncapp extends JFrame {
         JTextField tfReps = createDarkTextField("10-12");
         tfReps.setColumns(7);
         JButton btnAddRow = createGradientButton("+ Add Exercise", ELECTRIC_INDIGO, CYBER_CYAN);
+        JButton btnRemoveRow = createStyledButton("- Remove Selected", CORAL_RED, Color.WHITE);
 
         adder.add(createChipLabel("DAY:"));
         adder.add(cbDay);
@@ -3192,6 +3532,7 @@ public final class gymsyncapp extends JFrame {
         adder.add(createChipLabel("REPS:"));
         adder.add(tfReps);
         adder.add(btnAddRow);
+        adder.add(btnRemoveRow);
 
         List<WorkoutPlanExercise> draftItems = new ArrayList<>();
         btnAddRow.addActionListener(e -> {
@@ -3212,6 +3553,17 @@ public final class gymsyncapp extends JFrame {
             item.reps = reps;
             draftItems.add(item);
             draftModel.addRow(new Object[]{item.dayOfWeek, ex.exerciseId, ex.name, ex.muscleGroup, item.sets, item.reps});
+        });
+
+        btnRemoveRow.addActionListener(e -> {
+            int row = draftTable.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(dlg, "Please select an exercise row to remove.");
+                return;
+            }
+            int modelRow = draftTable.convertRowIndexToModel(row);
+            draftItems.remove(modelRow);
+            draftModel.removeRow(modelRow);
         });
 
         JButton btnSavePlan = createGradientButton("✓ Save Custom Workout Plan", NEON_EMERALD, CYBER_CYAN);
@@ -3252,7 +3604,7 @@ public final class gymsyncapp extends JFrame {
 
         RoundedCardPanel filterBar = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 20);
         filterBar.setLayout(new FlowLayout(FlowLayout.LEFT, 14, 10));
-        JLabel filterLbl = new JLabel("🏋️ Filter Gym Floor Workouts & Machines:");
+        JLabel filterLbl = new JLabel("Filter Gym Floor Workouts & Machines:");
         filterLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
         filterLbl.setForeground(TEXT_PRIMARY);
 
@@ -3315,6 +3667,7 @@ public final class gymsyncapp extends JFrame {
         cbMuscleFilter.addActionListener(e -> populate.run());
         populate.run();
 
+        panel.putClientProperty("onTabSelected", populate);
         panel.add(filterBar, BorderLayout.NORTH);
         panel.add(wrapDarkScrollPane(t), BorderLayout.CENTER);
         panel.add(visualCard, BorderLayout.EAST);
@@ -3375,17 +3728,16 @@ public final class gymsyncapp extends JFrame {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 ButtonModel m = getModel();
-                Color s = c1;
-                Color e = c2;
+                Color fill = c1;
                 if (m.isPressed()) {
-                    s = c1.darker();
-                    e = c2.darker();
+                    fill = c1.darker();
                 } else if (m.isRollover()) {
-                    s = brighten(c1, 22);
-                    e = brighten(c2, 22);
+                    fill = brighten(c1, 16);
                 }
-                g2.setPaint(new GradientPaint(0, 0, s, getWidth(), getHeight(), e));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.setColor(fill);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.setColor(new Color(255, 255, 255, 22));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
                 g2.dispose();
                 super.paintComponent(g);
             }
@@ -3396,7 +3748,7 @@ public final class gymsyncapp extends JFrame {
         b.setFocusPainted(false);
         b.setBorderPainted(false);
         b.setFont(new Font("SansSerif", Font.BOLD, 12));
-        b.setBorder(new EmptyBorder(10, 16, 10, 16));
+        b.setBorder(new EmptyBorder(9, 15, 9, 15));
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return b;
     }
@@ -3435,12 +3787,12 @@ public final class gymsyncapp extends JFrame {
             public Component getTableCellRendererComponent(JTable t, Object value,
                                                            boolean isSelected, boolean hasFocus, int row, int col) {
                 JLabel lbl = (JLabel) super.getTableCellRendererComponent(t, value, isSelected, hasFocus, row, col);
-                lbl.setBackground(new Color(15, 23, 42));
-                lbl.setForeground(CYBER_CYAN);
-                lbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+                lbl.setBackground(BG_SURFACE);
+                lbl.setForeground(TEXT_SECONDARY);
+                lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
                 lbl.setHorizontalAlignment(SwingConstants.LEFT);
                 lbl.setBorder(new CompoundBorder(
-                        new MatteBorder(0, 0, 2, 0, ELECTRIC_INDIGO),
+                        new MatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
                         new EmptyBorder(8, 10, 8, 10)
                 ));
                 lbl.setOpaque(true);
@@ -3473,26 +3825,37 @@ public final class gymsyncapp extends JFrame {
     }
 
     private JPanel createGradientKpiCard(String title, String bigValue, String subtitle, Color c1, Color c2) {
-        RoundedCardPanel card = new RoundedCardPanel(c1, c2, null, 22);
+        final Color accent = (c2 != null) ? c2 : NEON_EMERALD;
+        RoundedCardPanel card = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(accent);
+                g2.fillRoundRect(16, 12, 24, 3, 2, 2);
+                g2.dispose();
+            }
+        };
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(16, 20, 16, 20));
+        card.setBorder(new EmptyBorder(22, 18, 16, 18));
 
         JLabel t = new JLabel(title);
         t.setFont(new Font("SansSerif", Font.BOLD, 11));
-        t.setForeground(new Color(235, 245, 255));
+        t.setForeground(TEXT_MUTED);
 
         JLabel v = new JLabel(bigValue);
-        v.setFont(new Font("SansSerif", Font.BOLD, 32));
-        v.setForeground(Color.WHITE);
+        v.setFont(new Font("SansSerif", Font.BOLD, 28));
+        v.setForeground(TEXT_PRIMARY);
 
         JLabel s = new JLabel(subtitle);
         s.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        s.setForeground(new Color(230, 240, 255));
+        s.setForeground(TEXT_SECONDARY);
 
         card.add(t);
-        card.add(Box.createVerticalStrut(4));
+        card.add(Box.createVerticalStrut(6));
         card.add(v);
-        card.add(Box.createVerticalStrut(2));
+        card.add(Box.createVerticalStrut(4));
         card.add(s);
         return card;
     }

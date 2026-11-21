@@ -1464,7 +1464,7 @@ public final class gymsyncapp extends JFrame {
             JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
             bottomBar.setOpaque(false);
 
-            JButton btnLocalGif = createStyledButton("🖼 Local GIF / File", CARD_HIGHLIGHT, CYBER_CYAN);
+            JButton btnLocalGif = createStyledButton("Local GIF / File", CARD_HIGHLIGHT, TEXT_PRIMARY);
             JButton btnUrlGif   = createStyledButton("Sync GIF URL (Offline Cache)", CARD_HIGHLIGHT, TEXT_PRIMARY);
 
             btnLocalGif.addActionListener(e -> {
@@ -2292,27 +2292,28 @@ public final class gymsyncapp extends JFrame {
         container.setBackground(BG_OBSIDIAN);
         container.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        // Top Search & Action Pill Bar
-        RoundedCardPanel topBar = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 20);
+        // Top Search & Action Bar
+        RoundedCardPanel topBar = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12);
         topBar.setLayout(new BorderLayout(12, 0));
-        topBar.setBorder(new EmptyBorder(12, 18, 12, 18));
+        topBar.setBorder(new EmptyBorder(12, 16, 12, 16));
 
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         searchPanel.setOpaque(false);
-        JLabel searchLbl = new JLabel("🔍 Instant Check-In Search:");
-        searchLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        searchLbl.setForeground(TEXT_PRIMARY);
+        JLabel searchLbl = new JLabel("Check-In Search:");
+        searchLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+        searchLbl.setForeground(TEXT_SECONDARY);
         JTextField searchField = createDarkTextField("");
         searchField.setColumns(22);
+        searchField.setToolTipText("Filter by member name, @username, contact, or status");
         searchPanel.add(searchLbl);
         searchPanel.add(searchField);
 
         JPanel actionBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actionBtns.setOpaque(false);
-        JButton btnRegister = createGradientButton("+ New Member (1-Mo)", NEON_EMERALD, new Color(5, 150, 105));
-        JButton btnRenew = createGradientButton("↻ Renew +1 Month", ELECTRIC_INDIGO, CYBER_CYAN);
-        JButton btnEdit = createStyledButton("✎ Edit Profile", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        JButton btnDel = allowDelete ? createStyledButton("🗑 Delete", CORAL_RED, Color.WHITE) : null;
+        JButton btnRegister = createGradientButton("+ New Member (1-Mo)", NEON_EMERALD, NEON_EMERALD);
+        JButton btnRenew = createStyledButton("Renew +1 Month", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        JButton btnEdit = createStyledButton("Edit Profile", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        JButton btnDel = allowDelete ? createStyledButton("Delete", CARD_HIGHLIGHT, CORAL_RED) : null;
         actionBtns.add(btnRegister);
         actionBtns.add(btnRenew);
         actionBtns.add(btnEdit);
@@ -2332,6 +2333,10 @@ public final class gymsyncapp extends JFrame {
         JTable table = new JTable(model);
         styleTable(table);
         table.getColumnModel().getColumn(8).setCellRenderer(new StatusBadgeRenderer());
+        int[] colWidths = {44, 100, 145, 105, 86, 92, 92, 82, 108};
+        for (int c = 0; c < colWidths.length; c++) {
+            table.getColumnModel().getColumn(c).setPreferredWidth(colWidths[c]);
+        }
 
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
         table.setRowSorter(sorter);
@@ -2641,13 +2646,23 @@ public final class gymsyncapp extends JFrame {
         panel.setBackground(BG_OBSIDIAN);
         panel.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        RoundedCardPanel banner = new RoundedCardPanel(new Color(153, 27, 27), CORAL_RED, null, 20);
+        RoundedCardPanel banner = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(CORAL_RED);
+                g2.fillRoundRect(0, 8, 4, Math.max(0, getHeight() - 16), 4, 4);
+                g2.dispose();
+            }
+        };
         banner.setLayout(new BorderLayout());
-        banner.setBorder(new EmptyBorder(16, 22, 16, 22));
+        banner.setBorder(new EmptyBorder(14, 20, 14, 18));
 
-        JLabel info = new JLabel("🔔 Automatic Expiry & Renewal Radar — Expired Members & Passes Expiring in ≤ 7 Days");
-        info.setFont(new Font("SansSerif", Font.BOLD, 15));
-        info.setForeground(Color.WHITE);
+        JLabel info = new JLabel("Expiry & Renewal Radar — Expired & Expiring Within 7 Days");
+        info.setFont(new Font("SansSerif", Font.BOLD, 14));
+        info.setForeground(TEXT_PRIMARY);
 
         String[] cols = {"ID", "Member Name", "Contact No.", "Emergency Contact", "End Date", "Alert Status", "Timeline"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
@@ -2686,7 +2701,7 @@ public final class gymsyncapp extends JFrame {
         };
         loadAlerts.run();
 
-        JButton btnRefresh = createStyledButton("↻ Refresh Radar", BG_OBSIDIAN, Color.WHITE);
+        JButton btnRefresh = createStyledButton("Refresh Radar", CARD_HIGHLIGHT, TEXT_PRIMARY);
         btnRefresh.addActionListener(e -> loadAlerts.run());
 
         banner.add(info, BorderLayout.WEST);
@@ -2720,10 +2735,10 @@ public final class gymsyncapp extends JFrame {
         };
         refresh.run();
 
-        RoundedCardPanel top = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 20);
-        top.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 10));
-        JButton btnAddStaff = createGradientButton("+ Add Admin / Staff Account", ELECTRIC_INDIGO, VIOLET_GLOW);
-        JButton btnDeleteUser = createStyledButton("🗑 Delete Selected Account", CORAL_RED, Color.WHITE);
+        RoundedCardPanel top = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12);
+        top.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        JButton btnAddStaff = createGradientButton("+ Add Admin / Staff Account", NEON_EMERALD, NEON_EMERALD);
+        JButton btnDeleteUser = createStyledButton("Delete Selected Account", CARD_HIGHLIGHT, CORAL_RED);
         top.add(btnAddStaff);
         top.add(btnDeleteUser);
 
@@ -2857,11 +2872,11 @@ public final class gymsyncapp extends JFrame {
         chkShowFree.addActionListener(e -> refresh.run());
         refresh.run();
 
-        RoundedCardPanel top = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 20);
-        top.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 10));
-        JButton btnAdd = createGradientButton("+ Add Workout / Machine", NEON_EMERALD, CYBER_CYAN);
-        JButton btnEdit = createStyledButton("✎ Edit Selected", ELECTRIC_INDIGO, Color.WHITE);
-        JButton btnDel = createStyledButton("🗑 Delete", CORAL_RED, Color.WHITE);
+        RoundedCardPanel top = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12);
+        top.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        JButton btnAdd = createGradientButton("+ Add Workout / Machine", NEON_EMERALD, NEON_EMERALD);
+        JButton btnEdit = createStyledButton("Edit Selected", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        JButton btnDel = createStyledButton("Delete", CARD_HIGHLIGHT, CORAL_RED);
         top.add(btnAdd);
         top.add(btnEdit);
         top.add(btnDel);
@@ -3085,9 +3100,9 @@ public final class gymsyncapp extends JFrame {
         };
         buildReportContent.run();
 
-        JButton btnRefresh = createGradientButton("↻ Refresh Live Analytics", ELECTRIC_INDIGO, CYBER_CYAN);
+        JButton btnRefresh = createStyledButton("Refresh Analytics", CARD_HIGHLIGHT, TEXT_PRIMARY);
         btnRefresh.addActionListener(e -> buildReportContent.run());
-        JButton btnExportCsv = createGradientButton("⬇ Export Reports CSV", NEON_EMERALD, new Color(5, 150, 105));
+        JButton btnExportCsv = createGradientButton("Export Reports CSV", NEON_EMERALD, NEON_EMERALD);
         btnExportCsv.addActionListener(e -> exportReportsCsv());
         JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         south.setOpaque(false);
@@ -3203,7 +3218,7 @@ public final class gymsyncapp extends JFrame {
         historyTable.getColumnModel().getColumn(3).setCellRenderer(new StatusBadgeRenderer());
 
         panel.add(walletCard, BorderLayout.WEST);
-        panel.add(wrapReportTable("📅 My Monthly Membership & Renewal History", historyTable), BorderLayout.CENTER);
+        panel.add(wrapReportTable("My Monthly Membership & Renewal History", historyTable), BorderLayout.CENTER);
         return panel;
     }
 
@@ -3566,7 +3581,7 @@ public final class gymsyncapp extends JFrame {
             draftModel.removeRow(modelRow);
         });
 
-        JButton btnSavePlan = createGradientButton("✓ Save Custom Workout Plan", NEON_EMERALD, CYBER_CYAN);
+        JButton btnSavePlan = createGradientButton("Save Custom Workout Plan", NEON_EMERALD, NEON_EMERALD);
         btnSavePlan.addActionListener(e -> {
             if (tfGoal.getText().trim().isEmpty() || draftItems.isEmpty()) {
                 JOptionPane.showMessageDialog(dlg, "Please enter a plan title and add at least one exercise.");
@@ -3678,16 +3693,29 @@ public final class gymsyncapp extends JFrame {
     // 8. PLAY STORE DARK-MODE STYLING HELPERS & RENDERERS
     // ========================================================================
 
+    private static void attachFocusBorder(JTextField field) {
+        final Border unfocused = new CompoundBorder(
+                new LineBorder(BORDER_SUBTLE, 1, true),
+                new EmptyBorder(8, 12, 8, 12)
+        );
+        final Border focused = new CompoundBorder(
+                new LineBorder(NEON_EMERALD, 1, true),
+                new EmptyBorder(8, 12, 8, 12)
+        );
+        field.setBorder(unfocused);
+        field.addFocusListener(new FocusAdapter() {
+            @Override public void focusGained(FocusEvent e) { field.setBorder(focused); }
+            @Override public void focusLost(FocusEvent e) { field.setBorder(unfocused); }
+        });
+    }
+
     private JTextField createDarkTextField(String text) {
         JTextField tf = new JTextField(text);
         tf.setBackground(INPUT_BG);
         tf.setForeground(TEXT_PRIMARY);
-        tf.setCaretColor(CYBER_CYAN);
+        tf.setCaretColor(NEON_EMERALD);
         tf.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        tf.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_SUBTLE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
+        attachFocusBorder(tf);
         return tf;
     }
 
@@ -3695,12 +3723,9 @@ public final class gymsyncapp extends JFrame {
         JPasswordField pf = new JPasswordField();
         pf.setBackground(INPUT_BG);
         pf.setForeground(TEXT_PRIMARY);
-        pf.setCaretColor(CYBER_CYAN);
+        pf.setCaretColor(NEON_EMERALD);
         pf.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        pf.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_SUBTLE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
+        attachFocusBorder(pf);
         return pf;
     }
 

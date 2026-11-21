@@ -2,7 +2,7 @@
 
 > **Tech Stack:** Java, Java Swing, MySQL  
 > **Repository:** `C:\Users\Aaron Musnit\Documents\GitHub\Gymsync`  
-> **Last Updated:** 2026-11-17
+> **Last Updated:** 2026-11-19
 
 ```mermaid
 gantt
@@ -33,6 +33,6 @@ gantt
 | Database | MySQL Schema & Seed | `gymsync_database_schema_and_seed.sql` | Done |
 | Backend | Models, Security, Business Rules, DataRepository | `gymsyncapp.java` | Done |
 | Frontend | Java Swing UI & Custom Components | `gymsyncapp.java` | Done |
-| Testing & Fixes | JDBC Connection, MySQL SQL, & UI Sync Fixes | `gymsyncapp.java`, `gymsync_database_schema_and_seed.sql` | Done |
-| Documentation | UI Screenshots & Gantt Chart | `Documentation/` | In Progress |
+| Testing & Fixes | JDBC Connection, MySQL SQL, CSV Export & UI Sync Fixes | `gymsyncapp.java`, `gymsync_database_schema_and_seed.sql` | Done |
+| Documentation | UI Screenshots & Gantt Chart | `Documentation/` | Done |
 | Presentation | Final Case Study PowerPoint (December Defense) | Deferred until December | Pending |

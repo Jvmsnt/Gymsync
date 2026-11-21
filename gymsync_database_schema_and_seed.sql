@@ -72,18 +72,18 @@ CREATE TABLE Exercise (
     name                   VARCHAR(100) NOT NULL UNIQUE,
     muscle_group           VARCHAR(40)  NOT NULL, -- Chest, Back, Legs, Shoulders, Arms, Core, Full Body
     difficulty             VARCHAR(20)  NOT NULL CHECK (difficulty IN ('Beginner', 'Intermediate', 'Advanced')),
-    equipment              VARCHAR(50)  NOT NULL, -- Bodyweight, Dumbbells, Barbell, Machine: ...
+    equipment              VARCHAR(80)  NOT NULL, -- Bodyweight, Dumbbells, Barbell, Machine: ...
     description            TEXT         NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 1.4 WorkoutPlan Entity
 -- Header table for either rule-based ('suggested') or member-built ('custom') plans.
 CREATE TABLE WorkoutPlan (
-    workout_plan_id        INT         AUTO_INCREMENT PRIMARY KEY,
-    user_id                INT         NOT NULL,
-    plan_type              VARCHAR(20) NOT NULL CHECK (plan_type IN ('suggested', 'custom')),
-    goal                   VARCHAR(60) NOT NULL, -- Weight Loss, Muscle Gain, General Fitness, Strength
-    date_created           DATE        NOT NULL DEFAULT (CURRENT_DATE),
+    workout_plan_id        INT          AUTO_INCREMENT PRIMARY KEY,
+    user_id                INT          NOT NULL,
+    plan_type              VARCHAR(20)  NOT NULL CHECK (plan_type IN ('suggested', 'custom')),
+    goal                   VARCHAR(120) NOT NULL, -- Weight Loss, Muscle Gain, General Fitness, Strength
+    date_created           DATE         NOT NULL DEFAULT (CURRENT_DATE),
     CONSTRAINT fk_workoutplan_user
         FOREIGN KEY (user_id) REFERENCES User(user_id)
         ON DELETE CASCADE
@@ -111,6 +111,7 @@ CREATE INDEX idx_user_role_name ON User(role, last_name, first_name);
 CREATE INDEX idx_membership_user_end ON Membership(user_id, end_date);
 CREATE INDEX idx_exercise_filter ON Exercise(difficulty, equipment, muscle_group);
 CREATE INDEX idx_workoutplan_user ON WorkoutPlan(user_id, date_created);
+CREATE INDEX idx_wpe_plan_day ON WorkoutPlanExercise(workout_plan_id, day_of_week);
 
 -- ============================================================================
 -- 2. DYNAMIC STATUS VIEW (vw_member_status)

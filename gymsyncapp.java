@@ -1979,14 +1979,19 @@ public final class gymsyncapp extends JFrame {
     }
 
     private void routeToRoleDashboard(User user) {
-        this.currentUser = user;
-        rootContainer.removeAll();
         if ("Admin".equalsIgnoreCase(user.role)) {
+            this.currentUser = user;
+            rootContainer.removeAll();
             rootContainer.add(buildAdminDashboard(), "DASHBOARD");
         } else if ("Staff".equalsIgnoreCase(user.role)) {
+            this.currentUser = user;
+            rootContainer.removeAll();
             rootContainer.add(buildStaffDashboard(), "DASHBOARD");
         } else {
-            rootContainer.add(buildMemberDashboard(), "DASHBOARD");
+            JOptionPane.showMessageDialog(this,
+                    "Desk Management Access Only.\nMember accounts are managed by Front Desk Staff — please sign in as Admin or Staff.",
+                    "Operator Access Required", JOptionPane.INFORMATION_MESSAGE);
+            return;
         }
         rootCardLayout.show(rootContainer, "DASHBOARD");
         rootContainer.revalidate();
@@ -2025,7 +2030,7 @@ public final class gymsyncapp extends JFrame {
         heroBanner.setBorder(new EmptyBorder(18, 20, 18, 20));
         heroBanner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 112));
 
-        JLabel badgeLbl = new JLabel("GYM OPERATIONS & WORKOUT SYSTEM");
+        JLabel badgeLbl = new JLabel("FRONT DESK & GYM OPERATIONS");
         badgeLbl.setFont(new Font("SansSerif", Font.BOLD, 10));
         badgeLbl.setForeground(NEON_EMERALD);
         badgeLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -2035,7 +2040,7 @@ public final class gymsyncapp extends JFrame {
         title.setForeground(TEXT_PRIMARY);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel subtitle = new JLabel("Membership Tracking  •  Workout Plans  •  Live Roster");
+        JLabel subtitle = new JLabel("Desk Check-In  •  Renewals  •  Workout Coaching");
         subtitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
         subtitle.setForeground(TEXT_SECONDARY);
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -2092,31 +2097,28 @@ public final class gymsyncapp extends JFrame {
         loginBtn.addActionListener(doLogin);
         passField.addActionListener(doLogin);
 
-        // One-Tap Play Store Role Switcher Chips
-        RoundedCardPanel demoBox = new RoundedCardPanel(BG_SURFACE, BORDER_SUBTLE, 18);
+        // One-Tap Operator Quick Sign-In (Admin / Staff Desk Only)
+        RoundedCardPanel demoBox = new RoundedCardPanel(BG_SURFACE, BORDER_SUBTLE, 10);
         demoBox.setLayout(new BorderLayout(0, 8));
         demoBox.setBorder(new EmptyBorder(12, 14, 12, 14));
-        demoBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 95));
+        demoBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
 
-        JLabel demoTitle = new JLabel("1-TAP DEMO PROFILES (QA INSTANT SIGN-IN):");
+        JLabel demoTitle = new JLabel("QUICK OPERATOR SIGN-IN (DESK CONSOLE):");
         demoTitle.setFont(new Font("SansSerif", Font.BOLD, 10));
-        demoTitle.setForeground(TEXT_SECONDARY);
+        demoTitle.setForeground(TEXT_MUTED);
 
-        JPanel demoBtns = new JPanel(new GridLayout(1, 3, 8, 0));
+        JPanel demoBtns = new JPanel(new GridLayout(1, 2, 10, 0));
         demoBtns.setOpaque(false);
-        JButton btnAdminDemo = createStyledButton("Admin", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        JButton btnStaffDemo = createStyledButton("Staff", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        JButton btnMemberDemo = createStyledButton("Member", CARD_HIGHLIGHT, NEON_EMERALD);
-        for (JButton b : new JButton[]{btnAdminDemo, btnStaffDemo, btnMemberDemo}) {
+        JButton btnAdminDemo = createStyledButton("Admin Console", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        JButton btnStaffDemo = createStyledButton("Front Desk Staff", CARD_HIGHLIGHT, NEON_EMERALD);
+        for (JButton b : new JButton[]{btnAdminDemo, btnStaffDemo}) {
             b.setFont(new Font("SansSerif", Font.BOLD, 12));
-            b.setBorder(new EmptyBorder(8, 6, 8, 6));
+            b.setBorder(new EmptyBorder(8, 10, 8, 10));
         }
         btnAdminDemo.addActionListener(e -> { userField.setText("admin"); passField.setText("admin123"); doLogin.actionPerformed(null); });
         btnStaffDemo.addActionListener(e -> { userField.setText("staff"); passField.setText("staff123"); doLogin.actionPerformed(null); });
-        btnMemberDemo.addActionListener(e -> { userField.setText("carlos_m"); passField.setText("member123"); doLogin.actionPerformed(null); });
         demoBtns.add(btnAdminDemo);
         demoBtns.add(btnStaffDemo);
-        demoBtns.add(btnMemberDemo);
 
         demoBox.add(demoTitle, BorderLayout.NORTH);
         demoBox.add(demoBtns, BorderLayout.CENTER);

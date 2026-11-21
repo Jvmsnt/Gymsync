@@ -4019,12 +4019,43 @@ public final class gymsyncapp extends JFrame {
 
     public static void main(String[] args) {
         try {
-            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+            boolean flatLafLoaded = false;
+            try {
+                Class<?> flatLaf = Class.forName("com.formdev.flatlaf.FlatDarkLaf");
+                Object ok = flatLaf.getMethod("setup").invoke(null);
+                flatLafLoaded = Boolean.TRUE.equals(ok);
+            } catch (ReflectiveOperationException ignored) {
+                flatLafLoaded = false;
+            }
+            if (!flatLafLoaded) {
+                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+            } else {
+                UIManager.put("Component.arc", 8);
+                UIManager.put("Button.arc", 8);
+                UIManager.put("TextComponent.arc", 8);
+                UIManager.put("Component.focusWidth", 1);
+                UIManager.put("Component.focusColor", NEON_EMERALD);
+                UIManager.put("Component.focusedBorderColor", NEON_EMERALD);
+                UIManager.put("Component.borderColor", BORDER_SUBTLE);
+                UIManager.put("ScrollBar.width", 10);
+                UIManager.put("ScrollBar.showButtons", false);
+                UIManager.put("ScrollBar.thumbArc", 999);
+                UIManager.put("ScrollBar.track", BG_SURFACE);
+                UIManager.put("ScrollBar.thumb", CARD_HIGHLIGHT);
+                UIManager.put("ComboBox.background", INPUT_BG);
+                UIManager.put("ComboBox.foreground", TEXT_PRIMARY);
+                UIManager.put("ComboBox.buttonBackground", CARD_HIGHLIGHT);
+                UIManager.put("ComboBox.selectionBackground", TABLE_SELECT);
+                UIManager.put("PopupMenu.background", CARD_SURFACE);
+                UIManager.put("PopupMenu.borderColor", BORDER_SUBTLE);
+            }
             UIManager.put("Panel.background", BG_OBSIDIAN);
             UIManager.put("OptionPane.background", CARD_SURFACE);
             UIManager.put("OptionPane.messageForeground", TEXT_PRIMARY);
             UIManager.put("Label.foreground", TEXT_PRIMARY);
-        } catch (Exception ignored) {}
+        } catch (Exception ex) {
+            System.err.println("[UI] LookAndFeel setup warning: " + ex.getMessage());
+        }
         SwingUtilities.invokeLater(() -> {
             gymsyncapp app = new gymsyncapp();
             app.setVisible(true);

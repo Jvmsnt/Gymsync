@@ -36,29 +36,29 @@ import java.util.stream.Collectors;
 public final class gymsyncapp extends JFrame {
     private static final long serialVersionUID = 1L;
 
-    // ── Precision Dark Console Palette (Restrained Zinc + Emerald Accent) ──
-    public static final Color BG_OBSIDIAN     = new Color(9, 9, 11);      // #09090B Main App Canvas
-    public static final Color BG_SURFACE      = new Color(17, 17, 20);    // #111114 Secondary Surface
-    public static final Color CARD_SURFACE    = new Color(24, 24, 27);    // #18181B Elevated Card
-    public static final Color CARD_HIGHLIGHT  = new Color(39, 39, 42);    // #27272A Hover/Inner Card
-    public static final Color BORDER_SUBTLE   = new Color(46, 46, 52);    // #2E2E34 Crisp 1px Hairline
-    public static final Color INPUT_BG        = new Color(12, 12, 15);    // #0C0C0F Recessed Input
+    // ── Modern Slate Console Palette (Clear Surface Hierarchy + Emerald Accent) ──
+    public static final Color BG_OBSIDIAN     = new Color(17, 19, 24);    // #111318 Main Workspace Canvas
+    public static final Color BG_SURFACE      = new Color(23, 26, 33);    // #171A21 Sidebar & Headers
+    public static final Color CARD_SURFACE    = new Color(31, 36, 45);    // #1F242D Lifted Card Surface
+    public static final Color CARD_HIGHLIGHT  = new Color(42, 48, 60);    // #2A303C Hover & Secondary Btn
+    public static final Color BORDER_SUBTLE   = new Color(52, 59, 73);    // #343B49 Crisp Visible 1px Border
+    public static final Color INPUT_BG        = new Color(18, 21, 27);    // #12151B Recessed Input
 
-    public static final Color TEXT_PRIMARY    = new Color(244, 244, 245); // #F4F4F5 Crisp Off-White
-    public static final Color TEXT_SECONDARY  = new Color(161, 161, 170); // #A1A1AA Muted Zinc
-    public static final Color TEXT_MUTED      = new Color(113, 113, 122); // #71717A Sub-label
+    public static final Color TEXT_PRIMARY    = new Color(244, 246, 250); // #F4F6FA Crisp White
+    public static final Color TEXT_SECONDARY  = new Color(165, 174, 190); // #A5AEBE Readable Slate
+    public static final Color TEXT_MUTED      = new Color(118, 128, 145); // #768091 Sub-label
 
     // Focused Brand & Semantic Accents (No Rainbow Gradients)
     public static final Color NEON_EMERALD    = new Color(16, 185, 129);  // #10B981 Primary Brand / Active
     public static final Color CYBER_CYAN      = new Color(20, 184, 166);  // #14B8A6 Muted Teal Support
-    public static final Color ELECTRIC_INDIGO = new Color(63, 63, 70);    // #3F3F46 Neutral Slate Accent
-    public static final Color VIOLET_GLOW     = new Color(82, 82, 91);    // #52525B Subtle Graphite
+    public static final Color ELECTRIC_INDIGO = new Color(68, 76, 92);    // #444C5C Neutral Slate Accent
+    public static final Color VIOLET_GLOW     = new Color(86, 95, 114);   // #565F72 Subtle Graphite
     public static final Color CORAL_RED       = new Color(244, 63, 94);   // #F43F5E Expired / Danger
     public static final Color AMBER_GOLD      = new Color(245, 158, 11);  // #F59E0B Expiring Soon Warning
 
-    public static final Color TABLE_EVEN_ROW  = new Color(20, 20, 24);
-    public static final Color TABLE_ALT_ROW   = new Color(15, 15, 18);
-    public static final Color TABLE_SELECT    = new Color(20, 52, 43);
+    public static final Color TABLE_EVEN_ROW  = new Color(27, 31, 39);
+    public static final Color TABLE_ALT_ROW   = new Color(23, 26, 33);
+    public static final Color TABLE_SELECT    = new Color(24, 58, 50);
 
     private final DataRepository repo;
     private final CardLayout rootCardLayout = new CardLayout();
@@ -1314,129 +1314,141 @@ public final class gymsyncapp extends JFrame {
             int w = getWidth();
             int h = getHeight();
 
-            // Outer Card Background
+            // Outer Inspector Card
             g2.setColor(CARD_SURFACE);
-            g2.fillRoundRect(0, 0, w - 1, h - 1, 24, 24);
+            g2.fillRoundRect(0, 0, w - 1, h - 1, 14, 14);
             g2.setColor(BORDER_SUBTLE);
-            g2.drawRoundRect(0, 0, w - 1, h - 1, 24, 24);
+            g2.drawRoundRect(0, 0, w - 1, h - 1, 14, 14);
 
             LocalDate today = LocalDate.now();
             boolean isActive = (latest != null && "Active".equalsIgnoreCase(latest.getComputedStatus(today)));
             long daysLeft = latest != null ? latest.getDaysRemaining(today) : -999;
-
-            // Top Wallet Pass Banner (Restrained Surface + Semantic Accent Bar)
             Color accentColor = (member == null) ? TEXT_MUTED : (isActive ? NEON_EMERALD : CORAL_RED);
-            g2.setColor(BG_SURFACE);
-            g2.fillRoundRect(10, 10, w - 20, 135, 14, 14);
-            g2.setColor(BORDER_SUBTLE);
-            g2.drawRoundRect(10, 10, w - 20, 135, 14, 14);
-            g2.setColor(accentColor);
-            g2.fillRoundRect(10, 10, w - 20, 4, 4, 4);
 
             if (member == null) {
-                g2.setColor(Color.WHITE);
-                g2.setFont(new Font("SansSerif", Font.BOLD, 13));
-                g2.drawString("DIGITAL GYM PASS CHECK-IN", 26, 40);
-                g2.setFont(new Font("SansSerif", Font.BOLD, 20));
-                g2.drawString("Tap Any Member Row", 26, 78);
-                g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
-                g2.setColor(new Color(235, 245, 255));
-                g2.drawString("Instant Active / Expired pass check (<5s)", 26, 104);
-
+                g2.setColor(TEXT_MUTED);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+                g2.drawString("MEMBER PASS INSPECTOR", 22, 34);
+                g2.setColor(TEXT_PRIMARY);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 18));
+                g2.drawString("Select a Member Row", 22, 64);
                 g2.setColor(TEXT_SECONDARY);
-                g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
-                g2.drawString("Select a member from the directory", 26, 190);
-                g2.drawString("or type in the search bar above to", 26, 212);
-                g2.drawString("inspect their live membership pass,", 26, 234);
-                g2.drawString("remaining days, and emergency info.", 26, 256);
+                g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
+                g2.drawString("Click any row in the directory or", 22, 96);
+                g2.drawString("search above to inspect live pass", 22, 114);
+                g2.drawString("status, cycle progress, and contact info.", 22, 132);
                 g2.dispose();
                 return;
             }
 
-            // Avatar Circle with Initials
-            g2.setColor(new Color(15, 23, 42, 190));
-            g2.fillOval(24, 26, 56, 56);
-            g2.setColor(Color.WHITE);
-            g2.setStroke(new BasicStroke(2f));
-            g2.drawOval(24, 26, 56, 56);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 20));
+            // Header Block
+            g2.setColor(BG_SURFACE);
+            g2.fillRoundRect(12, 12, w - 24, 102, 10, 10);
+            g2.setColor(BORDER_SUBTLE);
+            g2.drawRoundRect(12, 12, w - 24, 102, 10, 10);
+
+            // Tinted Avatar Badge
+            Color avatarBg = isActive ? new Color(16, 185, 129, 36) : new Color(244, 63, 94, 36);
+            g2.setColor(avatarBg);
+            g2.fillOval(26, 26, 48, 48);
+            g2.setColor(accentColor);
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawOval(26, 26, 48, 48);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 17));
             FontMetrics fm = g2.getFontMetrics();
             String initials = member.getInitials();
-            g2.drawString(initials, 24 + (56 - fm.stringWidth(initials)) / 2, 26 + 35);
+            g2.drawString(initials, 26 + (48 - fm.stringWidth(initials)) / 2, 26 + 30);
 
-            // Member Name & Handle on Banner
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 18));
-            g2.drawString(member.getFullName(), 92, 48);
+            // Member Name & Handle
+            g2.setColor(TEXT_PRIMARY);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 16));
+            g2.drawString(member.getFullName(), 86, 44);
             g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
-            g2.setColor(new Color(240, 248, 255));
-            g2.drawString("@" + member.username + "  •  ID #" + member.userId, 92, 68);
-
-            // Status Pill inside Banner
-            String pillText = isActive ? "● ACTIVE — ENTRY ALLOWED" : "● EXPIRED — RENEW NOW";
-            g2.setColor(new Color(11, 15, 25, 175));
-            g2.fillRoundRect(24, 96, w - 48, 34, 16, 16);
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 13));
-            FontMetrics pfm = g2.getFontMetrics();
-            g2.drawString(pillText, (w - pfm.stringWidth(pillText)) / 2, 118);
-
-            // Progress Bar Section (Days Remaining)
-            int y = 168;
             g2.setColor(TEXT_SECONDARY);
+            g2.drawString("@" + member.username + "  •  ID #" + member.userId, 86, 62);
+
+            // Compact Inline Status Pill
+            String pillText = isActive ? "● ACTIVE — ENTRY ALLOWED" : "● EXPIRED — RENEW NEEDED";
+            g2.setColor(isActive ? new Color(16, 185, 129, 28) : new Color(244, 63, 94, 28));
+            g2.fillRoundRect(26, 82, w - 52, 22, 6, 6);
+            g2.setColor(accentColor);
             g2.setFont(new Font("SansSerif", Font.BOLD, 11));
-            g2.drawString("MEMBERSHIP CYCLE PROGRESS", 22, y);
+            FontMetrics pfm = g2.getFontMetrics();
+            g2.drawString(pillText, 26 + ((w - 52) - pfm.stringWidth(pillText)) / 2, 97);
+
+            // Progress Bar Section
+            int y = 140;
+            g2.setColor(TEXT_MUTED);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+            g2.drawString("CYCLE PROGRESS", 20, y);
 
             String dayLabel = (latest != null)
-                    ? (daysLeft >= 0 ? daysLeft + " of 30 Days Left" : Math.abs(daysLeft) + " Days Overdue")
+                    ? (daysLeft >= 0 ? daysLeft + " of 30 days left" : Math.abs(daysLeft) + " days overdue")
                     : "No Record";
-            g2.setColor(isActive ? NEON_EMERALD : CORAL_RED);
+            g2.setColor(accentColor);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
             FontMetrics dfm = g2.getFontMetrics();
-            g2.drawString(dayLabel, w - 22 - dfm.stringWidth(dayLabel), y);
+            g2.drawString(dayLabel, w - 20 - dfm.stringWidth(dayLabel), y);
 
             y += 10;
             g2.setColor(INPUT_BG);
-            g2.fillRoundRect(22, y, w - 44, 12, 10, 10);
+            g2.fillRoundRect(20, y, w - 40, 8, 6, 6);
             double ratio = isActive ? Math.max(0.08, Math.min(1.0, daysLeft / 30.0)) : 1.0;
-            int fillW = (int) ((w - 44) * ratio);
+            int fillW = (int) ((w - 40) * ratio);
             g2.setColor(accentColor);
-            g2.fillRoundRect(22, y, fillW, 8, 8, 8);
+            g2.fillRoundRect(20, y, fillW, 8, 6, 6);
 
-            // Info Tiles
+            // Structured Hairline Inspector Rows (Instead of 5 Identical Stacked Boxes)
             y += 28;
-            y = drawDetailTile(g2, 18, y, w - 36, "FITNESS LEVEL & PROFILE",
-                    (member.fitnessLevel != null ? member.fitnessLevel : "Beginner") + "  •  " +
-                    (member.gender != null ? member.gender : "Unspecified") +
-                    (member.birthdate != null ? ("  •  Born: " + member.birthdate) : ""));
+            int halfW = (w - 48) / 2;
+            drawInspectorCell(g2, 20, y, halfW, "FITNESS LEVEL",
+                    member.fitnessLevel != null ? member.fitnessLevel : "Beginner");
+            drawInspectorCell(g2, 28 + halfW, y, halfW, "GENDER",
+                    member.gender != null ? member.gender : "Unspecified");
+            y += 50;
+            drawDivider(g2, 20, y - 6, w - 40);
 
-            y = drawDetailTile(g2, 18, y, w - 36, "CONTACT & ADDRESS",
-                    member.contactNo + ((member.address != null && !member.address.isEmpty()) ? ("  •  " + member.address) : "  •  Address optional"));
+            drawInspectorCell(g2, 20, y, w - 40, "CONTACT & ADDRESS",
+                    member.contactNo + ((member.address != null && !member.address.isEmpty()) ? ("  •  " + member.address) : ""));
+            y += 50;
+            drawDivider(g2, 20, y - 6, w - 40);
 
-            y = drawDetailTile(g2, 18, y, w - 36, "EMERGENCY CONTACT",
+            drawInspectorCell(g2, 20, y, w - 40, "EMERGENCY CONTACT",
                     (member.emergencyContactName != null ? member.emergencyContactName : "N/A") +
                     " (" + (member.emergencyContactNo != null ? member.emergencyContactNo : "N/A") + ")");
+            y += 50;
+            drawDivider(g2, 20, y - 6, w - 40);
 
-            y = drawDetailTile(g2, 18, y, w - 36, "CURRENT 1-MONTH PERIOD",
-                    (latest != null ? (latest.startDate + "  →  " + latest.endDate) : "No active period"));
+            drawInspectorCell(g2, 20, y, w - 40, "CURRENT 1-MONTH PERIOD",
+                    (latest != null ? (latest.startDate + "  ->  " + latest.endDate) : "No active period"));
+            y += 50;
+            drawDivider(g2, 20, y - 6, w - 40);
 
             LocalDate[] nextRenewal = BusinessRules.calculateRenewalDates(
                     latest != null ? latest.endDate : null, today);
-            drawDetailTile(g2, 18, y, w - 36, "NEXT 1-MONTH RENEWAL PREVIEW",
-                    nextRenewal[0] + "  →  " + nextRenewal[1]);
+            drawInspectorCell(g2, 20, y, w - 40, "NEXT RENEWAL WINDOW",
+                    nextRenewal[0] + "  ->  " + nextRenewal[1]);
 
             g2.dispose();
         }
 
-        private int drawDetailTile(Graphics2D g2, int x, int y, int w, String label, String val) {
-            g2.setColor(CARD_HIGHLIGHT);
-            g2.fillRoundRect(x, y, w, 50, 14, 14);
+        private void drawDivider(Graphics2D g2, int x, int y, int w) {
+            g2.setColor(BORDER_SUBTLE);
+            g2.drawLine(x, y, x + w, y);
+        }
+
+        private void drawInspectorCell(Graphics2D g2, int x, int y, int w, String label, String val) {
             g2.setColor(TEXT_MUTED);
             g2.setFont(new Font("SansSerif", Font.BOLD, 10));
-            g2.drawString(label, x + 14, y + 18);
+            g2.drawString(label, x, y + 12);
             g2.setColor(TEXT_PRIMARY);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 12));
-            g2.drawString(val, x + 14, y + 38);
-            return y + 58;
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
+            String clipped = val != null ? val : "";
+            FontMetrics fm = g2.getFontMetrics();
+            while (clipped.length() > 3 && fm.stringWidth(clipped) > w) {
+                clipped = clipped.substring(0, clipped.length() - 4) + "...";
+            }
+            g2.drawString(clipped, x, y + 32);
         }
     }
 
@@ -2132,65 +2144,74 @@ public final class gymsyncapp extends JFrame {
         contentArea.setOpaque(false);
 
         // Top App Bar + Modern Pill Navigation Bar
-        JPanel headerWrapper = new JPanel(new BorderLayout());
-        headerWrapper.setBackground(BG_SURFACE);
-        headerWrapper.setBorder(new MatteBorder(0, 0, 1, 0, BORDER_SUBTLE));
+        // Left Sidebar Navigation + Main Workspace Shell
+        JPanel sidebar = new JPanel(new BorderLayout());
+        sidebar.setBackground(BG_SURFACE);
+        sidebar.setPreferredSize(new Dimension(238, 0));
+        sidebar.setBorder(new MatteBorder(0, 0, 0, 1, BORDER_SUBTLE));
 
-        // Row 1: Brand Title + User Profile Pill + Sign Out
-        JPanel topRow = new JPanel(new BorderLayout());
-        topRow.setOpaque(false);
-        topRow.setBorder(new EmptyBorder(14, 22, 10, 22));
+        // Sidebar Top Brand Header
+        JPanel brandPanel = new JPanel(new BorderLayout(0, 4));
+        brandPanel.setOpaque(false);
+        brandPanel.setBorder(new CompoundBorder(
+                new MatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
+                new EmptyBorder(18, 18, 16, 18)
+        ));
 
-        JPanel brandBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        brandBox.setOpaque(false);
-
-        JLabel logoBadge = new JLabel(" GYMSYNC ") {
+        JPanel logoRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        logoRow.setOpaque(false);
+        JPanel logoMark = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(CARD_HIGHLIGHT);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 g2.setColor(NEON_EMERALD);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 7, 7);
+                g2.setColor(BG_OBSIDIAN);
+                g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                int cy = getHeight() / 2;
+                g2.drawLine(6, cy, getWidth() - 6, cy);
+                g2.drawLine(8, cy - 5, 8, cy + 5);
+                g2.drawLine(getWidth() - 8, cy - 5, getWidth() - 8, cy + 5);
                 g2.dispose();
-                super.paintComponent(g);
             }
         };
-        logoBadge.setFont(new Font("SansSerif", Font.BOLD, 14));
-        logoBadge.setForeground(TEXT_PRIMARY);
-        logoBadge.setBorder(new EmptyBorder(6, 10, 6, 10));
+        logoMark.setOpaque(false);
+        logoMark.setPreferredSize(new Dimension(28, 28));
+
+        JLabel logoTitle = new JLabel("GYMSYNC");
+        logoTitle.setFont(new Font("SansSerif", Font.BOLD, 16));
+        logoTitle.setForeground(TEXT_PRIMARY);
+        logoRow.add(logoMark);
+        logoRow.add(logoTitle);
 
         JLabel subTitleLbl = new JLabel(consoleSubtitle);
-        subTitleLbl.setFont(new Font("SansSerif", Font.BOLD, 14));
-        subTitleLbl.setForeground(TEXT_SECONDARY);
+        subTitleLbl.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        subTitleLbl.setForeground(TEXT_MUTED);
+        subTitleLbl.setBorder(new EmptyBorder(2, 2, 0, 0));
 
-        brandBox.add(logoBadge);
-        brandBox.add(subTitleLbl);
+        brandPanel.add(logoRow, BorderLayout.NORTH);
+        brandPanel.add(subTitleLbl, BorderLayout.SOUTH);
 
-        JPanel rightBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
-        rightBox.setOpaque(false);
+        // Sidebar Vertical Navigation List
+        JPanel navListWrap = new JPanel(new BorderLayout());
+        navListWrap.setOpaque(false);
+        navListWrap.setBorder(new EmptyBorder(14, 12, 14, 12));
 
-        String dbTag = repo.isJdbcConnected()
-                ? (repo.isMySql() ? "● MySQL JDBC Live" : "● SQLite JDBC Live")
-                : "● Instant Memory DB";
-        JLabel userChip = new JLabel(currentUser.getFullName() + "  •  " + currentUser.role.toUpperCase() + "  (" + dbTag + ")");
-        userChip.setFont(new Font("SansSerif", Font.BOLD, 12));
-        userChip.setForeground(TEXT_SECONDARY);
+        JLabel navSectionLbl = new JLabel("WORKSPACE");
+        navSectionLbl.setFont(new Font("SansSerif", Font.BOLD, 10));
+        navSectionLbl.setForeground(TEXT_MUTED);
+        navSectionLbl.setBorder(new EmptyBorder(0, 10, 8, 10));
 
-        JButton logoutBtn = createStyledButton("Sign Out", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        logoutBtn.addActionListener(e -> showLoginScreen());
+        JPanel navList = new JPanel();
+        navList.setOpaque(false);
+        navList.setLayout(new BoxLayout(navList, BoxLayout.Y_AXIS));
 
-        rightBox.add(userChip);
-        rightBox.add(logoutBtn);
-
-        topRow.add(brandBox, BorderLayout.WEST);
-        topRow.add(rightBox, BorderLayout.EAST);
-
-        // Row 2: Precision Console Navigation Tabs
-        JPanel navBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
-        navBar.setOpaque(false);
-        navBar.setBorder(new EmptyBorder(0, 16, 8, 16));
+        String initialTitle = navScreens.isEmpty() ? consoleSubtitle : navScreens.keySet().iterator().next();
+        JLabel pageTitleLbl = new JLabel(initialTitle);
+        pageTitleLbl.setFont(new Font("SansSerif", Font.BOLD, 18));
+        pageTitleLbl.setForeground(TEXT_PRIMARY);
 
         List<JButton> navButtons = new ArrayList<>();
         int idx = 0;
@@ -2199,44 +2220,50 @@ public final class gymsyncapp extends JFrame {
             contentArea.add(entry.getValue(), key);
 
             final int tabIdx = idx;
-            JButton pillBtn = new JButton(key) {
+            JButton navBtn = new JButton(key) {
                 @Override
                 protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     boolean active = Boolean.TRUE.equals(getClientProperty("active"));
                     if (active) {
-                        g2.setColor(CARD_HIGHLIGHT);
+                        g2.setColor(CARD_SURFACE);
                         g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                         g2.setColor(BORDER_SUBTLE);
                         g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
                         g2.setColor(NEON_EMERALD);
-                        g2.fillRect(10, getHeight() - 3, Math.max(0, getWidth() - 20), 2);
+                        g2.fillRoundRect(0, 7, 3, Math.max(0, getHeight() - 14), 3, 3);
                     } else if (getModel().isRollover()) {
-                        g2.setColor(CARD_SURFACE);
+                        g2.setColor(CARD_HIGHLIGHT);
                         g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                     }
+                    g2.setColor(active ? NEON_EMERALD : TEXT_MUTED);
+                    g2.fillOval(14, (getHeight() - 6) / 2, 6, 6);
                     g2.dispose();
                     super.paintComponent(g);
                 }
             };
-            pillBtn.putClientProperty("active", idx == 0);
-            pillBtn.setForeground(idx == 0 ? Color.WHITE : TEXT_SECONDARY);
-            pillBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
-            pillBtn.setContentAreaFilled(false);
-            pillBtn.setBorderPainted(false);
-            pillBtn.setFocusPainted(false);
-            pillBtn.setBorder(new EmptyBorder(9, 18, 9, 18));
-            pillBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            navBtn.putClientProperty("active", idx == 0);
+            navBtn.setHorizontalAlignment(SwingConstants.LEFT);
+            navBtn.setForeground(idx == 0 ? TEXT_PRIMARY : TEXT_SECONDARY);
+            navBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+            navBtn.setContentAreaFilled(false);
+            navBtn.setBorderPainted(false);
+            navBtn.setFocusPainted(false);
+            navBtn.setBorder(new EmptyBorder(10, 28, 10, 12));
+            navBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+            navBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+            navBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-            pillBtn.addActionListener(e -> {
+            navBtn.addActionListener(e -> {
                 for (int i = 0; i < navButtons.size(); i++) {
                     JButton b = navButtons.get(i);
                     boolean isThis = (i == tabIdx);
                     b.putClientProperty("active", isThis);
-                    b.setForeground(isThis ? Color.WHITE : TEXT_SECONDARY);
+                    b.setForeground(isThis ? TEXT_PRIMARY : TEXT_SECONDARY);
                     b.repaint();
                 }
+                pageTitleLbl.setText(key);
                 Object onTabSelected = entry.getValue().getClientProperty("onTabSelected");
                 if (onTabSelected instanceof Runnable) {
                     ((Runnable) onTabSelected).run();
@@ -2244,16 +2271,64 @@ public final class gymsyncapp extends JFrame {
                 contentLayout.show(contentArea, key);
             });
 
-            navButtons.add(pillBtn);
-            navBar.add(pillBtn);
+            navButtons.add(navBtn);
+            navList.add(navBtn);
+            navList.add(Box.createVerticalStrut(4));
             idx++;
         }
 
-        headerWrapper.add(topRow, BorderLayout.NORTH);
-        headerWrapper.add(navBar, BorderLayout.SOUTH);
+        navListWrap.add(navSectionLbl, BorderLayout.NORTH);
+        navListWrap.add(navList, BorderLayout.CENTER);
 
-        shell.add(headerWrapper, BorderLayout.NORTH);
-        shell.add(contentArea, BorderLayout.CENTER);
+        // Sidebar Footer: User Profile & Sign Out
+        JPanel sidebarFooter = new JPanel(new BorderLayout(0, 10));
+        sidebarFooter.setOpaque(false);
+        sidebarFooter.setBorder(new CompoundBorder(
+                new MatteBorder(1, 0, 0, 0, BORDER_SUBTLE),
+                new EmptyBorder(14, 14, 14, 14)
+        ));
+
+        JPanel userMeta = new JPanel(new GridLayout(2, 1, 0, 2));
+        userMeta.setOpaque(false);
+        JLabel userNameLbl = new JLabel(currentUser.getFullName());
+        userNameLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        userNameLbl.setForeground(TEXT_PRIMARY);
+        String dbTag = repo.isJdbcConnected()
+                ? (repo.isMySql() ? "MySQL Live" : "SQLite Live")
+                : "Memory Mode";
+        JLabel userRoleLbl = new JLabel(currentUser.role.toUpperCase() + "  •  " + dbTag);
+        userRoleLbl.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        userRoleLbl.setForeground(repo.isJdbcConnected() ? NEON_EMERALD : TEXT_MUTED);
+        userMeta.add(userNameLbl);
+        userMeta.add(userRoleLbl);
+
+        JButton logoutBtn = createStyledButton("Sign Out", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        logoutBtn.addActionListener(e -> showLoginScreen());
+
+        sidebarFooter.add(userMeta, BorderLayout.NORTH);
+        sidebarFooter.add(logoutBtn, BorderLayout.SOUTH);
+
+        sidebar.add(brandPanel, BorderLayout.NORTH);
+        sidebar.add(navListWrap, BorderLayout.CENTER);
+        sidebar.add(sidebarFooter, BorderLayout.SOUTH);
+
+        // Right Workspace Area (Top Page Title Bar + Content)
+        JPanel workspacePanel = new JPanel(new BorderLayout());
+        workspacePanel.setBackground(BG_OBSIDIAN);
+
+        JPanel pageHeader = new JPanel(new BorderLayout());
+        pageHeader.setBackground(BG_OBSIDIAN);
+        pageHeader.setBorder(new CompoundBorder(
+                new MatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
+                new EmptyBorder(16, 22, 14, 22)
+        ));
+        pageHeader.add(pageTitleLbl, BorderLayout.WEST);
+
+        workspacePanel.add(pageHeader, BorderLayout.NORTH);
+        workspacePanel.add(contentArea, BorderLayout.CENTER);
+
+        shell.add(sidebar, BorderLayout.WEST);
+        shell.add(workspacePanel, BorderLayout.CENTER);
         return shell;
     }
 
@@ -2333,7 +2408,7 @@ public final class gymsyncapp extends JFrame {
         JTable table = new JTable(model);
         styleTable(table);
         table.getColumnModel().getColumn(8).setCellRenderer(new StatusBadgeRenderer());
-        int[] colWidths = {44, 100, 145, 105, 86, 92, 92, 82, 108};
+        int[] colWidths = {40, 96, 132, 108, 108, 92, 92, 96, 104};
         for (int c = 0; c < colWidths.length; c++) {
             table.getColumnModel().getColumn(c).setPreferredWidth(colWidths[c]);
         }

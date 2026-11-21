@@ -30,26 +30,67 @@ public final class GymsyncServer {
 
     public static void main(String[] args) throws Exception {
         GymsyncServer app = new GymsyncServer();
-        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", PORT), 0);
+        HttpServer server;
+        try {
+            server = HttpServer.create(new InetSocketAddress("127.0.0.1", PORT), 0);
+        } catch (java.net.BindException busy) {
+            server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        }
+        int boundPort = server.getAddress().getPort();
         server.createContext("/api/", app::handleApi);
         server.createContext("/", app::handleStatic);
         server.setExecutor(Executors.newFixedThreadPool(8));
         server.start();
 
-        String url = "http://localhost:" + PORT;
+        String url = "http://127.0.0.1:" + boundPort;
         System.out.println("====================================================");
-        System.out.println(" GymSync Web Server running at " + url);
+        System.out.println(" GymSync Desktop App running (" + url + ")");
         System.out.println(" Database: " + (app.repo.isJdbcConnected()
                 ? (app.repo.isMySql() ? "MySQL Live" : "SQLite Live")
                 : "In-Memory Fallback"));
-        System.out.println(" Press Ctrl+C to stop.");
         System.out.println("====================================================");
 
-        if (Desktop.isDesktopSupported()) {
+        Process appWindow = launchDesktopAppWindow(url);
+        if (appWindow != null) {
+            appWindow.waitFor();
+            server.stop(0);
+            System.exit(0);
+        } else if (Desktop.isDesktopSupported()) {
             try {
                 Desktop.getDesktop().browse(new URI(url));
             } catch (Exception ignored) {}
         }
+    }
+
+    private static Process launchDesktopAppWindow(String url) {
+        String pf = System.getenv("ProgramFiles");
+        String pf86 = System.getenv("ProgramFiles(x86)");
+        String localApp = System.getenv("LOCALAPPDATA");
+        String[] candidates = new String[]{
+                pf86 != null ? pf86 + "\\Microsoft\\Edge\\Application\\msedge.exe" : "",
+                pf != null ? pf + "\\Microsoft\\Edge\\Application\\msedge.exe" : "",
+                pf != null ? pf + "\\Google\\Chrome\\Application\\chrome.exe" : "",
+                pf86 != null ? pf86 + "\\Google\\Chrome\\Application\\chrome.exe" : "",
+                pf != null ? pf + "\\BraveSoftware\\Brave-Browser\\Application\\brave.exe" : "",
+                localApp != null ? localApp + "\\BraveSoftware\\Brave-Browser\\Application\\brave.exe" : ""
+        };
+        for (String exe : candidates) {
+            if (exe != null && !exe.isEmpty() && Files.exists(Paths.get(exe))) {
+                try {
+                    Path profileDir = Paths.get(System.getProperty("java.io.tmpdir"), "gymsync-desktop-profile");
+                    Files.createDirectories(profileDir);
+                    return new ProcessBuilder(
+                            exe,
+                            "--app=" + url,
+                            "--user-data-dir=" + profileDir.toAbsolutePath(),
+                            "--window-size=1360,860",
+                            "--no-first-run",
+                            "--no-default-browser-check"
+                    ).start();
+                } catch (IOException ignored) {}
+            }
+        }
+        return null;
     }
 
     private synchronized void handleApi(HttpExchange ex) throws IOException {

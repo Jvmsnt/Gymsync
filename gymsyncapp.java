@@ -36,29 +36,30 @@ import java.util.stream.Collectors;
 public final class gymsyncapp extends JFrame {
     private static final long serialVersionUID = 1L;
 
-    // ── Modern Slate Console Palette (Clear Surface Hierarchy + Emerald Accent) ──
-    public static final Color BG_OBSIDIAN     = new Color(17, 19, 24);    // #111318 Main Workspace Canvas
-    public static final Color BG_SURFACE      = new Color(23, 26, 33);    // #171A21 Sidebar & Headers
-    public static final Color CARD_SURFACE    = new Color(31, 36, 45);    // #1F242D Lifted Card Surface
-    public static final Color CARD_HIGHLIGHT  = new Color(42, 48, 60);    // #2A303C Hover & Secondary Btn
-    public static final Color BORDER_SUBTLE   = new Color(52, 59, 73);    // #343B49 Crisp Visible 1px Border
-    public static final Color INPUT_BG        = new Color(18, 21, 27);    // #12151B Recessed Input
+    // ── Studio Light Default / GitHub Dark Toggle Palette (FlatLaf-Native) ──
+    public static boolean darkMode = false;
+    public static Color BG_OBSIDIAN     = new Color(248, 250, 252);
+    public static Color BG_SURFACE      = new Color(255, 255, 255);
+    public static Color CARD_SURFACE    = new Color(255, 255, 255);
+    public static Color CARD_HIGHLIGHT  = new Color(241, 245, 249);
+    public static Color BORDER_SUBTLE   = new Color(226, 232, 240);
+    public static Color INPUT_BG        = new Color(255, 255, 255);
 
-    public static final Color TEXT_PRIMARY    = new Color(244, 246, 250); // #F4F6FA Crisp White
-    public static final Color TEXT_SECONDARY  = new Color(165, 174, 190); // #A5AEBE Readable Slate
-    public static final Color TEXT_MUTED      = new Color(118, 128, 145); // #768091 Sub-label
+    public static Color TEXT_PRIMARY    = new Color(15, 23, 42);
+    public static Color TEXT_SECONDARY  = new Color(71, 85, 105);
+    public static Color TEXT_MUTED      = new Color(100, 116, 139);
 
-    // Focused Brand & Semantic Accents (No Rainbow Gradients)
-    public static final Color NEON_EMERALD    = new Color(16, 185, 129);  // #10B981 Primary Brand / Active
-    public static final Color CYBER_CYAN      = new Color(20, 184, 166);  // #14B8A6 Muted Teal Support
-    public static final Color ELECTRIC_INDIGO = new Color(68, 76, 92);    // #444C5C Neutral Slate Accent
-    public static final Color VIOLET_GLOW     = new Color(86, 95, 114);   // #565F72 Subtle Graphite
-    public static final Color CORAL_RED       = new Color(244, 63, 94);   // #F43F5E Expired / Danger
-    public static final Color AMBER_GOLD      = new Color(245, 158, 11);  // #F59E0B Expiring Soon Warning
+    public static Color NEON_EMERALD    = new Color(5, 150, 105);
+    public static Color CYBER_CYAN      = new Color(13, 148, 136);
+    public static Color ELECTRIC_INDIGO = new Color(37, 99, 235);
+    public static Color VIOLET_GLOW     = new Color(100, 116, 139);
+    public static Color CORAL_RED       = new Color(225, 29, 72);
+    public static Color AMBER_GOLD      = new Color(217, 119, 6);
 
-    public static final Color TABLE_EVEN_ROW  = new Color(27, 31, 39);
-    public static final Color TABLE_ALT_ROW   = new Color(23, 26, 33);
-    public static final Color TABLE_SELECT    = new Color(24, 58, 50);
+    public static Color TABLE_EVEN_ROW  = new Color(255, 255, 255);
+    public static Color TABLE_ALT_ROW   = new Color(248, 250, 252);
+    public static Color TABLE_SELECT    = new Color(236, 253, 245);
+    public static Color TABLE_SELECT_FG = new Color(6, 95, 70);
 
     private final DataRepository repo;
     private final CardLayout rootCardLayout = new CardLayout();
@@ -1240,2569 +1241,312 @@ public final class gymsyncapp extends JFrame {
     }
 
     // ========================================================================
-    // 4. PLAY STORE MOBILE-APP CUSTOM UI COMPONENTS (Graphics2D)
+    // 4. MODERN STUDIO UI ENGINE (FlatLaf + Light/Dark Theme + VectorIcons)
     // ========================================================================
 
-    /**
-     * Rounded elevated card container with optional gradient fill or subtle border.
-     */
-    private static class RoundedCardPanel extends JPanel {
-        private final Color c1;
-        private final Color c2;
-        private final Color borderColor;
-        private final int radius;
-
-        public RoundedCardPanel(Color bg, Color border, int radius) {
-            this(bg, bg, border, radius);
-        }
-
-        public RoundedCardPanel(Color gradStart, Color gradEnd, Color border, int radius) {
-            this.c1 = gradStart;
-            this.c2 = gradEnd;
-            this.borderColor = border;
-            this.radius = radius;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            int w = getWidth();
-            int h = getHeight();
-            if (!c1.equals(c2)) {
-                g2.setPaint(new GradientPaint(0, 0, c1, w, h, c2));
-            } else {
-                g2.setColor(c1);
-            }
-            g2.fillRoundRect(0, 0, w - 1, h - 1, radius, radius);
-            if (borderColor != null) {
-                g2.setColor(borderColor);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, w - 1, h - 1, radius, radius);
-            }
-            g2.dispose();
-            super.paintComponent(g);
-        }
+    private static String hex(Color c) {
+        return String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
     }
 
-    /**
-     * Play Store style Digital Gym Membership Pass Card (like Google Wallet / Nike Training Club).
-     */
-    private static class DigitalMemberPassCard extends JPanel {
-        private User member;
-        private Membership latest;
-
-        public DigitalMemberPassCard() {
-            setOpaque(false);
-            setPreferredSize(new Dimension(350, 0));
-        }
-
-        public void setMemberData(User m, Membership latestMembership) {
-            this.member = m;
-            this.latest = latestMembership;
-            repaint();
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-            int w = getWidth();
-            int h = getHeight();
-
-            // Outer Inspector Card
-            g2.setColor(CARD_SURFACE);
-            g2.fillRoundRect(0, 0, w - 1, h - 1, 14, 14);
-            g2.setColor(BORDER_SUBTLE);
-            g2.drawRoundRect(0, 0, w - 1, h - 1, 14, 14);
-
-            LocalDate today = LocalDate.now();
-            boolean isActive = (latest != null && "Active".equalsIgnoreCase(latest.getComputedStatus(today)));
-            long daysLeft = latest != null ? latest.getDaysRemaining(today) : -999;
-            Color accentColor = (member == null) ? TEXT_MUTED : (isActive ? NEON_EMERALD : CORAL_RED);
-
-            if (member == null) {
-                g2.setColor(TEXT_MUTED);
-                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
-                g2.drawString("MEMBER PASS INSPECTOR", 22, 34);
-                g2.setColor(TEXT_PRIMARY);
-                g2.setFont(new Font("SansSerif", Font.BOLD, 18));
-                g2.drawString("Select a Member Row", 22, 64);
-                g2.setColor(TEXT_SECONDARY);
-                g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
-                g2.drawString("Click any row in the directory or", 22, 96);
-                g2.drawString("search above to inspect live pass", 22, 114);
-                g2.drawString("status, cycle progress, and contact info.", 22, 132);
-                g2.dispose();
-                return;
-            }
-
-            // Header Block
-            g2.setColor(BG_SURFACE);
-            g2.fillRoundRect(12, 12, w - 24, 102, 10, 10);
-            g2.setColor(BORDER_SUBTLE);
-            g2.drawRoundRect(12, 12, w - 24, 102, 10, 10);
-
-            // Tinted Avatar Badge
-            Color avatarBg = isActive ? new Color(16, 185, 129, 36) : new Color(244, 63, 94, 36);
-            g2.setColor(avatarBg);
-            g2.fillOval(26, 26, 48, 48);
-            g2.setColor(accentColor);
-            g2.setStroke(new BasicStroke(1.5f));
-            g2.drawOval(26, 26, 48, 48);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 17));
-            FontMetrics fm = g2.getFontMetrics();
-            String initials = member.getInitials();
-            g2.drawString(initials, 26 + (48 - fm.stringWidth(initials)) / 2, 26 + 30);
-
-            // Member Name & Handle
-            g2.setColor(TEXT_PRIMARY);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 16));
-            g2.drawString(member.getFullName(), 86, 44);
-            g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
-            g2.setColor(TEXT_SECONDARY);
-            g2.drawString("@" + member.username + "  •  ID #" + member.userId, 86, 62);
-
-            // Compact Inline Status Pill
-            String pillText = isActive ? "● ACTIVE — ENTRY ALLOWED" : "● EXPIRED — RENEW NEEDED";
-            g2.setColor(isActive ? new Color(16, 185, 129, 28) : new Color(244, 63, 94, 28));
-            g2.fillRoundRect(26, 82, w - 52, 22, 6, 6);
-            g2.setColor(accentColor);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
-            FontMetrics pfm = g2.getFontMetrics();
-            g2.drawString(pillText, 26 + ((w - 52) - pfm.stringWidth(pillText)) / 2, 97);
-
-            // Progress Bar Section
-            int y = 140;
-            g2.setColor(TEXT_MUTED);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
-            g2.drawString("CYCLE PROGRESS", 20, y);
-
-            String dayLabel = (latest != null)
-                    ? (daysLeft >= 0 ? daysLeft + " of 30 days left" : Math.abs(daysLeft) + " days overdue")
-                    : "No Record";
-            g2.setColor(accentColor);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
-            FontMetrics dfm = g2.getFontMetrics();
-            g2.drawString(dayLabel, w - 20 - dfm.stringWidth(dayLabel), y);
-
-            y += 10;
-            g2.setColor(INPUT_BG);
-            g2.fillRoundRect(20, y, w - 40, 8, 6, 6);
-            double ratio = isActive ? Math.max(0.08, Math.min(1.0, daysLeft / 30.0)) : 1.0;
-            int fillW = (int) ((w - 40) * ratio);
-            g2.setColor(accentColor);
-            g2.fillRoundRect(20, y, fillW, 8, 6, 6);
-
-            // Structured Hairline Inspector Rows (Instead of 5 Identical Stacked Boxes)
-            y += 28;
-            int halfW = (w - 48) / 2;
-            drawInspectorCell(g2, 20, y, halfW, "FITNESS LEVEL",
-                    member.fitnessLevel != null ? member.fitnessLevel : "Beginner");
-            drawInspectorCell(g2, 28 + halfW, y, halfW, "GENDER",
-                    member.gender != null ? member.gender : "Unspecified");
-            y += 50;
-            drawDivider(g2, 20, y - 6, w - 40);
-
-            drawInspectorCell(g2, 20, y, w - 40, "CONTACT & ADDRESS",
-                    member.contactNo + ((member.address != null && !member.address.isEmpty()) ? ("  •  " + member.address) : ""));
-            y += 50;
-            drawDivider(g2, 20, y - 6, w - 40);
-
-            drawInspectorCell(g2, 20, y, w - 40, "EMERGENCY CONTACT",
-                    (member.emergencyContactName != null ? member.emergencyContactName : "N/A") +
-                    " (" + (member.emergencyContactNo != null ? member.emergencyContactNo : "N/A") + ")");
-            y += 50;
-            drawDivider(g2, 20, y - 6, w - 40);
-
-            drawInspectorCell(g2, 20, y, w - 40, "CURRENT 1-MONTH PERIOD",
-                    (latest != null ? (latest.startDate + "  ->  " + latest.endDate) : "No active period"));
-            y += 50;
-            drawDivider(g2, 20, y - 6, w - 40);
-
-            LocalDate[] nextRenewal = BusinessRules.calculateRenewalDates(
-                    latest != null ? latest.endDate : null, today);
-            drawInspectorCell(g2, 20, y, w - 40, "NEXT RENEWAL WINDOW",
-                    nextRenewal[0] + "  ->  " + nextRenewal[1]);
-
-            g2.dispose();
-        }
-
-        private void drawDivider(Graphics2D g2, int x, int y, int w) {
-            g2.setColor(BORDER_SUBTLE);
-            g2.drawLine(x, y, x + w, y);
-        }
-
-        private void drawInspectorCell(Graphics2D g2, int x, int y, int w, String label, String val) {
-            g2.setColor(TEXT_MUTED);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
-            g2.drawString(label, x, y + 12);
-            g2.setColor(TEXT_PRIMARY);
-            g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
-            String clipped = val != null ? val : "";
-            FontMetrics fm = g2.getFontMetrics();
-            while (clipped.length() > 3 && fm.stringWidth(clipped) > w) {
-                clipped = clipped.substring(0, clipped.length() - 4) + "...";
-            }
-            g2.drawString(clipped, x, y + 32);
-        }
-    }
-
-
-    /**
-     * Play Store style Animated Workout Demonstration & Target Muscle Anatomy Card.
-     * Displays:
-     *   1. Pulsing Front & Back Human Muscle Anatomy Map highlighting the exact target muscle group.
-     *   2. Live animated workout motion demonstration (or attached GIF/PNG image via ImageIcon).
-     *   3. Machine Requirement Badge ("⚙ REQUIRES GYM MACHINE" vs "✓ NO MACHINE NEEDED").
-     *   4. Coaching cues & "Attach Custom GIF / Image" button.
-     */
-    private class WorkoutVisualCard extends JPanel {
-        private Exercise exercise;
-        private int animTick = 0;
-        private final javax.swing.Timer animTimer;
-        private ImageIcon activeGifIcon;
-        private String loadedSourceLabel = "Built-In 60FPS Engine";
-
-        public WorkoutVisualCard() {
-            setOpaque(false);
-            setPreferredSize(new Dimension(385, 0));
-            setLayout(new BorderLayout());
-
-            JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
-            bottomBar.setOpaque(false);
-
-            JButton btnLocalGif = createStyledButton("Local GIF / File", CARD_HIGHLIGHT, TEXT_PRIMARY);
-            JButton btnUrlGif   = createStyledButton("Sync GIF URL (Offline Cache)", CARD_HIGHLIGHT, TEXT_PRIMARY);
-
-            btnLocalGif.addActionListener(e -> {
-                if (exercise == null) return;
-                JFileChooser fc = new JFileChooser();
-                fc.setDialogTitle("Select Animated GIF or Image for " + exercise.name);
-                if (fc.showOpenDialog(gymsyncapp.this) == JFileChooser.APPROVE_OPTION) {
-                    try {
-                        java.io.File src = fc.getSelectedFile();
-                        java.io.File imgDir = new java.io.File("images");
-                        if (!imgDir.exists()) imgDir.mkdirs();
-                        java.io.File dest = new java.io.File(imgDir, exercise.getDefaultGifFilename());
-                        java.nio.file.Files.copy(src.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                        exercise.customGifOrImagePath = dest.getAbsolutePath();
-                        loadGifForExercise(exercise);
-                        JOptionPane.showMessageDialog(gymsyncapp.this,
-                                "Saved to local offline cache:\n" + dest.getPath() + "\nThis workout GIF will now load 100% offline!",
-                                "Offline GIF Cached", JOptionPane.INFORMATION_MESSAGE);
-                    } catch (Exception ex) {
-                        exercise.customGifOrImagePath = fc.getSelectedFile().getAbsolutePath();
-                        loadGifForExercise(exercise);
-                    }
-                }
-            });
-
-            btnUrlGif.addActionListener(e -> {
-                if (exercise == null) return;
-                String urlStr = JOptionPane.showInputDialog(gymsyncapp.this,
-                        "Paste any direct .gif or .png URL (from Fitness Programer, ExerciseDB, or GitHub)\n" +
-                        "to download and cache offline for '" + exercise.name + "':",
-                        "Sync Online GIF to Offline Cache", JOptionPane.QUESTION_MESSAGE);
-                if (urlStr == null || urlStr.trim().isEmpty()) return;
-                final String trimmedUrl = urlStr.trim();
-                new SwingWorker<java.io.File, Void>() {
-                    @Override
-                    protected java.io.File doInBackground() throws Exception {
-                        java.io.File imgDir = new java.io.File("images");
-                        if (!imgDir.exists()) imgDir.mkdirs();
-                        java.io.File dest = new java.io.File(imgDir, exercise.getDefaultGifFilename());
-                        try (java.io.InputStream in = java.net.URI.create(trimmedUrl).toURL().openStream()) {
-                            java.nio.file.Files.copy(in, dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                        }
-                        return dest;
-                    }
-
-                    @Override
-                    protected void done() {
-                        try {
-                            java.io.File dest = get();
-                            exercise.customGifOrImagePath = dest.getAbsolutePath();
-                            loadGifForExercise(exercise);
-                            JOptionPane.showMessageDialog(gymsyncapp.this,
-                                    "Downloaded and cached offline to:\n" + dest.getPath() + "\nWorks 100% offline even without Wi-Fi!",
-                                    "GIF Synced & Cached Offline", JOptionPane.INFORMATION_MESSAGE);
-                        } catch (Exception ex) {
-                            Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
-                            JOptionPane.showMessageDialog(gymsyncapp.this,
-                                    "Could not download URL (" + cause.getMessage() + ").\nUsing built-in offline biomechanical animation instead.",
-                                    "Offline Fallback Active", JOptionPane.WARNING_MESSAGE);
-                        }
-                    }
-                }.execute();
-            });
-
-            bottomBar.add(btnLocalGif);
-            bottomBar.add(btnUrlGif);
-            add(bottomBar, BorderLayout.SOUTH);
-
-            animTimer = new javax.swing.Timer(75, e -> {
-                animTick = (animTick + 1) % 24;
-                if (isShowing()) {
-                    repaint();
-                }
-            });
-            animTimer.start();
-        }
-
-        @Override
-        public void addNotify() {
-            super.addNotify();
-            if (!animTimer.isRunning()) {
-                animTimer.start();
-            }
-        }
-
-        @Override
-        public void removeNotify() {
-            animTimer.stop();
-            super.removeNotify();
-        }
-
-        private void loadGifForExercise(Exercise ex) {
-            activeGifIcon = null;
-            loadedSourceLabel = "Offline Biomechanical Engine";
-            if (ex == null) return;
-
-            String mgSlug = ex.muscleGroup != null
-                    ? ex.muscleGroup.toLowerCase(Locale.ROOT).replace(" ", "_")
-                    : "general";
-            String[] candidatePaths = new String[]{
-                    ex.customGifOrImagePath,
-                    "images/" + ex.getDefaultGifFilename(),
-                    "GymSync_NetBeans_Project/images/" + ex.getDefaultGifFilename(),
-                    "images/" + mgSlug + ".gif"
-            };
-            for (String path : candidatePaths) {
-                if (path != null && !path.isEmpty()) {
-                    java.io.File f = new java.io.File(path);
-                    if (f.exists() && f.length() > 0) {
-                        activeGifIcon = new ImageIcon(f.getAbsolutePath());
-                        activeGifIcon.setImageObserver(this);
-                        loadedSourceLabel = "Offline GIF (" + f.getName() + ")";
-                        break;
-                    }
-                }
-            }
-            repaint();
-        }
-
-        public void setExercise(Exercise ex) {
-            this.exercise = ex;
-            loadGifForExercise(ex);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-            int w = getWidth();
-            int h = getHeight();
-
-            g2.setColor(CARD_SURFACE);
-            g2.fillRoundRect(0, 0, w - 1, h - 1, 24, 24);
-            g2.setColor(BORDER_SUBTLE);
-            g2.drawRoundRect(0, 0, w - 1, h - 1, 24, 24);
-
-            if (exercise == null) {
-                g2.setColor(NEON_EMERALD);
-                g2.setFont(new Font("SansSerif", Font.BOLD, 12));
-                g2.drawString("WORKOUT & MUSCLE TARGET PREVIEW", 22, 36);
-                g2.setColor(TEXT_SECONDARY);
-                g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
-                g2.drawString("Tap any workout row to view its", 22, 72);
-                g2.drawString("anatomical muscle map, animated GIF,", 22, 94);
-                g2.drawString("and machine requirement details.", 22, 116);
-                g2.dispose();
-                return;
-            }
-
-            boolean needsMachine = exercise.requiresMachine();
-            Color headerAccent = needsMachine ? AMBER_GOLD : NEON_EMERALD;
-
-            // Top Restrained Header Banner
-            g2.setColor(BG_SURFACE);
-            g2.fillRoundRect(10, 10, w - 20, 90, 12, 12);
-            g2.setColor(BORDER_SUBTLE);
-            g2.drawRoundRect(10, 10, w - 20, 90, 12, 12);
-            g2.setColor(headerAccent);
-            g2.fillRoundRect(10, 10, w - 20, 3, 3, 3);
-
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 15));
-            String title = exercise.name.length() > 30 ? exercise.name.substring(0, 28) + "…" : exercise.name;
-            g2.drawString(title, 20, 36);
-
-            String machTag = needsMachine
-                    ? "⚙ MACHINE: " + exercise.equipment.replace("Machine: ", "")
-                    : "✓ NO MACHINE (" + exercise.equipment.toUpperCase() + ")";
-            g2.setColor(new Color(11, 15, 25, 185));
-            g2.fillRoundRect(18, 48, w - 36, 26, 12, 12);
-            g2.setColor(needsMachine ? AMBER_GOLD : NEON_EMERALD);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
-            g2.drawString(machTag.length() > 44 ? machTag.substring(0, 42) + "…" : machTag, 28, 65);
-
-            // Visual Canvas (210px tall)
-            int canvasY = 108;
-            int canvasH = 212;
-            g2.setColor(BG_OBSIDIAN);
-            g2.fillRoundRect(12, canvasY, w - 24, canvasH, 18, 18);
-            g2.setColor(BORDER_SUBTLE);
-            g2.drawRoundRect(12, canvasY, w - 24, canvasH, 18, 18);
-
-            // If a local/cached GIF/PNG was loaded, show it; otherwise render crisp vector Anatomical Red Muscle Map + Exercise-Specific Motion
-            if (activeGifIcon != null && activeGifIcon.getIconWidth() > 0) {
-                g2.drawImage(activeGifIcon.getImage(), 18, canvasY + 6, w - 36, canvasH - 12, this);
-            } else {
-                double phase = Math.abs(12 - animTick) / 12.0;
-                boolean pulse = (animTick % 4 < 2);
-
-                // Left Half: Anatomical Body Map with Red Primary & Orange Secondary Muscle Highlights (like Fitness Programer)
-                g2.setColor(CORAL_RED);
-                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
-                g2.drawString("● PRIMARY MUSCLE MAP", 24, canvasY + 18);
-                drawAnatomicalMuscleMap(g2, 96, canvasY + 108, exercise.muscleGroup, pulse);
-
-                g2.setColor(BORDER_SUBTLE);
-                g2.drawLine(w / 2 - 4, canvasY + 10, w / 2 - 4, canvasY + canvasH - 26);
-
-                // Right Half: Exercise-Specific Biomechanical Animation
-                g2.setColor(CYBER_CYAN);
-                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
-                g2.drawString("LIVE WORKOUT MOTION", w / 2 + 8, canvasY + 18);
-                drawExerciseSpecificMotion(g2, (w * 3) / 4 - 2, canvasY + 105, exercise, phase);
-
-                // Legend Strip at bottom of visual canvas
-                g2.setColor(BG_SURFACE);
-                g2.fillRoundRect(16, canvasY + canvasH - 24, w - 32, 20, 8, 8);
-                g2.setColor(CORAL_RED);
-                g2.fillRect(24, canvasY + canvasH - 18, 8, 8);
-                g2.setColor(TEXT_PRIMARY);
-                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
-                g2.drawString("Primary", 36, canvasY + canvasH - 10);
-
-                g2.setColor(AMBER_GOLD);
-                g2.fillRect(88, canvasY + canvasH - 18, 8, 8);
-                g2.setColor(TEXT_SECONDARY);
-                g2.drawString("Secondary", 100, canvasY + canvasH - 10);
-
-                g2.setColor(NEON_EMERALD);
-                g2.drawString("● " + loadedSourceLabel, 175, canvasY + canvasH - 10);
-            }
-
-            // Primary & Secondary Muscles Tile
-            int ty = canvasY + canvasH + 10;
-            g2.setColor(CARD_HIGHLIGHT);
-            g2.fillRoundRect(12, ty, w - 24, 52, 14, 14);
-            g2.setColor(CORAL_RED);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
-            g2.drawString("PRIMARY TARGET: " + exercise.getPrimaryMuscles().toUpperCase(), 22, ty + 18);
-            g2.setColor(AMBER_GOLD);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
-            g2.drawString("Secondary: " + exercise.getSecondaryMuscles(), 22, ty + 38);
-
-            // Step-by-Step Cues Tile
-            ty += 60;
-            g2.setColor(CARD_HIGHLIGHT);
-            g2.fillRoundRect(12, ty, w - 24, 78, 14, 14);
-            g2.setColor(TEXT_MUTED);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
-            g2.drawString("FORM & MACHINE SETUP CUES (" + exercise.difficulty.toUpperCase() + ")", 22, ty + 16);
-            g2.setColor(TEXT_PRIMARY);
-            g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
-            drawWrappedText(g2, exercise.description, 22, ty + 34, w - 44, 15);
-
-            g2.dispose();
-        }
-
-        private void drawAnatomicalMuscleMap(Graphics2D g2, int cx, int cy, String mg, boolean pulse) {
-            Color baseBody = new Color(45, 58, 78);
-            Color outline  = new Color(148, 163, 184);
-            Color primCol  = pulse ? new Color(244, 63, 94) : new Color(225, 29, 72); // Glowing Red Primary Muscle
-            Color secCol   = new Color(251, 146, 60, 210);                             // Orange Secondary Muscle
-
-            String m = mg != null ? mg.toLowerCase() : "";
-
-            // Head & Neck
-            g2.setColor(baseBody);
-            g2.fillOval(cx - 11, cy - 68, 22, 24);
-            g2.setColor(outline);
-            g2.drawOval(cx - 11, cy - 68, 22, 24);
-            g2.setColor(baseBody);
-            g2.fillRect(cx - 4, cy - 44, 8, 7);
-
-            // Deltoids (Shoulders)
-            Color deltCol = m.contains("shoulder") ? primCol : ((m.contains("chest") || m.contains("back") || m.contains("full")) ? secCol : baseBody);
-            g2.setColor(deltCol);
-            g2.fillOval(cx - 33, cy - 38, 16, 18);
-            g2.fillOval(cx + 17, cy - 38, 16, 18);
-
-            // Torso Base
-            g2.setColor(baseBody);
-            g2.fillRoundRect(cx - 21, cy - 37, 42, 48, 10, 10);
-
-            // Back Lats (V-Taper Wings)
-            if (m.contains("back") || m.contains("full")) {
-                g2.setColor(primCol);
-                int[] lx = {cx - 21, cx - 29, cx - 18};
-                int[] ly = {cy - 32, cy - 12, cy + 4};
-                g2.fillPolygon(lx, ly, 3);
-                int[] rx = {cx + 21, cx + 29, cx + 18};
-                int[] ry = {cy - 32, cy - 12, cy + 4};
-                g2.fillPolygon(rx, ry, 3);
-                g2.fillRoundRect(cx - 17, cy - 34, 34, 24, 6, 6);
-            }
-
-            // Pectorals (Chest)
-            Color chestCol = (m.contains("chest") || m.contains("full")) ? primCol : (m.contains("shoulder") ? secCol : new Color(62, 76, 99));
-            g2.setColor(chestCol);
-            g2.fillRoundRect(cx - 19, cy - 35, 17, 17, 5, 5);
-            g2.fillRoundRect(cx + 2, cy - 35, 17, 17, 5, 5);
-
-            // Core / 6-Pack Abs
-            Color abCol = (m.contains("core") || m.contains("full")) ? primCol : ((m.contains("leg") || m.contains("back")) ? secCol : new Color(55, 68, 90));
-            g2.setColor(abCol);
-            for (int r = 0; r < 3; r++) {
-                int ay = cy - 15 + r * 8;
-                g2.fillRoundRect(cx - 11, ay, 9, 6, 3, 3);
-                g2.fillRoundRect(cx + 2, ay, 9, 6, 3, 3);
-            }
-
-            // Arms (Biceps & Triceps)
-            Color armCol = m.contains("arm") ? primCol : ((m.contains("chest") || m.contains("back") || m.contains("shoulder") || m.contains("full")) ? secCol : baseBody);
-            g2.setColor(armCol);
-            g2.fillRoundRect(cx - 35, cy - 20, 11, 34, 6, 6);
-            g2.fillRoundRect(cx + 24, cy - 20, 11, 34, 6, 6);
-
-            // Legs (Quads, Hamstrings & Calves)
-            Color legCol = (m.contains("leg") || m.contains("full")) ? primCol : baseBody;
-            g2.setColor(legCol);
-            g2.fillRoundRect(cx - 19, cy + 12, 16, 32, 6, 6);
-            g2.fillRoundRect(cx + 3, cy + 12, 16, 32, 6, 6);
-            g2.fillRoundRect(cx - 17, cy + 45, 13, 26, 5, 5);
-            g2.fillRoundRect(cx + 4, cy + 45, 13, 26, 5, 5);
-        }
-
-        private void drawExerciseSpecificMotion(Graphics2D g2, int mx, int my, Exercise ex, double phase) {
-            int off = (int) (phase * 26);
-            String n = ex.name != null ? ex.name.toLowerCase() : "";
-            boolean isMach = ex.requiresMachine();
-
-            if (isMach) {
-                g2.setColor(new Color(71, 85, 105));
-                g2.setStroke(new BasicStroke(2.2f));
-                g2.drawRoundRect(mx - 58, my - 60, 116, 112, 10, 10);
-                // Animated selectorized weight stack on left of machine frame
-                for (int p = 0; p < 5; p++) {
-                    int py = my + 34 - p * 9 - (p >= 2 ? off / 2 : 0);
-                    g2.setColor(p >= 2 ? AMBER_GOLD : new Color(71, 85, 105));
-                    g2.fillRoundRect(mx - 52, py, 18, 6, 3, 3);
-                }
-            }
-
-            int cx = mx + (isMach ? 10 : 0);
-            g2.setStroke(new BasicStroke(4f));
-
-            if (n.contains("pulldown") || n.contains("pull-up")) {
-                int barY = my - 44 + off;
-                g2.setColor(TEXT_PRIMARY);
-                g2.fillOval(cx - 8, my - 14, 16, 16);
-                g2.setColor(CORAL_RED);
-                g2.fillRoundRect(cx - 13, my + 2, 26, 30, 6, 6);
-                g2.drawLine(cx - 12, my + 6, cx - 24, barY);
-                g2.drawLine(cx + 12, my + 6, cx + 24, barY);
-                g2.setColor(CYBER_CYAN);
-                g2.drawLine(cx - 34, barY, cx + 34, barY);
-                g2.setStroke(new BasicStroke(1.5f));
-                g2.drawLine(cx, my - 58, cx, barY);
-            } else if (n.contains("row") && !n.contains("ergometer")) {
-                int hx = cx - 24 + off;
-                g2.setColor(TEXT_PRIMARY);
-                g2.fillOval(cx + 4, my - 24, 15, 15);
-                g2.setColor(CORAL_RED);
-                g2.fillRoundRect(cx, my - 8, 20, 30, 6, 6);
-                g2.setColor(TEXT_SECONDARY);
-                g2.drawLine(cx + 4, my + 22, cx - 22, my + 26);
-                g2.setColor(CORAL_RED);
-                g2.drawLine(cx + 4, my + 2, hx, my + 4);
-                g2.setColor(CYBER_CYAN);
-                g2.drawLine(cx - 36, my + 4, hx, my + 4);
-            } else if (n.contains("leg press") || n.contains("hack squat")) {
-                int sx = cx + 6 + off / 2;
-                g2.setColor(TEXT_PRIMARY);
-                g2.fillOval(cx - 28, my + 2, 14, 14);
-                g2.setColor(TEXT_SECONDARY);
-                g2.drawLine(cx - 22, my + 16, cx - 8, my + 32);
-                g2.setColor(CORAL_RED);
-                g2.drawLine(cx - 8, my + 32, cx, my + 10);
-                g2.drawLine(cx, my + 10, sx, my - 6);
-                g2.setColor(CYBER_CYAN);
-                g2.drawLine(sx - 8, my - 20, sx + 8, my + 10);
-            } else if (n.contains("extension") || n.contains("hamstring")) {
-                int py = my + 32 - off;
-                g2.setColor(TEXT_PRIMARY);
-                g2.fillOval(cx - 14, my - 26, 14, 14);
-                g2.setColor(TEXT_SECONDARY);
-                g2.fillRoundRect(cx - 16, my - 10, 16, 24, 5, 5);
-                g2.setColor(CORAL_RED);
-                g2.drawLine(cx - 4, my + 12, cx + 12, my + 12);
-                g2.drawLine(cx + 12, my + 12, cx + 24, py);
-                g2.setColor(NEON_EMERALD);
-                g2.fillOval(cx + 18, py - 5, 10, 10);
-            } else if (n.contains("squat") || n.contains("lunge") || n.contains("calf")) {
-                int hy = my - 8 + (n.contains("calf") ? -off / 3 : off / 2);
-                g2.setColor(TEXT_PRIMARY);
-                g2.fillOval(cx - 8, hy - 32, 16, 16);
-                g2.setColor(TEXT_SECONDARY);
-                g2.fillRoundRect(cx - 11, hy - 15, 22, 24, 5, 5);
-                g2.setColor(CORAL_RED);
-                g2.drawLine(cx - 5, hy + 10, cx - 16, hy + 26);
-                g2.drawLine(cx + 5, hy + 10, cx + 16, hy + 26);
-                g2.drawLine(cx - 16, hy + 26, cx - 8, my + 44);
-                g2.drawLine(cx + 16, hy + 26, cx + 8, my + 44);
-            } else if (n.contains("curl") || n.contains("pushdown") || n.contains("tricep")) {
-                int hy = n.contains("curl") ? (my + 20 - off) : (my - 6 + off);
-                g2.setColor(TEXT_PRIMARY);
-                g2.fillOval(cx - 8, my - 30, 16, 16);
-                g2.setColor(TEXT_SECONDARY);
-                g2.fillRoundRect(cx - 12, my - 12, 24, 30, 6, 6);
-                g2.setColor(CORAL_RED);
-                g2.drawLine(cx - 12, my - 6, cx - 22, hy);
-                g2.drawLine(cx + 12, my - 6, cx + 22, hy);
-                g2.setColor(NEON_EMERALD);
-                g2.drawLine(cx - 28, hy, cx + 28, hy);
-            } else if (n.contains("treadmill") || n.contains("ergometer")) {
-                int stride = (int) ((phase - 0.5) * 24);
-                g2.setColor(TEXT_PRIMARY);
-                g2.fillOval(cx - 8, my - 32, 16, 16);
-                g2.setColor(CORAL_RED);
-                g2.fillRoundRect(cx - 10, my - 15, 20, 26, 5, 5);
-                g2.drawLine(cx - 4, my + 11, cx - 14 + stride, my + 38);
-                g2.drawLine(cx + 4, my + 11, cx + 14 - stride, my + 38);
-                g2.setColor(CYBER_CYAN);
-                g2.drawLine(cx - 32, my + 42, cx + 32, my + 42);
-            } else {
-                // Pressing / Fly / Core movements
-                int by = my - 12 - off;
-                g2.setColor(TEXT_PRIMARY);
-                g2.fillOval(cx - 9, my - 14, 18, 18);
-                g2.setColor(CORAL_RED);
-                g2.fillRoundRect(cx - 14, my + 6, 28, 32, 6, 6);
-                g2.drawLine(cx - 14, my + 12, cx - 26, by);
-                g2.drawLine(cx + 14, my + 12, cx + 26, by);
-                g2.setColor(CYBER_CYAN);
-                g2.drawLine(cx - 36, by, cx + 36, by);
-                g2.setColor(NEON_EMERALD);
-                g2.fillRoundRect(cx - 40, by - 8, 7, 16, 3, 3);
-                g2.fillRoundRect(cx + 33, by - 8, 7, 16, 3, 3);
-            }
-
-            // Rep contraction meter bar
-            g2.setColor(INPUT_BG);
-            g2.fillRoundRect(mx - 48, my + 56, 96, 10, 6, 6);
-            g2.setColor(NEON_EMERALD);
-            g2.fillRoundRect(mx - 48, my + 56, Math.max(12, (int) (96 * (1.0 - phase))), 10, 6, 6);
-        }
-
-        private void drawWrappedText(Graphics2D g2, String text, int x, int y, int maxW, int lineH) {
-            if (text == null) return;
-            FontMetrics fm = g2.getFontMetrics();
-            String[] words = text.split(" ");
-            StringBuilder line = new StringBuilder();
-            int curY = y;
-            for (String w : words) {
-                String test = line.length() == 0 ? w : line + " " + w;
-                if (fm.stringWidth(test) > maxW) {
-                    g2.drawString(line.toString(), x, curY);
-                    line = new StringBuilder(w);
-                    curY += lineH;
-                } else {
-                    line = new StringBuilder(test);
-                }
-            }
-            if (line.length() > 0) {
-                g2.drawString(line.toString(), x, curY);
-            }
-        }
-    }
-
-    private static class MachineBadgeRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                                                       boolean isSelected, boolean hasFocus, int row, int column) {
-            final String text = value != null ? value.toString() : "";
-            final boolean isMachine = text.startsWith("⚙") || text.toLowerCase().contains("machine");
-            JLabel lbl = new JLabel(text, SwingConstants.LEFT) {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(isSelected ? TABLE_SELECT : (row % 2 == 0 ? TABLE_EVEN_ROW : TABLE_ALT_ROW));
-                    g2.fillRect(0, 0, getWidth(), getHeight());
-
-                    g2.setColor(isMachine ? new Color(99, 102, 241, 55) : new Color(16, 185, 129, 40));
-                    g2.fillRoundRect(6, 5, getWidth() - 12, getHeight() - 10, 12, 12);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            lbl.setBorder(new EmptyBorder(0, 14, 0, 10));
-            lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
-            lbl.setForeground(isMachine ? new Color(165, 180, 252) : NEON_EMERALD);
-            return lbl;
-        }
-    }
-
-    // ========================================================================
-    // 5. NAVIGATION & PLAY STORE LOGIN SCREEN
-    // ========================================================================
-
-    private void showLoginScreen() {
-        currentUser = null;
-        rootContainer.removeAll();
-        rootContainer.add(buildLoginPanel(), "LOGIN");
-        rootCardLayout.show(rootContainer, "LOGIN");
-        rootContainer.revalidate();
-        rootContainer.repaint();
-    }
-
-    private void routeToRoleDashboard(User user) {
-        if ("Admin".equalsIgnoreCase(user.role)) {
-            this.currentUser = user;
-            rootContainer.removeAll();
-            rootContainer.add(buildAdminDashboard(), "DASHBOARD");
-        } else if ("Staff".equalsIgnoreCase(user.role)) {
-            this.currentUser = user;
-            rootContainer.removeAll();
-            rootContainer.add(buildStaffDashboard(), "DASHBOARD");
+    private static void installLookAndFeel(boolean dark) {
+        darkMode = dark;
+        if (dark) {
+            BG_OBSIDIAN     = new Color(13, 17, 23);    // #0D1117 GitHub Dark Canvas
+            BG_SURFACE      = new Color(22, 27, 34);    // #161B22 Sidebar & Surface
+            CARD_SURFACE    = new Color(22, 27, 34);    // #161B22 Card Surface
+            CARD_HIGHLIGHT  = new Color(33, 38, 45);    // #21262D Hover / Control
+            BORDER_SUBTLE   = new Color(48, 54, 61);    // #30363D 1px Border
+            INPUT_BG        = new Color(13, 17, 23);
+            TEXT_PRIMARY    = new Color(240, 246, 252);
+            TEXT_SECONDARY  = new Color(139, 148, 158);
+            TEXT_MUTED      = new Color(110, 118, 129);
+            NEON_EMERALD    = new Color(16, 185, 129);
+            CYBER_CYAN      = new Color(20, 184, 166);
+            ELECTRIC_INDIGO = new Color(56, 139, 253);
+            VIOLET_GLOW     = new Color(139, 148, 158);
+            CORAL_RED       = new Color(248, 81, 73);
+            AMBER_GOLD      = new Color(210, 153, 34);
+            TABLE_EVEN_ROW  = new Color(13, 17, 23);
+            TABLE_ALT_ROW   = new Color(22, 27, 34);
+            TABLE_SELECT    = new Color(19, 47, 38);
+            TABLE_SELECT_FG = new Color(236, 253, 245);
         } else {
-            JOptionPane.showMessageDialog(this,
-                    "Desk Management Access Only.\nMember accounts are managed by Front Desk Staff — please sign in as Admin or Staff.",
-                    "Operator Access Required", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-        rootCardLayout.show(rootContainer, "DASHBOARD");
-        rootContainer.revalidate();
-        rootContainer.repaint();
-    }
-
-    private JPanel buildLoginPanel() {
-        // Custom painted dark fitness background with subtle ambient glow circles
-        JPanel outer = new JPanel(new GridBagLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                int w = getWidth();
-                int h = getHeight();
-                g2.setColor(BG_OBSIDIAN);
-                g2.fillRect(0, 0, w, h);
-
-                // Subtle architectural grid lines instead of glowing AI blobs
-                g2.setColor(new Color(39, 39, 42, 70));
-                for (int x = 0; x < w; x += 48) g2.drawLine(x, 0, x, h);
-                for (int y = 0; y < h; y += 48) g2.drawLine(0, y, w, y);
-                g2.dispose();
-            }
-        };
-
-        RoundedCardPanel phoneCard = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 16);
-        phoneCard.setLayout(new BoxLayout(phoneCard, BoxLayout.Y_AXIS));
-        phoneCard.setBorder(new EmptyBorder(28, 34, 28, 34));
-        phoneCard.setPreferredSize(new Dimension(430, 560));
-
-        // Clean Editorial App Header inside Login Card
-        RoundedCardPanel heroBanner = new RoundedCardPanel(BG_SURFACE, BORDER_SUBTLE, 12);
-        heroBanner.setLayout(new BoxLayout(heroBanner, BoxLayout.Y_AXIS));
-        heroBanner.setBorder(new EmptyBorder(18, 20, 18, 20));
-        heroBanner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 112));
-
-        JLabel badgeLbl = new JLabel("FRONT DESK & GYM OPERATIONS");
-        badgeLbl.setFont(new Font("SansSerif", Font.BOLD, 10));
-        badgeLbl.setForeground(NEON_EMERALD);
-        badgeLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel title = new JLabel("GYMSYNC");
-        title.setFont(new Font("SansSerif", Font.BOLD, 30));
-        title.setForeground(TEXT_PRIMARY);
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel subtitle = new JLabel("Desk Check-In  •  Renewals  •  Workout Coaching");
-        subtitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        subtitle.setForeground(TEXT_SECONDARY);
-        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        heroBanner.add(badgeLbl);
-        heroBanner.add(Box.createVerticalStrut(4));
-        heroBanner.add(title);
-        heroBanner.add(Box.createVerticalStrut(4));
-        heroBanner.add(subtitle);
-
-        // Input Form
-        JPanel form = new JPanel(new GridLayout(4, 1, 6, 8));
-        form.setOpaque(false);
-        form.setBorder(new EmptyBorder(22, 0, 18, 0));
-
-        JLabel userLbl = new JLabel("USERNAME");
-        userLbl.setFont(new Font("SansSerif", Font.BOLD, 11));
-        userLbl.setForeground(TEXT_SECONDARY);
-        JTextField userField = createDarkTextField("");
-
-        JLabel passLbl = new JLabel("PASSWORD");
-        passLbl.setFont(new Font("SansSerif", Font.BOLD, 11));
-        passLbl.setForeground(TEXT_SECONDARY);
-        JPasswordField passField = createDarkPasswordField();
-
-        form.add(userLbl);
-        form.add(userField);
-        form.add(passLbl);
-        form.add(passField);
-
-        JButton loginBtn = createGradientButton("Sign In to GymSync  ->", NEON_EMERALD, new Color(5, 150, 105));
-        loginBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        loginBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-        loginBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
-
-        ActionListener doLogin = e -> {
-            String u = userField.getText().trim();
-            String p = new String(passField.getPassword());
-            if (u.isEmpty() || p.isEmpty()) {
-                JOptionPane.showMessageDialog(this,
-                        "Please enter both your username and password.",
-                        "Missing Credentials", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            User authenticated = repo.authenticate(u, p);
-            if (authenticated == null) {
-                JOptionPane.showMessageDialog(this,
-                        "Invalid username or password. Please try again.",
-                        "Sign-In Failed", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            routeToRoleDashboard(authenticated);
-        };
-        loginBtn.addActionListener(doLogin);
-        passField.addActionListener(doLogin);
-
-        // One-Tap Operator Quick Sign-In (Admin / Staff Desk Only)
-        RoundedCardPanel demoBox = new RoundedCardPanel(BG_SURFACE, BORDER_SUBTLE, 10);
-        demoBox.setLayout(new BorderLayout(0, 8));
-        demoBox.setBorder(new EmptyBorder(12, 14, 12, 14));
-        demoBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
-
-        JLabel demoTitle = new JLabel("QUICK OPERATOR SIGN-IN (DESK CONSOLE):");
-        demoTitle.setFont(new Font("SansSerif", Font.BOLD, 10));
-        demoTitle.setForeground(TEXT_MUTED);
-
-        JPanel demoBtns = new JPanel(new GridLayout(1, 2, 10, 0));
-        demoBtns.setOpaque(false);
-        JButton btnAdminDemo = createStyledButton("Admin Console", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        JButton btnStaffDemo = createStyledButton("Front Desk Staff", CARD_HIGHLIGHT, NEON_EMERALD);
-        for (JButton b : new JButton[]{btnAdminDemo, btnStaffDemo}) {
-            b.setFont(new Font("SansSerif", Font.BOLD, 12));
-            b.setBorder(new EmptyBorder(8, 10, 8, 10));
-        }
-        btnAdminDemo.addActionListener(e -> { userField.setText("admin"); passField.setText("admin123"); doLogin.actionPerformed(null); });
-        btnStaffDemo.addActionListener(e -> { userField.setText("staff"); passField.setText("staff123"); doLogin.actionPerformed(null); });
-        demoBtns.add(btnAdminDemo);
-        demoBtns.add(btnStaffDemo);
-
-        demoBox.add(demoTitle, BorderLayout.NORTH);
-        demoBox.add(demoBtns, BorderLayout.CENTER);
-
-        phoneCard.add(heroBanner);
-        phoneCard.add(form);
-        phoneCard.add(loginBtn);
-        phoneCard.add(Box.createVerticalStrut(20));
-        phoneCard.add(demoBox);
-
-        outer.add(phoneCard);
-        return outer;
-    }
-
-    // ========================================================================
-    // 6. PLAY STORE APP SHELL WITH PILL NAVIGATION BAR (Admin, Staff, Member)
-    // ========================================================================
-
-    private JPanel buildAppShell(String consoleSubtitle, LinkedHashMap<String, JPanel> navScreens) {
-        JPanel shell = new JPanel(new BorderLayout());
-        shell.setBackground(BG_OBSIDIAN);
-
-        CardLayout contentLayout = new CardLayout();
-        JPanel contentArea = new JPanel(contentLayout);
-        contentArea.setOpaque(false);
-
-        // Top App Bar + Modern Pill Navigation Bar
-        // Left Sidebar Navigation + Main Workspace Shell
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setBackground(BG_SURFACE);
-        sidebar.setPreferredSize(new Dimension(238, 0));
-        sidebar.setBorder(new MatteBorder(0, 0, 0, 1, BORDER_SUBTLE));
-
-        // Sidebar Top Brand Header
-        JPanel brandPanel = new JPanel(new BorderLayout(0, 4));
-        brandPanel.setOpaque(false);
-        brandPanel.setBorder(new CompoundBorder(
-                new MatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
-                new EmptyBorder(18, 18, 16, 18)
-        ));
-
-        JPanel logoRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        logoRow.setOpaque(false);
-        JPanel logoMark = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(NEON_EMERALD);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 7, 7);
-                g2.setColor(BG_OBSIDIAN);
-                g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                int cy = getHeight() / 2;
-                g2.drawLine(6, cy, getWidth() - 6, cy);
-                g2.drawLine(8, cy - 5, 8, cy + 5);
-                g2.drawLine(getWidth() - 8, cy - 5, getWidth() - 8, cy + 5);
-                g2.dispose();
-            }
-        };
-        logoMark.setOpaque(false);
-        logoMark.setPreferredSize(new Dimension(28, 28));
-
-        JLabel logoTitle = new JLabel("GYMSYNC");
-        logoTitle.setFont(new Font("SansSerif", Font.BOLD, 16));
-        logoTitle.setForeground(TEXT_PRIMARY);
-        logoRow.add(logoMark);
-        logoRow.add(logoTitle);
-
-        JLabel subTitleLbl = new JLabel(consoleSubtitle);
-        subTitleLbl.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        subTitleLbl.setForeground(TEXT_MUTED);
-        subTitleLbl.setBorder(new EmptyBorder(2, 2, 0, 0));
-
-        brandPanel.add(logoRow, BorderLayout.NORTH);
-        brandPanel.add(subTitleLbl, BorderLayout.SOUTH);
-
-        // Sidebar Vertical Navigation List
-        JPanel navListWrap = new JPanel(new BorderLayout());
-        navListWrap.setOpaque(false);
-        navListWrap.setBorder(new EmptyBorder(14, 12, 14, 12));
-
-        JLabel navSectionLbl = new JLabel("WORKSPACE");
-        navSectionLbl.setFont(new Font("SansSerif", Font.BOLD, 10));
-        navSectionLbl.setForeground(TEXT_MUTED);
-        navSectionLbl.setBorder(new EmptyBorder(0, 10, 8, 10));
-
-        JPanel navList = new JPanel();
-        navList.setOpaque(false);
-        navList.setLayout(new BoxLayout(navList, BoxLayout.Y_AXIS));
-
-        String initialTitle = navScreens.isEmpty() ? consoleSubtitle : navScreens.keySet().iterator().next();
-        JLabel pageTitleLbl = new JLabel(initialTitle);
-        pageTitleLbl.setFont(new Font("SansSerif", Font.BOLD, 18));
-        pageTitleLbl.setForeground(TEXT_PRIMARY);
-
-        List<JButton> navButtons = new ArrayList<>();
-        int idx = 0;
-        for (Map.Entry<String, JPanel> entry : navScreens.entrySet()) {
-            String key = entry.getKey();
-            contentArea.add(entry.getValue(), key);
-
-            final int tabIdx = idx;
-            JButton navBtn = new JButton(key) {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    boolean active = Boolean.TRUE.equals(getClientProperty("active"));
-                    if (active) {
-                        g2.setColor(CARD_SURFACE);
-                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                        g2.setColor(BORDER_SUBTLE);
-                        g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
-                        g2.setColor(NEON_EMERALD);
-                        g2.fillRoundRect(0, 7, 3, Math.max(0, getHeight() - 14), 3, 3);
-                    } else if (getModel().isRollover()) {
-                        g2.setColor(CARD_HIGHLIGHT);
-                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                    }
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            navBtn.putClientProperty("active", idx == 0);
-            navBtn.setIcon(new VectorIcon(VectorIcon.forTab(key), 15, idx == 0 ? NEON_EMERALD : TEXT_MUTED));
-            navBtn.setIconTextGap(10);
-            navBtn.setHorizontalAlignment(SwingConstants.LEFT);
-            navBtn.setForeground(idx == 0 ? TEXT_PRIMARY : TEXT_SECONDARY);
-            navBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
-            navBtn.setContentAreaFilled(false);
-            navBtn.setBorderPainted(false);
-            navBtn.setFocusPainted(false);
-            navBtn.setBorder(new EmptyBorder(10, 14, 10, 12));
-            navBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-            navBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-            navBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-            navBtn.addActionListener(e -> {
-                for (int i = 0; i < navButtons.size(); i++) {
-                    JButton b = navButtons.get(i);
-                    boolean isThis = (i == tabIdx);
-                    b.putClientProperty("active", isThis);
-                    b.setForeground(isThis ? TEXT_PRIMARY : TEXT_SECONDARY);
-                    b.setIcon(new VectorIcon(VectorIcon.forTab(b.getText()), 15, isThis ? NEON_EMERALD : TEXT_MUTED));
-                    b.repaint();
-                }
-                pageTitleLbl.setText(key);
-                Object onTabSelected = entry.getValue().getClientProperty("onTabSelected");
-                if (onTabSelected instanceof Runnable) {
-                    ((Runnable) onTabSelected).run();
-                }
-                contentLayout.show(contentArea, key);
-            });
-
-            navButtons.add(navBtn);
-            navList.add(navBtn);
-            navList.add(Box.createVerticalStrut(4));
-            idx++;
-        }
-
-        navListWrap.add(navSectionLbl, BorderLayout.NORTH);
-        navListWrap.add(navList, BorderLayout.CENTER);
-
-        // Sidebar Footer: User Profile & Sign Out
-        JPanel sidebarFooter = new JPanel(new BorderLayout(0, 10));
-        sidebarFooter.setOpaque(false);
-        sidebarFooter.setBorder(new CompoundBorder(
-                new MatteBorder(1, 0, 0, 0, BORDER_SUBTLE),
-                new EmptyBorder(14, 14, 14, 14)
-        ));
-
-        JPanel userMeta = new JPanel(new GridLayout(2, 1, 0, 2));
-        userMeta.setOpaque(false);
-        JLabel userNameLbl = new JLabel(currentUser.getFullName());
-        userNameLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        userNameLbl.setForeground(TEXT_PRIMARY);
-        String dbTag = repo.isJdbcConnected()
-                ? (repo.isMySql() ? "MySQL Live" : "SQLite Live")
-                : "Memory Mode";
-        JLabel userRoleLbl = new JLabel(currentUser.role.toUpperCase() + "  •  " + dbTag);
-        userRoleLbl.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        userRoleLbl.setForeground(repo.isJdbcConnected() ? NEON_EMERALD : TEXT_MUTED);
-        userMeta.add(userNameLbl);
-        userMeta.add(userRoleLbl);
-
-        JButton logoutBtn = createStyledButton("Sign Out", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        logoutBtn.setIcon(new VectorIcon(VectorIcon.Kind.LOGOUT, 14, TEXT_SECONDARY));
-        logoutBtn.setIconTextGap(8);
-        logoutBtn.addActionListener(e -> showLoginScreen());
-
-        sidebarFooter.add(userMeta, BorderLayout.NORTH);
-        sidebarFooter.add(logoutBtn, BorderLayout.SOUTH);
-
-        sidebar.add(brandPanel, BorderLayout.NORTH);
-        sidebar.add(navListWrap, BorderLayout.CENTER);
-        sidebar.add(sidebarFooter, BorderLayout.SOUTH);
-
-        // Right Workspace Area (Top Page Title Bar + Content)
-        JPanel workspacePanel = new JPanel(new BorderLayout());
-        workspacePanel.setBackground(BG_OBSIDIAN);
-
-        JPanel pageHeader = new JPanel(new BorderLayout());
-        pageHeader.setBackground(BG_OBSIDIAN);
-        pageHeader.setBorder(new CompoundBorder(
-                new MatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
-                new EmptyBorder(16, 22, 14, 22)
-        ));
-        pageHeader.add(pageTitleLbl, BorderLayout.WEST);
-
-        workspacePanel.add(pageHeader, BorderLayout.NORTH);
-        workspacePanel.add(contentArea, BorderLayout.CENTER);
-
-        shell.add(sidebar, BorderLayout.WEST);
-        shell.add(workspacePanel, BorderLayout.CENTER);
-        return shell;
-    }
-
-    private JPanel buildStaffDashboard() {
-        LinkedHashMap<String, JPanel> screens = new LinkedHashMap<>();
-        screens.put("Front Desk Check-In", buildFrontDeskMemberTab(false));
-        screens.put("Expiry Alerts", buildAlertListTab());
-        screens.put("Workout Coach", buildStaffWorkoutHelperTab());
-        return buildAppShell("Front Desk Staff App", screens);
-    }
-
-    private JPanel buildAdminDashboard() {
-        LinkedHashMap<String, JPanel> screens = new LinkedHashMap<>();
-        screens.put("Member Check-In & Renewals", buildFrontDeskMemberTab(true));
-        screens.put("Analytics & Reports", buildReportsTab());
-        screens.put("Exercise Library", buildExerciseLibraryTab());
-        screens.put("User Accounts", buildAdminUserManagementTab());
-        screens.put("Expiry Alerts", buildAlertListTab());
-        return buildAppShell("Administrator Control Center", screens);
-    }
-
-    private JPanel buildMemberDashboard() {
-        LinkedHashMap<String, JPanel> screens = new LinkedHashMap<>();
-        screens.put("My Digital Gym Pass", buildMemberStatusTab(currentUser));
-        screens.put("My Workout Planner", buildMemberWorkoutTab(currentUser));
-        screens.put("Exercise Library", buildReadOnlyExerciseBrowser());
-        return buildAppShell("Member Fitness Portal", screens);
-    }
-
-    // ========================================================================
-    // 7. SCREEN BUILDERS (Play Store Dark Cards, Pill Badges, Wallet Pass)
-    // ========================================================================
-
-    private JPanel buildFrontDeskMemberTab(boolean allowDelete) {
-        JPanel container = new JPanel(new BorderLayout(16, 16));
-        container.setBackground(BG_OBSIDIAN);
-        container.setBorder(new EmptyBorder(16, 20, 16, 20));
-
-        // Top Search & Action Bar
-        RoundedCardPanel topBar = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12);
-        topBar.setLayout(new BorderLayout(12, 0));
-        topBar.setBorder(new EmptyBorder(12, 16, 12, 16));
-
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        searchPanel.setOpaque(false);
-        JTextField searchField = createDarkTextField("");
-        searchField.setColumns(26);
-        searchField.putClientProperty("JTextField.placeholderText", "Search member, @username, or phone...");
-        searchField.putClientProperty("JTextField.leadingIcon", new VectorIcon(VectorIcon.Kind.SEARCH, 15, TEXT_MUTED));
-        searchField.putClientProperty("JTextField.showClearButton", true);
-        searchField.setToolTipText("Filter by member name, @username, contact, or status");
-        searchPanel.add(searchField);
-
-        JPanel actionBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        actionBtns.setOpaque(false);
-        JButton btnRegister = createGradientButton("New Member (1-Mo)", NEON_EMERALD, NEON_EMERALD);
-        btnRegister.setIcon(new VectorIcon(VectorIcon.Kind.PLUS, 14, Color.WHITE));
-        btnRegister.setIconTextGap(6);
-        JButton btnRenew = createStyledButton("Renew +1 Month", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        btnRenew.setIcon(new VectorIcon(VectorIcon.Kind.REFRESH, 14, NEON_EMERALD));
-        btnRenew.setIconTextGap(6);
-        JButton btnEdit = createStyledButton("Edit Profile", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        btnEdit.setIcon(new VectorIcon(VectorIcon.Kind.EDIT, 14, TEXT_SECONDARY));
-        btnEdit.setIconTextGap(6);
-        JButton btnDel = allowDelete ? createStyledButton("Delete", CARD_HIGHLIGHT, CORAL_RED) : null;
-        if (btnDel != null) {
-            btnDel.setIcon(new VectorIcon(VectorIcon.Kind.TRASH, 14, CORAL_RED));
-            btnDel.setIconTextGap(6);
-        }
-        actionBtns.add(btnRegister);
-        actionBtns.add(btnRenew);
-        actionBtns.add(btnEdit);
-        if (btnDel != null) {
-            actionBtns.add(btnDel);
-        }
-
-        topBar.add(searchPanel, BorderLayout.WEST);
-        topBar.add(actionBtns, BorderLayout.EAST);
-
-        // Center Directory Table + Right Digital Gym Pass Card
-        String[] cols = {"ID", "Username", "Member Name", "Contact No.", "Level",
-                "Start Date", "End Date", "Balance", "Pass Status"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        JTable table = new JTable(model);
-        styleTable(table);
-        table.getColumnModel().getColumn(8).setCellRenderer(new StatusBadgeRenderer());
-        int[] colWidths = {40, 96, 132, 108, 108, 92, 92, 96, 104};
-        for (int c = 0; c < colWidths.length; c++) {
-            table.getColumnModel().getColumn(c).setPreferredWidth(colWidths[c]);
-        }
-
-        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
-        table.setRowSorter(sorter);
-
-        DigitalMemberPassCard passCard = new DigitalMemberPassCard();
-
-        Runnable refreshTable = () -> {
-            int selectedUserId = -1;
-            int prevViewRow = table.getSelectedRow();
-            if (prevViewRow >= 0) {
-                selectedUserId = (int) model.getValueAt(table.convertRowIndexToModel(prevViewRow), 0);
-            }
-            model.setRowCount(0);
-            LocalDate today = LocalDate.now();
-            for (User m : repo.getMembers()) {
-                Membership latest = repo.getLatestMembership(m.userId);
-                String startStr = latest != null ? latest.startDate.toString() : "N/A";
-                String endStr   = latest != null ? latest.endDate.toString() : "N/A";
-                String status   = latest != null ? latest.getComputedStatus(today) : "Expired";
-                long daysLeft   = latest != null ? latest.getDaysRemaining(today) : -999;
-                String daysStr  = latest != null
-                        ? (daysLeft >= 0 ? daysLeft + "d left" : Math.abs(daysLeft) + "d overdue")
-                        : "None";
-                model.addRow(new Object[]{
-                        m.userId, "@" + m.username, m.getFullName(), m.contactNo,
-                        m.fitnessLevel != null ? m.fitnessLevel : "Beginner",
-                        startStr, endStr, daysStr, status
-                });
-            }
-            if (table.getRowCount() > 0) {
-                int viewRowToSelect = 0;
-                if (selectedUserId != -1) {
-                    for (int vr = 0; vr < table.getRowCount(); vr++) {
-                        int mr = table.convertRowIndexToModel(vr);
-                        if ((int) model.getValueAt(mr, 0) == selectedUserId) {
-                            viewRowToSelect = vr;
-                            break;
-                        }
-                    }
-                }
-                table.setRowSelectionInterval(viewRowToSelect, viewRowToSelect);
-            } else {
-                passCard.setMemberData(null, null);
-            }
-        };
-
-        searchField.getDocument().addDocumentListener(new DocumentListener() {
-            private void filter() {
-                String q = searchField.getText().trim();
-                if (q.isEmpty()) {
-                    sorter.setRowFilter(null);
-                } else {
-                    sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(q)));
-                }
-                if (table.getRowCount() > 0) {
-                    table.setRowSelectionInterval(0, 0);
-                } else {
-                    passCard.setMemberData(null, null);
-                }
-            }
-            @Override public void insertUpdate(DocumentEvent e) { filter(); }
-            @Override public void removeUpdate(DocumentEvent e) { filter(); }
-            @Override public void changedUpdate(DocumentEvent e) { filter(); }
-        });
-
-        table.getSelectionModel().addListSelectionListener(e -> {
-            int viewRow = table.getSelectedRow();
-            if (viewRow < 0) return;
-            int modelRow = table.convertRowIndexToModel(viewRow);
-            int userId = (int) model.getValueAt(modelRow, 0);
-            User selected = repo.getMembers().stream().filter(u -> u.userId == userId).findFirst().orElse(null);
-            if (selected == null) return;
-            Membership latest = repo.getLatestMembership(userId);
-            passCard.setMemberData(selected, latest);
-        });
-
-        refreshTable.run();
-
-        btnRegister.addActionListener(e -> showMemberRegistrationDialog(null, refreshTable));
-
-        btnEdit.addActionListener(e -> {
-            int viewRow = table.getSelectedRow();
-            if (viewRow < 0) {
-                JOptionPane.showMessageDialog(this, "Please select a member from the directory first.");
-                return;
-            }
-            int userId = (int) model.getValueAt(table.convertRowIndexToModel(viewRow), 0);
-            User target = repo.getMembers().stream().filter(u -> u.userId == userId).findFirst().orElse(null);
-            if (target != null) showMemberRegistrationDialog(target, refreshTable);
-        });
-
-        btnRenew.addActionListener(e -> {
-            int viewRow = table.getSelectedRow();
-            if (viewRow < 0) {
-                JOptionPane.showMessageDialog(this, "Please select a member to renew.");
-                return;
-            }
-            int userId = (int) model.getValueAt(table.convertRowIndexToModel(viewRow), 0);
-            User target = repo.getMembers().stream().filter(u -> u.userId == userId).findFirst().orElse(null);
-            if (target == null) return;
-
-            Membership latest = repo.getLatestMembership(userId);
-            LocalDate today = LocalDate.now();
-            String currentStatus = latest != null ? latest.getComputedStatus(today) : "Expired";
-            LocalDate[] renewalDates = BusinessRules.calculateRenewalDates(
-                    latest != null ? latest.endDate : null, today);
-
-            String ruleExplanation = "Active".equalsIgnoreCase(currentStatus)
-                    ? "Member is currently ACTIVE (expires " + latest.endDate + ").\n" +
-                      "New 1-month period starts on current end date."
-                    : "Member is currently EXPIRED.\n" +
-                      "New 1-month period starts today (" + today + ").";
-
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Confirm 1-Month Membership Renewal for " + target.getFullName() + "?\n\n" +
-                    ruleExplanation + "\n\n" +
-                    "• New Start Date : " + renewalDates[0] + "\n" +
-                    "• New End Date   : " + renewalDates[1] + " (1 Month)",
-                    "Confirm Monthly Renewal",
-                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-
-            if (confirm == JOptionPane.YES_OPTION) {
-                repo.addMembership(userId, renewalDates[0], renewalDates[1]);
-                refreshTable.run();
-                JOptionPane.showMessageDialog(this,
-                        "Membership renewed for " + target.getFullName() + "!\n" +
-                        "Active through: " + renewalDates[1],
-                        "Renewal Complete", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-
-        if (btnDel != null) {
-            btnDel.addActionListener(e -> {
-                int viewRow = table.getSelectedRow();
-                if (viewRow < 0) {
-                    JOptionPane.showMessageDialog(this, "Please select a member to delete.");
-                    return;
-                }
-                int userId = (int) model.getValueAt(table.convertRowIndexToModel(viewRow), 0);
-                int confirm = JOptionPane.showConfirmDialog(this,
-                        "Delete Member #" + userId + " and all associated memberships and workout plans?",
-                        "Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    repo.deleteUser(userId);
-                    refreshTable.run();
-                }
-            });
-        }
-
-        container.putClientProperty("onTabSelected", refreshTable);
-        container.add(topBar, BorderLayout.NORTH);
-        container.add(wrapDarkScrollPane(table), BorderLayout.CENTER);
-        container.add(passCard, BorderLayout.EAST);
-        return container;
-    }
-
-    private void showMemberRegistrationDialog(User existing, Runnable onComplete) {
-        boolean isNew = (existing == null);
-        JDialog dlg = new JDialog(this, isNew
-                ? "Register New Gym Member (+ Automatic 1-Month Pass)"
-                : "Edit Member Profile — " + existing.getFullName(), true);
-        dlg.setSize(580, 640);
-        dlg.setLocationRelativeTo(this);
-        dlg.getContentPane().setBackground(BG_OBSIDIAN);
-        dlg.setLayout(new BorderLayout(10, 10));
-
-        JPanel form = new JPanel(new GridLayout(11, 2, 10, 10));
-        form.setBackground(BG_OBSIDIAN);
-        form.setBorder(new EmptyBorder(18, 24, 10, 24));
-
-        JTextField tfUsername  = createDarkTextField(isNew ? "" : existing.username);
-        JPasswordField pfPass  = createDarkPasswordField();
-        JTextField tfFirst     = createDarkTextField(isNew ? "" : existing.firstName);
-        JTextField tfLast      = createDarkTextField(isNew ? "" : existing.lastName);
-        JTextField tfContact   = createDarkTextField(isNew ? "09" : existing.contactNo);
-        JTextField tfBirthdate = createDarkTextField(isNew ? "" : (existing.birthdate != null ? existing.birthdate.toString() : ""));
-        JComboBox<String> cbGender = createDarkComboBox(new String[]{"Male", "Female", "Other", "Prefer not to say"});
-        if (!isNew && existing.gender != null) cbGender.setSelectedItem(existing.gender);
-        JTextField tfAddress   = createDarkTextField(isNew ? "" : (existing.address != null ? existing.address : ""));
-        JTextField tfEmName    = createDarkTextField(isNew ? "" : (existing.emergencyContactName != null ? existing.emergencyContactName : ""));
-        JTextField tfEmPhone   = createDarkTextField(isNew ? "09" : (existing.emergencyContactNo != null ? existing.emergencyContactNo : ""));
-        JComboBox<String> cbFitness = createDarkComboBox(new String[]{"Beginner", "Intermediate", "Advanced"});
-        if (!isNew && existing.fitnessLevel != null) cbFitness.setSelectedItem(existing.fitnessLevel);
-
-        addFormRow(form, "Username *:", tfUsername);
-        addFormRow(form, isNew ? "Password *:" : "New Password (optional):", pfPass);
-        addFormRow(form, "First Name *:", tfFirst);
-        addFormRow(form, "Last Name *:", tfLast);
-        addFormRow(form, "Contact No. *:", tfContact);
-        addFormRow(form, "Emergency Contact Name *:", tfEmName);
-        addFormRow(form, "Emergency Contact No. *:", tfEmPhone);
-        addFormRow(form, "Fitness Level *:", cbFitness);
-        addFormRow(form, "Gender (optional):", cbGender);
-        addFormRow(form, "Birthdate (YYYY-MM-DD, optional):", tfBirthdate);
-        addFormRow(form, "Address (optional):", tfAddress);
-
-        LocalDate start = LocalDate.now();
-        LocalDate end = start.plusMonths(1);
-        JLabel membershipNote = new JLabel(isNew
-                ? "Automatic 1-Month Pass will be activated: " + start + " -> " + end
-                : "Updating member profile details.");
-        membershipNote.setFont(new Font("SansSerif", Font.BOLD, 12));
-        membershipNote.setForeground(NEON_EMERALD);
-        membershipNote.setBorder(new EmptyBorder(4, 24, 4, 24));
-
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 12));
-        btnPanel.setBackground(BG_OBSIDIAN);
-        JButton btnCancel = createStyledButton("Cancel", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        JButton btnSave = createGradientButton(isNew ? "Activate Member Pass" : "Save Changes", NEON_EMERALD, CYBER_CYAN);
-        btnCancel.addActionListener(e -> dlg.dispose());
-
-        btnSave.addActionListener(e -> {
-            String uname = tfUsername.getText().trim();
-            String rawPass = new String(pfPass.getPassword()).trim();
-            String fn = tfFirst.getText().trim();
-            String ln = tfLast.getText().trim();
-            String contact = tfContact.getText().trim();
-            String bdateStr = tfBirthdate.getText().trim();
-            String addr = tfAddress.getText().trim();
-            String emName = tfEmName.getText().trim();
-            String emPhone = tfEmPhone.getText().trim();
-
-            if (uname.isEmpty() || fn.isEmpty() || ln.isEmpty() || contact.isEmpty() || contact.equals("09")) {
-                JOptionPane.showMessageDialog(dlg,
-                        "Username, First Name, Last Name, and a valid Contact No. are required (*).",
-                        "Validation Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (emName.isEmpty() || emPhone.isEmpty() || emPhone.equals("09")) {
-                JOptionPane.showMessageDialog(dlg,
-                        "Emergency Contact Name and Phone No. are mandatory (*) for member safety in case of a gym accident.",
-                        "Emergency Contact Required", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (isNew && rawPass.length() < 4) {
-                JOptionPane.showMessageDialog(dlg,
-                        "Password is required and must be at least 4 characters.",
-                        "Validation Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (repo.usernameExists(uname, isNew ? 0 : existing.userId)) {
-                JOptionPane.showMessageDialog(dlg,
-                        "Username '" + uname + "' is already taken.",
-                        "Duplicate Username", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            LocalDate parsedBirthdate = null;
-            if (!bdateStr.isEmpty()) {
-                try {
-                    parsedBirthdate = LocalDate.parse(bdateStr);
-                } catch (DateTimeParseException ex) {
-                    JOptionPane.showMessageDialog(dlg,
-                            "If provided, Birthdate must be in YYYY-MM-DD format (e.g., 2002-05-15), or leave it blank.",
-                            "Invalid Date Format", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-            }
-
-            User u = isNew ? new User() : existing;
-            u.username = uname;
-            u.role = "Member";
-            u.firstName = fn;
-            u.lastName = ln;
-            u.contactNo = contact;
-            u.birthdate = parsedBirthdate;
-            u.gender = (String) cbGender.getSelectedItem();
-            u.address = addr;
-            u.emergencyContactName = emName;
-            u.emergencyContactNo = emPhone;
-            u.fitnessLevel = (String) cbFitness.getSelectedItem();
-
-            repo.saveUser(u, rawPass);
-            if (isNew) {
-                repo.addMembership(u.userId, start, end);
-            }
-            onComplete.run();
-            dlg.dispose();
-            JOptionPane.showMessageDialog(this,
-                    isNew ? "Member " + u.getFullName() + " registered!\n1-Month Pass active: " + start + " to " + end + "."
-                          : "Profile updated for " + u.getFullName() + ".",
-                    "Success", JOptionPane.INFORMATION_MESSAGE);
-        });
-
-        btnPanel.add(btnCancel);
-        btnPanel.add(btnSave);
-
-        JPanel southBox = new JPanel(new BorderLayout());
-        southBox.setBackground(BG_OBSIDIAN);
-        southBox.add(membershipNote, BorderLayout.NORTH);
-        southBox.add(btnPanel, BorderLayout.SOUTH);
-
-        dlg.add(form, BorderLayout.CENTER);
-        dlg.add(southBox, BorderLayout.SOUTH);
-        dlg.setVisible(true);
-    }
-
-    private void addFormRow(JPanel form, String labelText, JComponent field) {
-        JLabel l = new JLabel(labelText);
-        l.setFont(new Font("SansSerif", Font.BOLD, 12));
-        l.setForeground(TEXT_SECONDARY);
-        form.add(l);
-        form.add(field);
-    }
-
-    private JPanel buildAlertListTab() {
-        JPanel panel = new JPanel(new BorderLayout(14, 14));
-        panel.setBackground(BG_OBSIDIAN);
-        panel.setBorder(new EmptyBorder(16, 20, 16, 20));
-
-        RoundedCardPanel banner = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(CORAL_RED);
-                g2.fillRoundRect(0, 8, 4, Math.max(0, getHeight() - 16), 4, 4);
-                g2.dispose();
-            }
-        };
-        banner.setLayout(new BorderLayout());
-        banner.setBorder(new EmptyBorder(14, 20, 14, 18));
-
-        JLabel info = new JLabel("Expiry & Renewal Radar — Expired & Expiring Within 7 Days");
-        info.setFont(new Font("SansSerif", Font.BOLD, 14));
-        info.setForeground(TEXT_PRIMARY);
-
-        String[] cols = {"ID", "Member Name", "Contact No.", "Emergency Contact", "End Date", "Alert Status", "Timeline"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        JTable table = new JTable(model);
-        styleTable(table);
-        table.getColumnModel().getColumn(5).setCellRenderer(new StatusBadgeRenderer());
-
-        Runnable loadAlerts = () -> {
-            model.setRowCount(0);
-            LocalDate today = LocalDate.now();
-            for (User m : repo.getMembers()) {
-                Membership latest = repo.getLatestMembership(m.userId);
-                String status = latest != null ? latest.getComputedStatus(today) : "Expired";
-                long days = latest != null ? latest.getDaysRemaining(today) : -999;
-
-                if ("Expired".equalsIgnoreCase(status)) {
-                    model.addRow(new Object[]{
-                            m.userId, m.getFullName(), m.contactNo,
-                            m.emergencyContactName + " (" + m.emergencyContactNo + ")",
-                            latest != null ? latest.endDate.toString() : "None",
-                            "Expired",
-                            latest != null ? Math.abs(days) + " days overdue" : "No pass"
-                    });
-                } else if (days >= 0 && days <= 7) {
-                    model.addRow(new Object[]{
-                            m.userId, m.getFullName(), m.contactNo,
-                            m.emergencyContactName + " (" + m.emergencyContactNo + ")",
-                            latest.endDate.toString(),
-                            "Expiring Soon",
-                            days + " days remaining"
-                    });
-                }
-            }
-        };
-        loadAlerts.run();
-
-        JButton btnRefresh = createStyledButton("Refresh Radar", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        btnRefresh.setIcon(new VectorIcon(VectorIcon.Kind.REFRESH, 14, TEXT_SECONDARY));
-        btnRefresh.setIconTextGap(6);
-        btnRefresh.addActionListener(e -> loadAlerts.run());
-
-        banner.add(info, BorderLayout.WEST);
-        banner.add(btnRefresh, BorderLayout.EAST);
-
-        panel.putClientProperty("onTabSelected", loadAlerts);
-        panel.add(banner, BorderLayout.NORTH);
-        panel.add(wrapDarkScrollPane(table), BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JPanel buildAdminUserManagementTab() {
-        JPanel panel = new JPanel(new BorderLayout(14, 14));
-        panel.setBackground(BG_OBSIDIAN);
-        panel.setBorder(new EmptyBorder(16, 20, 16, 20));
-
-        String[] cols = {"User ID", "Username", "Role", "First Name", "Last Name", "Contact No.", "Date Registered"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        JTable table = new JTable(model);
-        styleTable(table);
-
-        Runnable refresh = () -> {
-            model.setRowCount(0);
-            for (User u : repo.getAllUsers()) {
-                model.addRow(new Object[]{
-                        u.userId, "@" + u.username, u.role, u.firstName, u.lastName, u.contactNo, u.dateRegistered
-                });
-            }
-        };
-        refresh.run();
-
-        RoundedCardPanel top = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12);
-        top.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        JButton btnAddStaff = createGradientButton("Add Admin / Staff Account", NEON_EMERALD, NEON_EMERALD);
-        btnAddStaff.setIcon(new VectorIcon(VectorIcon.Kind.PLUS, 14, Color.WHITE));
-        btnAddStaff.setIconTextGap(6);
-        JButton btnDeleteUser = createStyledButton("Delete Selected Account", CARD_HIGHLIGHT, CORAL_RED);
-        btnDeleteUser.setIcon(new VectorIcon(VectorIcon.Kind.TRASH, 14, CORAL_RED));
-        btnDeleteUser.setIconTextGap(6);
-        top.add(btnAddStaff);
-        top.add(btnDeleteUser);
-
-        btnAddStaff.addActionListener(e -> {
-            JTextField tfUser = createDarkTextField("");
-            JPasswordField pfPass = createDarkPasswordField();
-            JComboBox<String> cbRole = createDarkComboBox(new String[]{"Staff", "Admin"});
-            JTextField tfFirst = createDarkTextField("");
-            JTextField tfLast = createDarkTextField("");
-            JTextField tfContact = createDarkTextField("09");
-
-            Object[] fields = {
-                    "Username *:", tfUser,
-                    "Password (min 4 chars) *:", pfPass,
-                    "Role *:", cbRole,
-                    "First Name *:", tfFirst,
-                    "Last Name *:", tfLast,
-                    "Contact No. *:", tfContact
-            };
-            int res = JOptionPane.showConfirmDialog(this, fields, "Create Staff / Admin Account", JOptionPane.OK_CANCEL_OPTION);
-            if (res == JOptionPane.OK_OPTION) {
-                String un = tfUser.getText().trim();
-                String pw = new String(pfPass.getPassword()).trim();
-                String fn = tfFirst.getText().trim();
-                String ln = tfLast.getText().trim();
-                String contact = tfContact.getText().trim();
-                if (un.isEmpty() || fn.isEmpty() || ln.isEmpty() || contact.isEmpty() || contact.equals("09")) {
-                    JOptionPane.showMessageDialog(this, "Username, First Name, Last Name, and a valid Contact No. are required.");
-                    return;
-                }
-                if (pw.length() < 4) {
-                    JOptionPane.showMessageDialog(this, "Password must be at least 4 characters.");
-                    return;
-                }
-                if (repo.usernameExists(un, 0)) {
-                    JOptionPane.showMessageDialog(this, "Username already exists.");
-                    return;
-                }
-                User u = new User();
-                u.username = un;
-                u.role = (String) cbRole.getSelectedItem();
-                u.firstName = fn;
-                u.lastName = ln;
-                u.contactNo = contact;
-                u.dateRegistered = LocalDate.now();
-                repo.saveUser(u, pw);
-                refresh.run();
-            }
-        });
-
-        btnDeleteUser.addActionListener(e -> {
-            int row = table.getSelectedRow();
-            if (row < 0) {
-                JOptionPane.showMessageDialog(this, "Please select a user account to delete.");
-                return;
-            }
-            int modelRow = table.convertRowIndexToModel(row);
-            int id = (int) model.getValueAt(modelRow, 0);
-            if (id == currentUser.userId) {
-                JOptionPane.showMessageDialog(this, "You cannot delete your own active Admin account.");
-                return;
-            }
-            String username = String.valueOf(model.getValueAt(modelRow, 1));
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Delete user account " + username + " (#" + id + ")?",
-                    "Confirm Account Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (confirm == JOptionPane.YES_OPTION) {
-                repo.deleteUser(id);
-                refresh.run();
-            }
-        });
-
-        panel.putClientProperty("onTabSelected", refresh);
-        panel.add(top, BorderLayout.NORTH);
-        panel.add(wrapDarkScrollPane(table), BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JPanel buildExerciseLibraryTab() {
-        JPanel panel = new JPanel(new BorderLayout(16, 16));
-        panel.setBackground(BG_OBSIDIAN);
-        panel.setBorder(new EmptyBorder(16, 20, 16, 20));
-
-        String[] cols = {"ID", "Workout Name", "Target Muscle", "Level", "Machine / Equipment Indicator", "Form Cues"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        JTable table = new JTable(model);
-        styleTable(table);
-        table.getColumnModel().getColumn(4).setCellRenderer(new MachineBadgeRenderer());
-
-        WorkoutVisualCard visualCard = new WorkoutVisualCard();
-
-        JCheckBox chkShowMachines = new JCheckBox("⚙ Show Gym Machine Workouts", true);
-        chkShowMachines.setOpaque(false);
-        chkShowMachines.setForeground(CYBER_CYAN);
-        chkShowMachines.setFont(new Font("SansSerif", Font.BOLD, 12));
-
-        JCheckBox chkShowFree = new JCheckBox("✓ Show Free-Weight / Bodyweight", true);
-        chkShowFree.setOpaque(false);
-        chkShowFree.setForeground(NEON_EMERALD);
-        chkShowFree.setFont(new Font("SansSerif", Font.BOLD, 12));
-
-        Runnable refresh = () -> {
-            model.setRowCount(0);
-            boolean showM = chkShowMachines.isSelected();
-            boolean showF = chkShowFree.isSelected();
-            for (Exercise ex : repo.getAllExercises()) {
-                if (ex.requiresMachine() && !showM) continue;
-                if (!ex.requiresMachine() && !showF) continue;
-                model.addRow(new Object[]{
-                        ex.exerciseId, ex.name, ex.muscleGroup, ex.difficulty, ex.getMachineBadgeText(), ex.description
-                });
-            }
-            if (table.getRowCount() > 0) {
-                table.setRowSelectionInterval(0, 0);
-            } else {
-                visualCard.setExercise(null);
-            }
-        };
-
-        table.getSelectionModel().addListSelectionListener(e -> {
-            int row = table.getSelectedRow();
-            if (row < 0) return;
-            int id = (int) model.getValueAt(table.convertRowIndexToModel(row), 0);
-            Exercise selected = repo.getAllExercises().stream().filter(x -> x.exerciseId == id).findFirst().orElse(null);
-            visualCard.setExercise(selected);
-        });
-
-        chkShowMachines.addActionListener(e -> refresh.run());
-        chkShowFree.addActionListener(e -> refresh.run());
-        refresh.run();
-
-        RoundedCardPanel top = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12);
-        top.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        JButton btnAdd = createGradientButton("Add Workout / Machine", NEON_EMERALD, NEON_EMERALD);
-        btnAdd.setIcon(new VectorIcon(VectorIcon.Kind.PLUS, 14, Color.WHITE));
-        btnAdd.setIconTextGap(6);
-        JButton btnEdit = createStyledButton("Edit Selected", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        btnEdit.setIcon(new VectorIcon(VectorIcon.Kind.EDIT, 14, TEXT_SECONDARY));
-        btnEdit.setIconTextGap(6);
-        JButton btnDel = createStyledButton("Delete", CARD_HIGHLIGHT, CORAL_RED);
-        btnDel.setIcon(new VectorIcon(VectorIcon.Kind.TRASH, 14, CORAL_RED));
-        btnDel.setIconTextGap(6);
-        top.add(btnAdd);
-        top.add(btnEdit);
-        top.add(btnDel);
-        top.add(Box.createHorizontalStrut(12));
-        top.add(chkShowMachines);
-        top.add(chkShowFree);
-
-        ActionListener addOrEdit = e -> {
-            boolean isEdit = (e.getSource() == btnEdit);
-            Exercise target = null;
-            if (isEdit) {
-                int row = table.getSelectedRow();
-                if (row < 0) {
-                    JOptionPane.showMessageDialog(this, "Select a workout first.");
-                    return;
-                }
-                int id = (int) model.getValueAt(table.convertRowIndexToModel(row), 0);
-                target = repo.getAllExercises().stream().filter(x -> x.exerciseId == id).findFirst().orElse(null);
-            }
-            JTextField tfName = new JTextField(target != null ? target.name : "");
-            JComboBox<String> cbGroup = new JComboBox<>(new String[]{"Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full Body"});
-            if (target != null) cbGroup.setSelectedItem(target.muscleGroup);
-            JComboBox<String> cbDiff = new JComboBox<>(new String[]{"Beginner", "Intermediate", "Advanced"});
-            if (target != null) cbDiff.setSelectedItem(target.difficulty);
-
-            JCheckBox chkNeedsMachine = new JCheckBox("This workout requires a Gym Machine", target == null || target.requiresMachine());
-            String[] equipOptions = new String[]{
-                    "Machine: Lat Pulldown Station",
-                    "Machine: Seated Cable Row Station",
-                    "Machine: Assisted Dip & Chin-Up Machine",
-                    "Machine: Converging Chest Press Machine",
-                    "Machine: Pec Deck Fly Station",
-                    "Machine: Angled Smith Machine",
-                    "Machine: 45-Degree Leg Press Sled",
-                    "Machine: Quad Extension Machine",
-                    "Machine: Prone Leg Curl Machine",
-                    "Machine: Standing Calf Machine",
-                    "Machine: Linear Hack Squat Sled",
-                    "Machine: Overhead Press Machine",
-                    "Machine: Dual Adjustable Pulley Tower",
-                    "Machine: High Pulley Cable Station",
-                    "Machine: Bicep Preacher Curl Machine",
-                    "Machine: Captain's Chair / Roman Chair",
-                    "Machine: Abdominal Crunch Machine",
-                    "Machine: Motorized Gym Treadmill",
-                    "Machine: Indoor Concept Rower",
-                    "Bodyweight",
-                    "Dumbbells",
-                    "Barbell"
-            };
-            JComboBox<String> cbEquip = new JComboBox<>(equipOptions);
-            cbEquip.setEditable(true);
-            if (target != null) cbEquip.setSelectedItem(target.equipment);
-
-            chkNeedsMachine.addActionListener(ev -> {
-                Object selItem = cbEquip.getSelectedItem();
-                String selStr = selItem != null ? selItem.toString() : "";
-                if (!chkNeedsMachine.isSelected()) {
-                    cbEquip.setSelectedItem("Dumbbells");
-                } else if (!Exercise.isMachineEquipment(selStr)) {
-                    cbEquip.setSelectedItem("Machine: Lat Pulldown Station");
-                }
-            });
-
-            JTextArea taDesc = new JTextArea(target != null ? target.description : "", 3, 24);
-            taDesc.setLineWrap(true);
-            taDesc.setWrapStyleWord(true);
-
-            Object[] fields = {
-                    "Workout Name *:", tfName,
-                    "Target Muscle Group *:", cbGroup,
-                    "Difficulty Level *:", cbDiff,
-                    "Machine Requirement Toggle:", chkNeedsMachine,
-                    "Gym Machine / Equipment *:", cbEquip,
-                    "Form & Execution Cues *:", new JScrollPane(taDesc)
-            };
-            int res = JOptionPane.showConfirmDialog(this, fields,
-                    isEdit ? "Edit Workout & Machine Settings" : "Add New Workout / Gym Machine", JOptionPane.OK_CANCEL_OPTION);
-            if (res == JOptionPane.OK_OPTION) {
-                String exName = tfName.getText().trim();
-                String exDesc = taDesc.getText().trim();
-                if (exName.isEmpty() || exDesc.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Workout name and instructions are required.");
-                    return;
-                }
-                int excludeId = (isEdit && target != null) ? target.exerciseId : 0;
-                if (repo.exerciseNameExists(exName, excludeId)) {
-                    JOptionPane.showMessageDialog(this,
-                            "An exercise named '" + exName + "' already exists in the library.",
-                            "Duplicate Exercise", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                Exercise ex = isEdit && target != null ? target : new Exercise();
-                ex.name = exName;
-                ex.muscleGroup = (String) cbGroup.getSelectedItem();
-                ex.difficulty = (String) cbDiff.getSelectedItem();
-                String chosenEq = cbEquip.getSelectedItem() != null ? cbEquip.getSelectedItem().toString().trim() : "Bodyweight";
-                if (chosenEq.isEmpty()) {
-                    chosenEq = chkNeedsMachine.isSelected() ? "Machine: Gym Station" : "Bodyweight";
-                }
-                if (chkNeedsMachine.isSelected() && !Exercise.isMachineEquipment(chosenEq)) {
-                    chosenEq = "Machine: " + chosenEq;
-                } else if (!chkNeedsMachine.isSelected() && Exercise.isMachineEquipment(chosenEq)) {
-                    chosenEq = "Dumbbells";
-                }
-                ex.equipment = chosenEq;
-                ex.description = exDesc;
-                repo.saveExercise(ex);
-                refresh.run();
-            }
-        };
-        btnAdd.addActionListener(addOrEdit);
-        btnEdit.addActionListener(addOrEdit);
-
-        btnDel.addActionListener(e -> {
-            int row = table.getSelectedRow();
-            if (row < 0) {
-                JOptionPane.showMessageDialog(this, "Please select an exercise to delete.");
-                return;
-            }
-            int modelRow = table.convertRowIndexToModel(row);
-            int id = (int) model.getValueAt(modelRow, 0);
-            String exName = String.valueOf(model.getValueAt(modelRow, 1));
-            if (repo.isExerciseUsedInPlans(id)) {
-                JOptionPane.showMessageDialog(this,
-                        "Cannot delete '" + exName + "' because it is currently assigned to one or more Workout Plans.",
-                        "Exercise In Use", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Delete exercise '" + exName + "' (#" + id + ") from the library?",
-                    "Confirm Exercise Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (confirm == JOptionPane.YES_OPTION) {
-                repo.deleteExercise(id);
-                refresh.run();
-            }
-        });
-
-        panel.putClientProperty("onTabSelected", refresh);
-        panel.add(top, BorderLayout.NORTH);
-        panel.add(wrapDarkScrollPane(table), BorderLayout.CENTER);
-        panel.add(visualCard, BorderLayout.EAST);
-        return panel;
-    }
-
-    private JPanel buildReportsTab() {
-        JPanel panel = new JPanel(new BorderLayout(16, 16));
-        panel.setBackground(BG_OBSIDIAN);
-        panel.setBorder(new EmptyBorder(16, 20, 16, 20));
-
-        JPanel kpiRow = new JPanel(new GridLayout(1, 4, 14, 0));
-        kpiRow.setOpaque(false);
-
-        JPanel tablesGrid = new JPanel(new GridLayout(1, 3, 14, 14));
-        tablesGrid.setOpaque(false);
-
-        Runnable buildReportContent = () -> {
-            kpiRow.removeAll();
-            tablesGrid.removeAll();
-
-            LocalDate today = LocalDate.now();
-            int activeCount = 0;
-            int expiredCount = 0;
-            int expiring7Count = 0;
-
-            DefaultTableModel expSoonModel = new DefaultTableModel(
-                    new String[]{"Member", "End Date", "Remaining"}, 0) {
-                @Override public boolean isCellEditable(int r, int c) { return false; }
-            };
-
-            for (User m : repo.getMembers()) {
-                Membership latest = repo.getLatestMembership(m.userId);
-                String st = latest != null ? latest.getComputedStatus(today) : "Expired";
-                long days = latest != null ? latest.getDaysRemaining(today) : -999;
-                if ("Active".equalsIgnoreCase(st)) {
-                    activeCount++;
-                    if (days >= 0 && days <= 7) {
-                        expiring7Count++;
-                        expSoonModel.addRow(new Object[]{m.getFullName(), latest.endDate, days + " days"});
-                    }
-                } else {
-                    expiredCount++;
-                }
-            }
-
-            int totalMembers = activeCount + expiredCount;
-            DefaultTableModel r1Model = new DefaultTableModel(
-                    new String[]{"Pass Status", "Members", "Share"}, 0) {
-                @Override public boolean isCellEditable(int r, int c) { return false; }
-            };
-            r1Model.addRow(new Object[]{"Active Passes", activeCount,
-                    totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (activeCount * 100.0) / totalMembers) : "0%"});
-            r1Model.addRow(new Object[]{"Expired Passes", expiredCount,
-                    totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (expiredCount * 100.0) / totalMembers) : "0%"});
-            r1Model.addRow(new Object[]{"Total Registered", totalMembers, "100.0%"});
-
-            Map<YearMonth, Integer> monthlyCounts = new TreeMap<>(Comparator.reverseOrder());
-            for (Membership m : repo.getAllMemberships()) {
-                YearMonth ym = YearMonth.from(m.startDate);
-                monthlyCounts.put(ym, monthlyCounts.getOrDefault(ym, 0) + 1);
-            }
-            DefaultTableModel r3Model = new DefaultTableModel(
-                    new String[]{"Month (YYYY-MM)", "Renewals"}, 0) {
-                @Override public boolean isCellEditable(int r, int c) { return false; }
-            };
-            for (Map.Entry<YearMonth, Integer> entry : monthlyCounts.entrySet()) {
-                r3Model.addRow(new Object[]{entry.getKey().toString(), entry.getValue()});
-            }
-
-            kpiRow.add(createGradientKpiCard("TOTAL MEMBERS", String.valueOf(totalMembers), "Registered Athletes", ELECTRIC_INDIGO, VIOLET_GLOW));
-            kpiRow.add(createGradientKpiCard("ACTIVE PASSES", String.valueOf(activeCount), "Cleared for Entry", new Color(5, 150, 105), NEON_EMERALD));
-            kpiRow.add(createGradientKpiCard("EXPIRED PASSES", String.valueOf(expiredCount), "Needs Renewal", new Color(190, 18, 60), CORAL_RED));
-            kpiRow.add(createGradientKpiCard("EXPIRING ≤ 7 DAYS", String.valueOf(expiring7Count), "Upcoming Renewals", new Color(180, 83, 9), AMBER_GOLD));
-
-            tablesGrid.add(wrapReportTable("1. Active vs. Expired Summary", new JTable(r1Model)));
-            tablesGrid.add(wrapReportTable("2. Expiring Within 7 Days", new JTable(expSoonModel)));
-            tablesGrid.add(wrapReportTable("3. Monthly Renewals Log", new JTable(r3Model)));
-
-            panel.revalidate();
-            panel.repaint();
-        };
-        buildReportContent.run();
-
-        JButton btnRefresh = createStyledButton("Refresh Analytics", CARD_HIGHLIGHT, TEXT_PRIMARY);
-        btnRefresh.setIcon(new VectorIcon(VectorIcon.Kind.REFRESH, 14, TEXT_SECONDARY));
-        btnRefresh.setIconTextGap(6);
-        btnRefresh.addActionListener(e -> buildReportContent.run());
-        JButton btnExportCsv = createGradientButton("Export Reports CSV", NEON_EMERALD, NEON_EMERALD);
-        btnExportCsv.setIcon(new VectorIcon(VectorIcon.Kind.DOWNLOAD, 14, Color.WHITE));
-        btnExportCsv.setIconTextGap(6);
-        btnExportCsv.addActionListener(e -> exportReportsCsv());
-        JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        south.setOpaque(false);
-        south.add(btnExportCsv);
-        south.add(btnRefresh);
-
-        panel.putClientProperty("onTabSelected", buildReportContent);
-        panel.add(kpiRow, BorderLayout.NORTH);
-        panel.add(tablesGrid, BorderLayout.CENTER);
-        panel.add(south, BorderLayout.SOUTH);
-        return panel;
-    }
-
-    private void exportReportsCsv() {
-        JFileChooser fc = new JFileChooser();
-        fc.setDialogTitle("Export GymSync Management Reports (CSV)");
-        fc.setSelectedFile(new java.io.File("gymsync_reports_" + LocalDate.now() + ".csv"));
-        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
-
-        java.io.File target = fc.getSelectedFile();
-        if (!target.getName().toLowerCase(Locale.ROOT).endsWith(".csv")) {
-            target = new java.io.File(target.getParentFile(), target.getName() + ".csv");
-        }
-
-        LocalDate today = LocalDate.now();
-        int activeCount = 0;
-        int expiredCount = 0;
-        List<String[]> expiringRows = new ArrayList<>();
-        for (User m : repo.getMembers()) {
-            Membership latest = repo.getLatestMembership(m.userId);
-            String st = latest != null ? latest.getComputedStatus(today) : "Expired";
-            long days = latest != null ? latest.getDaysRemaining(today) : -999;
-            if ("Active".equalsIgnoreCase(st)) {
-                activeCount++;
-                if (days >= 0 && days <= 7) {
-                    expiringRows.add(new String[]{m.getFullName(), latest.endDate.toString(), String.valueOf(days)});
-                }
-            } else {
-                expiredCount++;
-            }
-        }
-        int totalMembers = activeCount + expiredCount;
-
-        Map<YearMonth, Integer> monthlyCounts = new TreeMap<>(Comparator.reverseOrder());
-        for (Membership m : repo.getAllMemberships()) {
-            YearMonth ym = YearMonth.from(m.startDate);
-            monthlyCounts.put(ym, monthlyCounts.getOrDefault(ym, 0) + 1);
-        }
-
-        StringBuilder csv = new StringBuilder();
-        csv.append("Report 1: Active vs. Expired Summary\n");
-        csv.append("Pass Status,Members,Share\n");
-        csv.append("Active Passes,").append(activeCount).append(',')
-                .append(totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (activeCount * 100.0) / totalMembers) : "0%")
-                .append('\n');
-        csv.append("Expired Passes,").append(expiredCount).append(',')
-                .append(totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (expiredCount * 100.0) / totalMembers) : "0%")
-                .append('\n');
-        csv.append("Total Registered,").append(totalMembers).append(",100.0%\n\n");
-
-        csv.append("Report 2: Memberships Expiring Within 7 Days\n");
-        csv.append("Member,End Date,Days Remaining\n");
-        for (String[] r : expiringRows) {
-            csv.append(escapeCsv(r[0])).append(',').append(r[1]).append(',').append(r[2]).append('\n');
-        }
-        csv.append('\n');
-
-        csv.append("Report 3: Monthly Renewals Log\n");
-        csv.append("Month (YYYY-MM),Renewals\n");
-        for (Map.Entry<YearMonth, Integer> entry : monthlyCounts.entrySet()) {
-            csv.append(entry.getKey()).append(',').append(entry.getValue()).append('\n');
+            BG_OBSIDIAN     = new Color(248, 250, 252); // #F8FAFC Crisp Studio Canvas
+            BG_SURFACE      = new Color(255, 255, 255); // #FFFFFF Pure White Sidebar/Surface
+            CARD_SURFACE    = new Color(255, 255, 255); // #FFFFFF Pure White Card
+            CARD_HIGHLIGHT  = new Color(241, 245, 249); // #F1F5F9 Slate-100 Control
+            BORDER_SUBTLE   = new Color(226, 232, 240); // #E2E8F0 Crisp 1px Hairline
+            INPUT_BG        = new Color(255, 255, 255);
+            TEXT_PRIMARY    = new Color(15, 23, 42);    // #0F172A Slate-900 Ink
+            TEXT_SECONDARY  = new Color(71, 85, 105);   // #475569 Slate-600
+            TEXT_MUTED      = new Color(100, 116, 139); // #64748B Slate-500
+            NEON_EMERALD    = new Color(5, 150, 105);   // #059669 Emerald-600 Accent
+            CYBER_CYAN      = new Color(13, 148, 136);  // #0D9488 Teal-600
+            ELECTRIC_INDIGO = new Color(37, 99, 235);   // #2563EB Slate-Blue Info
+            VIOLET_GLOW     = new Color(100, 116, 139);
+            CORAL_RED       = new Color(225, 29, 72);   // #E11D48 Rose-600 Danger
+            AMBER_GOLD      = new Color(217, 119, 6);   // #D97706 Amber-600 Warning
+            TABLE_EVEN_ROW  = new Color(255, 255, 255);
+            TABLE_ALT_ROW   = new Color(248, 250, 252);
+            TABLE_SELECT    = new Color(236, 253, 245); // #ECFDF5 Soft Emerald Select
+            TABLE_SELECT_FG = new Color(6, 95, 70);     // #065F46 Emerald-800 Text
         }
 
         try {
-            java.nio.file.Files.writeString(target.toPath(), csv.toString(), StandardCharsets.UTF_8);
-            JOptionPane.showMessageDialog(this,
-                    "Exported management summary reports to:\n" + target.getAbsolutePath(),
-                    "CSV Export Complete", JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Could not export CSV file: " + ex.getMessage(),
-                    "Export Failed", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private static String escapeCsv(String val) {
-        if (val == null) return "";
-        if (val.contains(",") || val.contains("\"") || val.contains("\n")) {
-            return "\"" + val.replace("\"", "\"\"") + "\"";
-        }
-        return val;
-    }
-
-    private JPanel buildMemberStatusTab(User member) {
-        JPanel panel = new JPanel(new BorderLayout(18, 18));
-        panel.setBackground(BG_OBSIDIAN);
-        panel.setBorder(new EmptyBorder(18, 22, 18, 22));
-
-        Membership latest = repo.getLatestMembership(member.userId);
-        DigitalMemberPassCard walletCard = new DigitalMemberPassCard();
-        walletCard.setMemberData(member, latest);
-
-        LocalDate today = LocalDate.now();
-        String[] cols = {"Pass ID", "Start Date", "End Date (1 Month)", "Status"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        for (Membership m : repo.getMembershipsByUser(member.userId)) {
-            model.addRow(new Object[]{"#" + m.membershipId, m.startDate, m.endDate, m.getComputedStatus(today)});
-        }
-        JTable historyTable = new JTable(model);
-        styleTable(historyTable);
-        historyTable.getColumnModel().getColumn(3).setCellRenderer(new StatusBadgeRenderer());
-
-        panel.add(walletCard, BorderLayout.WEST);
-        panel.add(wrapReportTable("My Monthly Membership & Renewal History", historyTable), BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JPanel buildMemberWorkoutTab(User targetMember) {
-        JPanel panel = new JPanel(new BorderLayout(16, 16));
-        panel.setBackground(BG_OBSIDIAN);
-        panel.setBorder(new EmptyBorder(16, 20, 16, 20));
-
-        // Top Play Store Fitness Questionnaire Card with Machine Toggle
-        RoundedCardPanel topControls = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 22);
-        topControls.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
-
-        JComboBox<String> cbGoal = createDarkComboBox(new String[]{
-                "Weight Loss", "Muscle Gain", "General Fitness", "Strength Foundation"
-        });
-        JComboBox<String> cbLevel = createDarkComboBox(new String[]{
-                "Beginner", "Intermediate", "Advanced"
-        });
-        if (targetMember.fitnessLevel != null) cbLevel.setSelectedItem(targetMember.fitnessLevel);
-        JComboBox<Integer> cbDays = createDarkComboBox(new Integer[]{2, 3, 4, 5});
-        cbDays.setSelectedItem(3);
-        JComboBox<String> cbEquip = createDarkComboBox(new String[]{
-                "Full Gym", "Gym Machines Only", "Dumbbells", "Bodyweight"
-        });
-
-        // Interactive Check / Uncheck Machine Toggle
-        JCheckBox chkUseMachines = new JCheckBox("⚙ Include Gym Machines", true);
-        chkUseMachines.setOpaque(false);
-        chkUseMachines.setForeground(CYBER_CYAN);
-        chkUseMachines.setFont(new Font("SansSerif", Font.BOLD, 12));
-        chkUseMachines.setToolTipText("Check to include gym machines; uncheck for free-weights/bodyweight only");
-
-        JButton btnGenerate = createGradientButton("Generate Plan", NEON_EMERALD, new Color(5, 150, 105));
-        JButton btnCustom = createGradientButton("+ Custom Builder", CARD_HIGHLIGHT, CARD_HIGHLIGHT);
-
-        topControls.add(createChipLabel("GOAL:"));
-        topControls.add(cbGoal);
-        topControls.add(createChipLabel("LEVEL:"));
-        topControls.add(cbLevel);
-        topControls.add(createChipLabel("DAYS:"));
-        topControls.add(cbDays);
-        topControls.add(createChipLabel("ZONE:"));
-        topControls.add(cbEquip);
-        topControls.add(chkUseMachines);
-        topControls.add(btnGenerate);
-        topControls.add(btnCustom);
-
-        JLabel planHeaderLbl = new JLabel("Current Active Workout Plan:");
-        planHeaderLbl.setFont(new Font("SansSerif", Font.BOLD, 14));
-        planHeaderLbl.setForeground(NEON_EMERALD);
-
-        JComboBox<WorkoutPlan> cbSavedPlans = createDarkComboBox(new WorkoutPlan[0]);
-        cbSavedPlans.setMaximumRowCount(8);
-        JButton btnDeletePlan = createStyledButton("Delete Plan", CARD_HIGHLIGHT, CORAL_RED);
-
-        JPanel planHeaderBar = new JPanel(new BorderLayout(10, 6));
-        planHeaderBar.setOpaque(false);
-        JPanel planSelectorBar = new JPanel(new BorderLayout(8, 0));
-        planSelectorBar.setOpaque(false);
-        planSelectorBar.add(createChipLabel("SAVED PLANS:"), BorderLayout.WEST);
-        planSelectorBar.add(cbSavedPlans, BorderLayout.CENTER);
-        planSelectorBar.add(btnDeletePlan, BorderLayout.EAST);
-        planHeaderBar.add(planHeaderLbl, BorderLayout.NORTH);
-        planHeaderBar.add(planSelectorBar, BorderLayout.SOUTH);
-
-        String[] cols = {"Day", "Workout Name", "Target Muscle", "Machine / Equipment Indicator", "Sets", "Reps"};
-        DefaultTableModel exModel = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        JTable exTable = new JTable(exModel);
-        styleTable(exTable);
-        exTable.getColumnModel().getColumn(3).setCellRenderer(new MachineBadgeRenderer());
-
-        WorkoutVisualCard visualCard = new WorkoutVisualCard();
-
-        final boolean[] updatingPlanCombo = {false};
-
-        Runnable renderSelectedPlan = () -> {
-            exModel.setRowCount(0);
-            WorkoutPlan selected = (WorkoutPlan) cbSavedPlans.getSelectedItem();
-            if (selected == null) {
-                planHeaderLbl.setText("No workout plan yet — use the Smart Generator or Custom Builder above!");
-                visualCard.setExercise(null);
-                return;
-            }
-            String typeTag = selected.planType != null ? selected.planType.toUpperCase(Locale.ROOT) : "PLAN";
-            planHeaderLbl.setText("ACTIVE PLAN #" + selected.workoutPlanId + " [" + typeTag + "]  •  " +
-                    selected.goal + "  (Tap any row for animated muscle & machine demo)");
-            boolean showMachines = chkUseMachines.isSelected();
-            for (WorkoutPlanExercise item : selected.exercises) {
-                boolean isMach = Exercise.isMachineEquipment(item.equipment);
-                if (!showMachines && isMach) continue;
-                String badge = isMach ? ("⚙ " + item.equipment.replace("Machine: ", "")) : ("✓ No Machine (" + item.equipment + ")");
-                exModel.addRow(new Object[]{
-                        item.dayOfWeek, item.exerciseName, item.muscleGroup, badge, item.sets + " sets", item.reps
-                });
-            }
-            if (exTable.getRowCount() > 0) {
-                exTable.setRowSelectionInterval(0, 0);
-            } else {
-                visualCard.setExercise(null);
-            }
-        };
-
-        java.util.function.Consumer<Boolean> refreshPlans = selectNewest -> {
-            WorkoutPlan prev = (WorkoutPlan) cbSavedPlans.getSelectedItem();
-            int prevId = (!selectNewest && prev != null) ? prev.workoutPlanId : -1;
-            List<WorkoutPlan> plans = repo.getWorkoutPlansByUser(targetMember.userId);
-            updatingPlanCombo[0] = true;
-            try {
-                cbSavedPlans.removeAllItems();
-                int restoreIdx = 0;
-                for (int i = 0; i < plans.size(); i++) {
-                    WorkoutPlan wp = plans.get(i);
-                    cbSavedPlans.addItem(wp);
-                    if (wp.workoutPlanId == prevId) {
-                        restoreIdx = i;
+            String[] candidates = dark
+                    ? new String[]{
+                        "com.formdev.flatlaf.intellijthemes.materialthemeuilite.FlatGitHubDarkIJTheme",
+                        "com.formdev.flatlaf.FlatDarkLaf"
                     }
-                }
-                boolean hasPlans = !plans.isEmpty();
-                cbSavedPlans.setEnabled(hasPlans);
-                btnDeletePlan.setEnabled(hasPlans);
-                if (hasPlans) {
-                    cbSavedPlans.setSelectedIndex(restoreIdx);
-                }
-            } finally {
-                updatingPlanCombo[0] = false;
+                    : new String[]{
+                        "com.formdev.flatlaf.intellijthemes.materialthemeuilite.FlatGitHubIJTheme",
+                        "com.formdev.flatlaf.FlatLightLaf"
+                    };
+            boolean loaded = false;
+            for (String cls : candidates) {
+                try {
+                    Object ok = Class.forName(cls).getMethod("setup").invoke(null);
+                    if (Boolean.TRUE.equals(ok)) {
+                        loaded = true;
+                        break;
+                    }
+                } catch (ReflectiveOperationException ignored) {}
             }
-            renderSelectedPlan.run();
-        };
-
-        Runnable refreshPlansKeepSelection = () -> refreshPlans.accept(false);
-        Runnable refreshPlansSelectNewest = () -> refreshPlans.accept(true);
-
-        cbSavedPlans.addActionListener(e -> {
-            if (!updatingPlanCombo[0]) {
-                renderSelectedPlan.run();
-            }
-        });
-
-        btnDeletePlan.addActionListener(e -> {
-            WorkoutPlan selected = (WorkoutPlan) cbSavedPlans.getSelectedItem();
-            if (selected == null) return;
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Delete workout plan #" + selected.workoutPlanId + " (" + selected.goal + ")?",
-                    "Confirm Delete Plan", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (confirm == JOptionPane.YES_OPTION) {
-                repo.deleteWorkoutPlan(selected.workoutPlanId);
-                refreshPlansSelectNewest.run();
-            }
-        });
-
-        exTable.getSelectionModel().addListSelectionListener(e -> {
-            int row = exTable.getSelectedRow();
-            if (row < 0) return;
-            String exName = exModel.getValueAt(exTable.convertRowIndexToModel(row), 1).toString();
-            Exercise matched = repo.getAllExercises().stream()
-                    .filter(x -> x.name.equalsIgnoreCase(exName))
-                    .findFirst().orElse(null);
-            visualCard.setExercise(matched);
-        });
-
-        cbEquip.addActionListener(e -> {
-            if ("Gym Machines Only".equals(cbEquip.getSelectedItem()) && !chkUseMachines.isSelected()) {
-                chkUseMachines.setSelected(true);
-                renderSelectedPlan.run();
-            }
-        });
-
-        chkUseMachines.addActionListener(e -> {
-            if (!chkUseMachines.isSelected() && "Gym Machines Only".equals(cbEquip.getSelectedItem())) {
-                cbEquip.setSelectedItem("Dumbbells");
-            }
-            renderSelectedPlan.run();
-        });
-
-        refreshPlansSelectNewest.run();
-
-        btnGenerate.addActionListener(e -> {
-            String eqPref = (String) cbEquip.getSelectedItem();
-            boolean useMach = chkUseMachines.isSelected();
-            if (!useMach && ("Full Gym".equals(eqPref) || "Gym Machines Only".equals(eqPref))) {
-                eqPref = "Dumbbells";
-            }
-            WorkoutPlan generated = BusinessRules.generateRuleBasedPlan(
-                    targetMember.userId,
-                    (String) cbGoal.getSelectedItem(),
-                    (String) cbLevel.getSelectedItem(),
-                    (Integer) cbDays.getSelectedItem(),
-                    eqPref,
-                    useMach,
-                    repo.getAllExercises()
-            );
-            repo.saveWorkoutPlan(generated);
-            refreshPlansSelectNewest.run();
-            JOptionPane.showMessageDialog(this,
-                    "Smart weekly workout plan generated in < 1 second!\n" +
-                    "Routine: " + generated.goal + "\n" +
-                    "Machine Toggle: " + (useMach ? "Gym Machines Included (⚙)" : "No Machines — Free Weight/Bodyweight Only (✓)"),
-                    "Workout Plan Ready", JOptionPane.INFORMATION_MESSAGE);
-        });
-
-        btnCustom.addActionListener(e -> showCustomPlanBuilderDialog(targetMember, refreshPlansSelectNewest));
-
-        JPanel centerBox = new JPanel(new BorderLayout(0, 10));
-        centerBox.setOpaque(false);
-        centerBox.add(planHeaderBar, BorderLayout.NORTH);
-        centerBox.add(wrapDarkScrollPane(exTable), BorderLayout.CENTER);
-
-        panel.putClientProperty("onTabSelected", refreshPlansKeepSelection);
-        panel.add(topControls, BorderLayout.NORTH);
-        panel.add(centerBox, BorderLayout.CENTER);
-        panel.add(visualCard, BorderLayout.EAST);
-        return panel;
-    }
-
-    private JLabel createChipLabel(String text) {
-        JLabel l = new JLabel(text);
-        l.setFont(new Font("SansSerif", Font.BOLD, 11));
-        l.setForeground(TEXT_SECONDARY);
-        return l;
-    }
-
-    private JPanel buildStaffWorkoutHelperTab() {
-        JPanel wrapper = new JPanel(new BorderLayout(12, 12));
-        wrapper.setBackground(BG_OBSIDIAN);
-        wrapper.setBorder(new EmptyBorder(14, 18, 14, 18));
-
-        RoundedCardPanel selectorBar = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 18);
-        selectorBar.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 10));
-        JLabel lbl = new JLabel("Select Member to Build Workout Plan For:");
-        lbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        lbl.setForeground(TEXT_PRIMARY);
-        JComboBox<String> memberCombo = createDarkComboBox(new String[]{});
-        List<User> members = new ArrayList<>();
-
-        selectorBar.add(lbl);
-        selectorBar.add(memberCombo);
-
-        JPanel dynamicHolder = new JPanel(new BorderLayout());
-        dynamicHolder.setOpaque(false);
-
-        Runnable loadSelectedMemberPlanner = () -> {
-            dynamicHolder.removeAll();
-            int idx = memberCombo.getSelectedIndex();
-            if (idx >= 0 && idx < members.size()) {
-                dynamicHolder.add(buildMemberWorkoutTab(members.get(idx)), BorderLayout.CENTER);
-            }
-            dynamicHolder.revalidate();
-            dynamicHolder.repaint();
-        };
-
-        Runnable refreshMembers = () -> {
-            int selectedUserId = -1;
-            int prevIdx = memberCombo.getSelectedIndex();
-            if (prevIdx >= 0 && prevIdx < members.size()) {
-                selectedUserId = members.get(prevIdx).userId;
-            }
-            members.clear();
-            members.addAll(repo.getMembers());
-            ActionListener[] listeners = memberCombo.getActionListeners();
-            for (ActionListener al : listeners) memberCombo.removeActionListener(al);
-            memberCombo.removeAllItems();
-            int restoreIdx = 0;
-            for (int i = 0; i < members.size(); i++) {
-                User m = members.get(i);
-                memberCombo.addItem(m.userId + " - " + m.getFullName() + " (" + m.fitnessLevel + ")");
-                if (m.userId == selectedUserId) restoreIdx = i;
-            }
-            if (!members.isEmpty()) {
-                memberCombo.setSelectedIndex(restoreIdx);
-            }
-            for (ActionListener al : listeners) memberCombo.addActionListener(al);
-            loadSelectedMemberPlanner.run();
-        };
-
-        memberCombo.addActionListener(e -> loadSelectedMemberPlanner.run());
-        refreshMembers.run();
-
-        wrapper.putClientProperty("onTabSelected", refreshMembers);
-        wrapper.add(selectorBar, BorderLayout.NORTH);
-        wrapper.add(dynamicHolder, BorderLayout.CENTER);
-        return wrapper;
-    }
-
-    private void showCustomPlanBuilderDialog(User member, Runnable onSaved) {
-        JDialog dlg = new JDialog(this, "Custom Workout Builder — " + member.getFullName(), true);
-        dlg.setSize(800, 560);
-        dlg.setLocationRelativeTo(this);
-        dlg.getContentPane().setBackground(BG_OBSIDIAN);
-        dlg.setLayout(new BorderLayout(12, 12));
-
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 12));
-        top.setBackground(BG_OBSIDIAN);
-        JLabel goalLbl = new JLabel("Custom Routine Title *:");
-        goalLbl.setForeground(TEXT_PRIMARY);
-        goalLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        JTextField tfGoal = createDarkTextField("Custom Hypertrophy & Conditioning Split");
-        tfGoal.setColumns(28);
-        top.add(goalLbl);
-        top.add(tfGoal);
-
-        String[] cols = {"Day of Week", "Exercise ID", "Exercise Name", "Muscle Group", "Sets", "Reps"};
-        DefaultTableModel draftModel = new DefaultTableModel(cols, 0);
-        JTable draftTable = new JTable(draftModel);
-        styleTable(draftTable);
-
-        JPanel adder = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
-        adder.setBackground(CARD_SURFACE);
-        JComboBox<String> cbDay = createDarkComboBox(new String[]{
-                "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
-        });
-        JComboBox<Exercise> cbEx = createDarkComboBox(repo.getAllExercises().toArray(new Exercise[0]));
-        JSpinner spSets = new JSpinner(new SpinnerNumberModel(3, 1, 10, 1));
-        JTextField tfReps = createDarkTextField("10-12");
-        tfReps.setColumns(7);
-        JButton btnAddRow = createGradientButton("+ Add Exercise", ELECTRIC_INDIGO, CYBER_CYAN);
-        JButton btnRemoveRow = createStyledButton("- Remove Selected", CORAL_RED, Color.WHITE);
-
-        adder.add(createChipLabel("DAY:"));
-        adder.add(cbDay);
-        adder.add(createChipLabel("EXERCISE:"));
-        adder.add(cbEx);
-        adder.add(createChipLabel("SETS:"));
-        adder.add(spSets);
-        adder.add(createChipLabel("REPS:"));
-        adder.add(tfReps);
-        adder.add(btnAddRow);
-        adder.add(btnRemoveRow);
-
-        List<WorkoutPlanExercise> draftItems = new ArrayList<>();
-        btnAddRow.addActionListener(e -> {
-            Exercise ex = (Exercise) cbEx.getSelectedItem();
-            if (ex == null) return;
-            String reps = tfReps.getText().trim();
-            if (reps.isEmpty()) {
-                JOptionPane.showMessageDialog(dlg, "Please enter target reps (e.g., 10-12).");
-                return;
-            }
-            WorkoutPlanExercise item = new WorkoutPlanExercise();
-            item.exerciseId = ex.exerciseId;
-            item.exerciseName = ex.name;
-            item.muscleGroup = ex.muscleGroup;
-            item.equipment = ex.equipment;
-            item.dayOfWeek = (String) cbDay.getSelectedItem();
-            item.sets = (Integer) spSets.getValue();
-            item.reps = reps;
-            draftItems.add(item);
-            draftModel.addRow(new Object[]{item.dayOfWeek, ex.exerciseId, ex.name, ex.muscleGroup, item.sets, item.reps});
-        });
-
-        btnRemoveRow.addActionListener(e -> {
-            int row = draftTable.getSelectedRow();
-            if (row < 0) {
-                JOptionPane.showMessageDialog(dlg, "Please select an exercise row to remove.");
-                return;
-            }
-            int modelRow = draftTable.convertRowIndexToModel(row);
-            draftItems.remove(modelRow);
-            draftModel.removeRow(modelRow);
-        });
-
-        JButton btnSavePlan = createGradientButton("Save Custom Workout Plan", NEON_EMERALD, NEON_EMERALD);
-        btnSavePlan.addActionListener(e -> {
-            if (tfGoal.getText().trim().isEmpty() || draftItems.isEmpty()) {
-                JOptionPane.showMessageDialog(dlg, "Please enter a plan title and add at least one exercise.");
-                return;
-            }
-            WorkoutPlan custom = new WorkoutPlan();
-            custom.userId = member.userId;
-            custom.planType = "custom";
-            custom.goal = tfGoal.getText().trim();
-            custom.dateCreated = LocalDate.now();
-            custom.exercises.addAll(draftItems);
-            repo.saveWorkoutPlan(custom);
-            onSaved.run();
-            dlg.dispose();
-        });
-
-        JPanel south = new JPanel(new BorderLayout());
-        south.setBackground(BG_OBSIDIAN);
-        south.add(adder, BorderLayout.CENTER);
-        JPanel saveBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 10));
-        saveBar.setBackground(BG_OBSIDIAN);
-        saveBar.add(btnSavePlan);
-        south.add(saveBar, BorderLayout.SOUTH);
-
-        dlg.add(top, BorderLayout.NORTH);
-        dlg.add(wrapDarkScrollPane(draftTable), BorderLayout.CENTER);
-        dlg.add(south, BorderLayout.SOUTH);
-        dlg.setVisible(true);
-    }
-
-    private JPanel buildReadOnlyExerciseBrowser() {
-        JPanel panel = new JPanel(new BorderLayout(16, 16));
-        panel.setBackground(BG_OBSIDIAN);
-        panel.setBorder(new EmptyBorder(16, 20, 16, 20));
-
-        RoundedCardPanel filterBar = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 20);
-        filterBar.setLayout(new FlowLayout(FlowLayout.LEFT, 14, 10));
-        JLabel filterLbl = new JLabel("Filter Gym Floor Workouts & Machines:");
-        filterLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        filterLbl.setForeground(TEXT_PRIMARY);
-
-        JCheckBox chkMachines = new JCheckBox("⚙ Needs Gym Machine", true);
-        chkMachines.setOpaque(false);
-        chkMachines.setForeground(CYBER_CYAN);
-        chkMachines.setFont(new Font("SansSerif", Font.BOLD, 12));
-
-        JCheckBox chkNoMachine = new JCheckBox("✓ No Machine (Free Weight / Bodyweight)", true);
-        chkNoMachine.setOpaque(false);
-        chkNoMachine.setForeground(NEON_EMERALD);
-        chkNoMachine.setFont(new Font("SansSerif", Font.BOLD, 12));
-
-        JComboBox<String> cbMuscleFilter = createDarkComboBox(new String[]{
-                "All Muscle Groups", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full Body"
-        });
-
-        filterBar.add(filterLbl);
-        filterBar.add(chkMachines);
-        filterBar.add(chkNoMachine);
-        filterBar.add(createChipLabel("MUSCLE:"));
-        filterBar.add(cbMuscleFilter);
-
-        String[] cols = {"ID", "Workout Name", "Target Muscle", "Difficulty", "Machine / Equipment Indicator", "Execution Cues"};
-        DefaultTableModel m = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        JTable t = new JTable(m);
-        styleTable(t);
-        t.getColumnModel().getColumn(4).setCellRenderer(new MachineBadgeRenderer());
-
-        WorkoutVisualCard visualCard = new WorkoutVisualCard();
-
-        Runnable populate = () -> {
-            m.setRowCount(0);
-            String mgFilter = (String) cbMuscleFilter.getSelectedItem();
-            for (Exercise ex : repo.getAllExercises()) {
-                if (ex.requiresMachine() && !chkMachines.isSelected()) continue;
-                if (!ex.requiresMachine() && !chkNoMachine.isSelected()) continue;
-                if (!"All Muscle Groups".equals(mgFilter) && !ex.muscleGroup.equalsIgnoreCase(mgFilter)) continue;
-                m.addRow(new Object[]{ex.exerciseId, ex.name, ex.muscleGroup, ex.difficulty, ex.getMachineBadgeText(), ex.description});
-            }
-            if (t.getRowCount() > 0) {
-                t.setRowSelectionInterval(0, 0);
+            if (!loaded) {
+                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
             } else {
-                visualCard.setExercise(null);
+                UIManager.put("Component.arc", 8);
+                UIManager.put("Button.arc", 8);
+                UIManager.put("TextComponent.arc", 8);
+                UIManager.put("ProgressBar.arc", 999);
+                UIManager.put("Component.focusWidth", 1);
+                UIManager.put("Component.focusColor", NEON_EMERALD);
+                UIManager.put("Component.focusedBorderColor", NEON_EMERALD);
+                UIManager.put("Component.borderColor", BORDER_SUBTLE);
+                UIManager.put("ScrollBar.width", 10);
+                UIManager.put("ScrollBar.showButtons", false);
+                UIManager.put("ScrollBar.thumbArc", 999);
+                UIManager.put("ScrollBar.track", BG_OBSIDIAN);
+                UIManager.put("ScrollBar.thumb", BORDER_SUBTLE);
+                UIManager.put("Table.showHorizontalLines", true);
+                UIManager.put("Table.showVerticalLines", false);
+                UIManager.put("Table.gridColor", BORDER_SUBTLE);
+                UIManager.put("Table.selectionBackground", TABLE_SELECT);
+                UIManager.put("Table.selectionForeground", TABLE_SELECT_FG);
+                UIManager.put("SplitPane.dividerSize", 6);
+                UIManager.put("SplitPaneDivider.gripDotCount", 0);
             }
-        };
-
-        t.getSelectionModel().addListSelectionListener(e -> {
-            int row = t.getSelectedRow();
-            if (row < 0) return;
-            int id = (int) m.getValueAt(t.convertRowIndexToModel(row), 0);
-            Exercise sel = repo.getAllExercises().stream().filter(x -> x.exerciseId == id).findFirst().orElse(null);
-            visualCard.setExercise(sel);
-        });
-
-        chkMachines.addActionListener(e -> populate.run());
-        chkNoMachine.addActionListener(e -> populate.run());
-        cbMuscleFilter.addActionListener(e -> populate.run());
-        populate.run();
-
-        panel.putClientProperty("onTabSelected", populate);
-        panel.add(filterBar, BorderLayout.NORTH);
-        panel.add(wrapDarkScrollPane(t), BorderLayout.CENTER);
-        panel.add(visualCard, BorderLayout.EAST);
-        return panel;
+            UIManager.put("Panel.background", BG_OBSIDIAN);
+            UIManager.put("OptionPane.background", CARD_SURFACE);
+            UIManager.put("OptionPane.messageForeground", TEXT_PRIMARY);
+            UIManager.put("Label.foreground", TEXT_PRIMARY);
+        } catch (Exception ex) {
+            System.err.println("[UI] LookAndFeel setup warning: " + ex.getMessage());
+        }
     }
 
-    // ========================================================================
-    // 8. PLAY STORE DARK-MODE STYLING HELPERS & RENDERERS
-    // ========================================================================
+    private void toggleTheme() {
+        installLookAndFeel(!darkMode);
+        SwingUtilities.updateComponentTreeUI(this);
+        getContentPane().setBackground(BG_OBSIDIAN);
+        if (currentUser != null) {
+            routeToRoleDashboard(currentUser);
+        } else {
+            showLoginScreen();
+        }
+    }
+
+    private JPanel createCardPanel(LayoutManager layout) {
+        JPanel p = new JPanel(layout);
+        p.setBackground(CARD_SURFACE);
+        p.setBorder(new LineBorder(BORDER_SUBTLE, 1, true));
+        p.putClientProperty("FlatLaf.style",
+                "background: " + hex(CARD_SURFACE) + "; border: 1,1,1,1," + hex(BORDER_SUBTLE) + ",1,10");
+        return p;
+    }
+
+    private JButton createPrimaryButton(String text, VectorIcon.Kind iconKind) {
+        JButton b = new JButton(text);
+        if (iconKind != null) {
+            b.setIcon(new VectorIcon(iconKind, 14, Color.WHITE));
+            b.setIconTextGap(7);
+        }
+        b.setFont(new Font("SansSerif", Font.BOLD, 12));
+        b.setForeground(Color.WHITE);
+        b.setBackground(NEON_EMERALD);
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        b.putClientProperty("FlatLaf.style",
+                "background: " + hex(NEON_EMERALD) + "; foreground: #ffffff; " +
+                "hoverBackground: " + hex(NEON_EMERALD.darker()) + "; " +
+                "pressedBackground: " + hex(NEON_EMERALD.darker().darker()) + "; " +
+                "borderWidth: 0; arc: 8; margin: 7,14,7,14");
+        return b;
+    }
+
+    private JButton createSecondaryButton(String text, VectorIcon.Kind iconKind, Color iconColor) {
+        JButton b = new JButton(text);
+        if (iconKind != null) {
+            b.setIcon(new VectorIcon(iconKind, 14, iconColor != null ? iconColor : TEXT_SECONDARY));
+            b.setIconTextGap(7);
+        }
+        b.setFont(new Font("SansSerif", Font.BOLD, 12));
+        b.setForeground(TEXT_PRIMARY);
+        b.setBackground(CARD_SURFACE);
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        b.putClientProperty("FlatLaf.style",
+                "background: " + hex(CARD_SURFACE) + "; foreground: " + hex(TEXT_PRIMARY) + "; " +
+                "hoverBackground: " + hex(CARD_HIGHLIGHT) + "; " +
+                "borderColor: " + hex(BORDER_SUBTLE) + "; borderWidth: 1; arc: 8; margin: 7,12,7,12");
+        return b;
+    }
+
+    private JButton createDangerButton(String text, VectorIcon.Kind iconKind) {
+        JButton b = new JButton(text);
+        if (iconKind != null) {
+            b.setIcon(new VectorIcon(iconKind, 14, CORAL_RED));
+            b.setIconTextGap(7);
+        }
+        b.setFont(new Font("SansSerif", Font.BOLD, 12));
+        b.setForeground(CORAL_RED);
+        b.setBackground(CARD_SURFACE);
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        Color tintHover = darkMode ? new Color(60, 24, 30) : new Color(255, 241, 242);
+        b.putClientProperty("FlatLaf.style",
+                "background: " + hex(CARD_SURFACE) + "; foreground: " + hex(CORAL_RED) + "; " +
+                "hoverBackground: " + hex(tintHover) + "; " +
+                "borderColor: " + hex(BORDER_SUBTLE) + "; borderWidth: 1; arc: 8; margin: 7,12,7,12");
+        return b;
+    }
+
+    private JToggleButton createFilterPill(String text, boolean selected) {
+        JToggleButton tb = new JToggleButton(text, selected);
+        tb.setFont(new Font("SansSerif", Font.BOLD, 12));
+        tb.setFocusPainted(false);
+        tb.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        tb.putClientProperty("FlatLaf.style",
+                "background: " + hex(CARD_HIGHLIGHT) + "; foreground: " + hex(TEXT_SECONDARY) + "; " +
+                "selectedBackground: " + hex(TEXT_PRIMARY) + "; selectedForeground: " + hex(BG_SURFACE) + "; " +
+                "borderWidth: 0; arc: 8; margin: 5,11,5,11");
+        return tb;
+    }
+
+    private JTextField createStyledTextField(String text) {
+        JTextField tf = new JTextField(text);
+        tf.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        tf.putClientProperty("FlatLaf.style", "arc: 8; margin: 6,10,6,10");
+        return tf;
+    }
+
+    private JPasswordField createStyledPasswordField() {
+        JPasswordField pf = new JPasswordField();
+        pf.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        pf.putClientProperty("FlatLaf.style", "arc: 8; margin: 6,10,6,10; showRevealButton: true");
+        return pf;
+    }
+
+    private <T> JComboBox<T> createStyledComboBox(T[] items) {
+        JComboBox<T> cb = new JComboBox<>(items);
+        cb.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        cb.putClientProperty("FlatLaf.style", "arc: 8");
+        return cb;
+    }
+
+    private JScrollPane wrapTableScrollPane(JTable table) {
+        JScrollPane sp = new JScrollPane(table);
+        sp.setBorder(new LineBorder(BORDER_SUBTLE, 1, true));
+        sp.getViewport().setBackground(TABLE_EVEN_ROW);
+        return sp;
+    }
+
+    private void styleModernTable(JTable table) {
+        table.setRowHeight(40);
+        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        table.setForeground(TEXT_PRIMARY);
+        table.setBackground(TABLE_EVEN_ROW);
+        table.setSelectionBackground(TABLE_SELECT);
+        table.setSelectionForeground(TABLE_SELECT_FG);
+        table.setGridColor(BORDER_SUBTLE);
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(false);
+        table.setFillsViewportHeight(true);
+        table.setIntercellSpacing(new Dimension(0, 1));
+        table.getTableHeader().setPreferredSize(new Dimension(0, 38));
+        table.getTableHeader().setReorderingAllowed(false);
+
+        DefaultTableCellRenderer headerRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int col) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(t, value, isSelected, hasFocus, row, col);
+                lbl.setBackground(darkMode ? new Color(22, 27, 34) : new Color(248, 250, 252));
+                lbl.setForeground(TEXT_MUTED);
+                lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
+                lbl.setBorder(new CompoundBorder(
+                        new MatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
+                        new EmptyBorder(6, 12, 6, 12)
+                ));
+                lbl.setOpaque(true);
+                return lbl;
+            }
+        };
+        table.getTableHeader().setDefaultRenderer(headerRenderer);
+
+        DefaultTableCellRenderer rowRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int col) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(t, value, isSelected, hasFocus, row, col);
+                lbl.setBorder(new EmptyBorder(0, 12, 0, 12));
+                if (isSelected) {
+                    lbl.setBackground(TABLE_SELECT);
+                    lbl.setForeground(TABLE_SELECT_FG);
+                } else {
+                    lbl.setBackground(row % 2 == 0 ? TABLE_EVEN_ROW : TABLE_ALT_ROW);
+                    lbl.setForeground(TEXT_PRIMARY);
+                }
+                return lbl;
+            }
+        };
+        table.setDefaultRenderer(Object.class, rowRenderer);
+        table.setDefaultRenderer(Integer.class, rowRenderer);
+    }
+
+    private JPanel createKpiStatCard(String label, String value, String subtext, Color accent, VectorIcon.Kind iconKind) {
+        JPanel card = createCardPanel(new BorderLayout(10, 6));
+        card.setBorder(new EmptyBorder(14, 16, 14, 16));
+
+        JPanel topRow = new JPanel(new BorderLayout());
+        topRow.setOpaque(false);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
+        lbl.setForeground(TEXT_MUTED);
+
+        JLabel iconBox = new JLabel(new VectorIcon(iconKind, 15, accent));
+        topRow.add(lbl, BorderLayout.WEST);
+        topRow.add(iconBox, BorderLayout.EAST);
+
+        JLabel valLbl = new JLabel(value);
+        valLbl.setFont(new Font("SansSerif", Font.BOLD, 26));
+        valLbl.setForeground(TEXT_PRIMARY);
+
+        JLabel subLbl = new JLabel(subtext);
+        subLbl.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        subLbl.setForeground(TEXT_SECONDARY);
+
+        card.add(topRow, BorderLayout.NORTH);
+        card.add(valLbl, BorderLayout.CENTER);
+        card.add(subLbl, BorderLayout.SOUTH);
+        return card;
+    }
 
     /**
-     * Crisp Lucide-style 2D vector icons drawn with Graphics2D (DPI-sharp, zero emoji glitches).
+     * Crisp Lucide-style 2D vector icons drawn with Graphics2D.
      */
     private static class VectorIcon implements Icon {
-        enum Kind { USERS, CHART, DUMBBELL, SHIELD, BELL, SEARCH, PLUS, REFRESH, EDIT, TRASH, DOWNLOAD, LOGOUT }
+        enum Kind { USERS, CHART, DUMBBELL, SHIELD, BELL, SEARCH, PLUS, REFRESH, EDIT, TRASH, DOWNLOAD, LOGOUT, SUN, MOON, CHECK }
 
         private final Kind kind;
         private final int size;
@@ -3818,7 +1562,7 @@ public final class gymsyncapp extends JFrame {
             String s = label != null ? label.toLowerCase(Locale.ROOT) : "";
             if (s.contains("analytics") || s.contains("report")) return Kind.CHART;
             if (s.contains("exercise") || s.contains("workout")) return Kind.DUMBBELL;
-            if (s.contains("account") || s.contains("admin")) return Kind.SHIELD;
+            if (s.contains("account") || s.contains("staff") || s.contains("admin")) return Kind.SHIELD;
             if (s.contains("alert") || s.contains("expiry")) return Kind.BELL;
             return Kind.USERS;
         }
@@ -3914,214 +1658,24 @@ public final class gymsyncapp extends JFrame {
                     g2.draw(new java.awt.geom.Line2D.Double(10.5, 5, 13.5, 8));
                     g2.draw(new java.awt.geom.Line2D.Double(10.5, 11, 13.5, 8));
                     break;
+                case SUN:
+                    g2.drawOval(5, 5, 6, 6);
+                    g2.drawLine(8, 1, 8, 3);
+                    g2.drawLine(8, 13, 8, 15);
+                    g2.drawLine(1, 8, 3, 8);
+                    g2.drawLine(13, 8, 15, 8);
+                    break;
+                case MOON:
+                    g2.drawArc(3, 2, 10, 12, 70, 210);
+                    g2.drawArc(6, 3, 7, 10, 100, 150);
+                    break;
+                case CHECK:
+                    g2.draw(new java.awt.geom.Line2D.Double(3, 8.5, 6.5, 12));
+                    g2.draw(new java.awt.geom.Line2D.Double(6.5, 12, 13, 4.5));
+                    break;
             }
             g2.dispose();
         }
-    }
-
-    private static void attachFocusBorder(JTextField field) {
-        final Border unfocused = new CompoundBorder(
-                new LineBorder(BORDER_SUBTLE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        );
-        final Border focused = new CompoundBorder(
-                new LineBorder(NEON_EMERALD, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        );
-        field.setBorder(unfocused);
-        field.addFocusListener(new FocusAdapter() {
-            @Override public void focusGained(FocusEvent e) { field.setBorder(focused); }
-            @Override public void focusLost(FocusEvent e) { field.setBorder(unfocused); }
-        });
-    }
-
-    private JTextField createDarkTextField(String text) {
-        JTextField tf = new JTextField(text);
-        tf.setBackground(INPUT_BG);
-        tf.setForeground(TEXT_PRIMARY);
-        tf.setCaretColor(NEON_EMERALD);
-        tf.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        attachFocusBorder(tf);
-        return tf;
-    }
-
-    private JPasswordField createDarkPasswordField() {
-        JPasswordField pf = new JPasswordField();
-        pf.setBackground(INPUT_BG);
-        pf.setForeground(TEXT_PRIMARY);
-        pf.setCaretColor(NEON_EMERALD);
-        pf.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        attachFocusBorder(pf);
-        return pf;
-    }
-
-    private <T> JComboBox<T> createDarkComboBox(T[] items) {
-        JComboBox<T> cb = new JComboBox<>(items);
-        cb.setBackground(INPUT_BG);
-        cb.setForeground(TEXT_PRIMARY);
-        cb.setFont(new Font("SansSerif", Font.BOLD, 12));
-        cb.setBorder(new LineBorder(BORDER_SUBTLE, 1, true));
-        return cb;
-    }
-
-    private JButton createStyledButton(String text, Color bg, Color fg) {
-        return createGradientButton(text, bg, bg, fg);
-    }
-
-    private JButton createGradientButton(String text, Color gradStart, Color gradEnd) {
-        return createGradientButton(text, gradStart, gradEnd, Color.WHITE);
-    }
-
-    private JButton createGradientButton(String text, Color c1, Color c2, Color fg) {
-        JButton b = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                ButtonModel m = getModel();
-                Color fill = c1;
-                if (m.isPressed()) {
-                    fill = c1.darker();
-                } else if (m.isRollover()) {
-                    fill = brighten(c1, 16);
-                }
-                g2.setColor(fill);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.setColor(new Color(255, 255, 255, 22));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        b.setForeground(fg);
-        b.setContentAreaFilled(false);
-        b.setOpaque(false);
-        b.setFocusPainted(false);
-        b.setBorderPainted(false);
-        b.setFont(new Font("SansSerif", Font.BOLD, 12));
-        b.setBorder(new EmptyBorder(9, 15, 9, 15));
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return b;
-    }
-
-    private static Color brighten(Color c, int delta) {
-        return new Color(
-                Math.min(255, c.getRed() + delta),
-                Math.min(255, c.getGreen() + delta),
-                Math.min(255, c.getBlue() + delta)
-        );
-    }
-
-    private JScrollPane wrapDarkScrollPane(JTable table) {
-        JScrollPane sp = new JScrollPane(table);
-        sp.getViewport().setBackground(TABLE_EVEN_ROW);
-        sp.setBackground(CARD_SURFACE);
-        sp.setBorder(new LineBorder(BORDER_SUBTLE, 1, true));
-        return sp;
-    }
-
-    private void styleTable(JTable table) {
-        table.setRowHeight(36);
-        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        table.setForeground(TEXT_PRIMARY);
-        table.setBackground(TABLE_EVEN_ROW);
-        table.setFillsViewportHeight(true);
-        table.setSelectionBackground(TABLE_SELECT);
-        table.setSelectionForeground(Color.WHITE);
-        table.setGridColor(new Color(38, 50, 72));
-        table.setShowHorizontalLines(true);
-        table.setShowVerticalLines(false);
-        table.setIntercellSpacing(new Dimension(0, 1));
-
-        DefaultTableCellRenderer headerRenderer = new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable t, Object value,
-                                                           boolean isSelected, boolean hasFocus, int row, int col) {
-                JLabel lbl = (JLabel) super.getTableCellRendererComponent(t, value, isSelected, hasFocus, row, col);
-                lbl.setBackground(BG_SURFACE);
-                lbl.setForeground(TEXT_SECONDARY);
-                lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
-                lbl.setHorizontalAlignment(SwingConstants.LEFT);
-                lbl.setBorder(new CompoundBorder(
-                        new MatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
-                        new EmptyBorder(8, 10, 8, 10)
-                ));
-                lbl.setOpaque(true);
-                return lbl;
-            }
-        };
-        table.getTableHeader().setDefaultRenderer(headerRenderer);
-        table.getTableHeader().setPreferredSize(new Dimension(0, 38));
-        table.getTableHeader().setReorderingAllowed(false);
-
-        DefaultTableCellRenderer stripedRenderer = new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable t, Object value,
-                                                           boolean isSelected, boolean hasFocus, int row, int col) {
-                JLabel lbl = (JLabel) super.getTableCellRendererComponent(t, value, isSelected, hasFocus, row, col);
-                if (isSelected) {
-                    lbl.setBackground(TABLE_SELECT);
-                    lbl.setForeground(Color.WHITE);
-                } else {
-                    lbl.setBackground(row % 2 == 0 ? TABLE_EVEN_ROW : TABLE_ALT_ROW);
-                    lbl.setForeground(TEXT_PRIMARY);
-                }
-                lbl.setBorder(new EmptyBorder(0, 10, 0, 10));
-                lbl.setOpaque(true);
-                return lbl;
-            }
-        };
-        table.setDefaultRenderer(Object.class, stripedRenderer);
-        table.setDefaultRenderer(Integer.class, stripedRenderer);
-    }
-
-    private JPanel createGradientKpiCard(String title, String bigValue, String subtitle, Color c1, Color c2) {
-        final Color accent = (c2 != null) ? c2 : NEON_EMERALD;
-        RoundedCardPanel card = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(accent);
-                g2.fillRoundRect(16, 12, 24, 3, 2, 2);
-                g2.dispose();
-            }
-        };
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(22, 18, 16, 18));
-
-        JLabel t = new JLabel(title);
-        t.setFont(new Font("SansSerif", Font.BOLD, 11));
-        t.setForeground(TEXT_MUTED);
-
-        JLabel v = new JLabel(bigValue);
-        v.setFont(new Font("SansSerif", Font.BOLD, 28));
-        v.setForeground(TEXT_PRIMARY);
-
-        JLabel s = new JLabel(subtitle);
-        s.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        s.setForeground(TEXT_SECONDARY);
-
-        card.add(t);
-        card.add(Box.createVerticalStrut(6));
-        card.add(v);
-        card.add(Box.createVerticalStrut(4));
-        card.add(s);
-        return card;
-    }
-
-    private JPanel wrapReportTable(String title, JTable table) {
-        styleTable(table);
-        RoundedCardPanel box = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 20);
-        box.setLayout(new BorderLayout(0, 10));
-        box.setBorder(new EmptyBorder(14, 14, 14, 14));
-        JLabel lbl = new JLabel(title);
-        lbl.setFont(new Font("SansSerif", Font.BOLD, 14));
-        lbl.setForeground(TEXT_PRIMARY);
-        box.add(lbl, BorderLayout.NORTH);
-        box.add(wrapDarkScrollPane(table), BorderLayout.CENTER);
-        return box;
     }
 
     private static class StatusBadgeRenderer extends DefaultTableCellRenderer {
@@ -4129,7 +1683,9 @@ public final class gymsyncapp extends JFrame {
         public Component getTableCellRendererComponent(JTable table, Object value,
                                                        boolean isSelected, boolean hasFocus, int row, int column) {
             final String st = value != null ? value.toString() : "";
-            JLabel lbl = new JLabel(st.toUpperCase(), SwingConstants.CENTER) {
+            final boolean isAct = "Active".equalsIgnoreCase(st);
+            final boolean isExpSoon = st.toLowerCase(Locale.ROOT).contains("expiring");
+            JLabel lbl = new JLabel(isAct ? "Active" : (isExpSoon ? "Expiring" : "Expired"), SwingConstants.CENTER) {
                 @Override
                 protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
@@ -4138,73 +1694,2259 @@ public final class gymsyncapp extends JFrame {
                     g2.fillRect(0, 0, getWidth(), getHeight());
 
                     Color pillBg;
-                    if ("Active".equalsIgnoreCase(st)) {
-                        pillBg = new Color(16, 185, 129, 45);
-                    } else if (st.toLowerCase(Locale.ROOT).contains("expiring")) {
-                        pillBg = new Color(245, 158, 11, 50);
+                    if (isAct) {
+                        pillBg = darkMode ? new Color(16, 185, 129, 36) : new Color(236, 253, 245);
+                    } else if (isExpSoon) {
+                        pillBg = darkMode ? new Color(245, 158, 11, 38) : new Color(254, 243, 199);
                     } else {
-                        pillBg = new Color(244, 63, 94, 50);
+                        pillBg = darkMode ? new Color(244, 63, 94, 38) : new Color(255, 241, 242);
                     }
                     g2.setColor(pillBg);
-                    g2.fillRoundRect(8, 5, getWidth() - 16, getHeight() - 10, 14, 14);
+                    g2.fillRoundRect(10, 7, Math.max(0, getWidth() - 20), Math.max(0, getHeight() - 14), 12, 12);
                     g2.dispose();
                     super.paintComponent(g);
                 }
             };
             lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
-            if ("Active".equalsIgnoreCase(st)) {
-                lbl.setForeground(NEON_EMERALD);
-                lbl.setText("● ACTIVE");
-            } else if (st.toLowerCase(Locale.ROOT).contains("expiring")) {
-                lbl.setForeground(AMBER_GOLD);
-                lbl.setText("● EXPIRING");
-            } else {
-                lbl.setForeground(CORAL_RED);
-                lbl.setText("● EXPIRED");
-            }
+            lbl.setForeground(isAct ? NEON_EMERALD : (isExpSoon ? AMBER_GOLD : CORAL_RED));
             return lbl;
         }
     }
 
-    public static void main(String[] args) {
-        try {
-            boolean flatLafLoaded = false;
-            try {
-                Class<?> flatLaf = Class.forName("com.formdev.flatlaf.FlatDarkLaf");
-                Object ok = flatLaf.getMethod("setup").invoke(null);
-                flatLafLoaded = Boolean.TRUE.equals(ok);
-            } catch (ReflectiveOperationException ignored) {
-                flatLafLoaded = false;
-            }
-            if (!flatLafLoaded) {
-                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-            } else {
-                UIManager.put("Component.arc", 8);
-                UIManager.put("Button.arc", 8);
-                UIManager.put("TextComponent.arc", 8);
-                UIManager.put("Component.focusWidth", 1);
-                UIManager.put("Component.focusColor", NEON_EMERALD);
-                UIManager.put("Component.focusedBorderColor", NEON_EMERALD);
-                UIManager.put("Component.borderColor", BORDER_SUBTLE);
-                UIManager.put("ScrollBar.width", 10);
-                UIManager.put("ScrollBar.showButtons", false);
-                UIManager.put("ScrollBar.thumbArc", 999);
-                UIManager.put("ScrollBar.track", BG_SURFACE);
-                UIManager.put("ScrollBar.thumb", CARD_HIGHLIGHT);
-                UIManager.put("ComboBox.background", INPUT_BG);
-                UIManager.put("ComboBox.foreground", TEXT_PRIMARY);
-                UIManager.put("ComboBox.buttonBackground", CARD_HIGHLIGHT);
-                UIManager.put("ComboBox.selectionBackground", TABLE_SELECT);
-                UIManager.put("PopupMenu.background", CARD_SURFACE);
-                UIManager.put("PopupMenu.borderColor", BORDER_SUBTLE);
-            }
-            UIManager.put("Panel.background", BG_OBSIDIAN);
-            UIManager.put("OptionPane.background", CARD_SURFACE);
-            UIManager.put("OptionPane.messageForeground", TEXT_PRIMARY);
-            UIManager.put("Label.foreground", TEXT_PRIMARY);
-        } catch (Exception ex) {
-            System.err.println("[UI] LookAndFeel setup warning: " + ex.getMessage());
+    private static class MachineBadgeRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+            final String text = value != null ? value.toString() : "";
+            final boolean isMachine = text.toLowerCase(Locale.ROOT).contains("machine") || text.startsWith("⚙");
+            String clean = text.replace("⚙ ", "").replace("✓ ", "");
+            JLabel lbl = new JLabel(clean, SwingConstants.LEFT) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(isSelected ? TABLE_SELECT : (row % 2 == 0 ? TABLE_EVEN_ROW : TABLE_ALT_ROW));
+                    g2.fillRect(0, 0, getWidth(), getHeight());
+                    Color bg = isMachine
+                            ? (darkMode ? new Color(56, 139, 253, 30) : new Color(239, 246, 255))
+                            : (darkMode ? new Color(16, 185, 129, 30) : new Color(236, 253, 245));
+                    g2.setColor(bg);
+                    g2.fillRoundRect(6, 7, Math.max(0, getWidth() - 12), Math.max(0, getHeight() - 14), 10, 10);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            lbl.setBorder(new EmptyBorder(0, 14, 0, 12));
+            lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
+            lbl.setForeground(isMachine ? ELECTRIC_INDIGO : NEON_EMERALD);
+            return lbl;
         }
+    }
+
+    /**
+     * Real Swing-component Member Inspector Panel with embedded quick actions.
+     */
+    private class MemberInspectorPanel extends JPanel {
+        private final JPanel avatarCircle;
+        private final JLabel lblInitials = new JLabel("--", SwingConstants.CENTER);
+        private final JLabel lblName = new JLabel("Select a Member");
+        private final JLabel lblMeta = new JLabel("Click any row to inspect");
+        private final JLabel lblStatusPill = new JLabel("NO SELECTION", SwingConstants.CENTER);
+        private final JLabel lblCycleDays = new JLabel("--");
+        private final JProgressBar cycleBar = new JProgressBar(0, 30);
+
+        private final JLabel valLevel = new JLabel("-");
+        private final JLabel valGender = new JLabel("-");
+        private final JLabel valContact = new JLabel("-");
+        private final JLabel valEmergency = new JLabel("-");
+        private final JLabel valPeriod = new JLabel("-");
+        private final JLabel valNextRenewal = new JLabel("-");
+
+        private final JButton btnRenew;
+        private final JButton btnEdit;
+        private final JButton btnDelete;
+        private User activeMember;
+
+        MemberInspectorPanel(boolean allowDelete, java.util.function.Consumer<User> onRenew,
+                             java.util.function.Consumer<User> onEdit, java.util.function.Consumer<User> onDelete) {
+            setLayout(new BorderLayout(0, 14));
+            setBackground(CARD_SURFACE);
+            setBorder(new EmptyBorder(18, 18, 18, 18));
+            setPreferredSize(new Dimension(340, 0));
+            putClientProperty("FlatLaf.style",
+                    "background: " + hex(CARD_SURFACE) + "; border: 1,1,1,1," + hex(BORDER_SUBTLE) + ",1,10");
+
+            // Header: Avatar + Name + Status
+            JPanel header = new JPanel(new BorderLayout(12, 8));
+            header.setOpaque(false);
+
+            avatarCircle = new JPanel(new BorderLayout()) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(getBackground());
+                    g2.fillOval(0, 0, getWidth(), getHeight());
+                    g2.dispose();
+                }
+            };
+            avatarCircle.setOpaque(false);
+            avatarCircle.setPreferredSize(new Dimension(46, 46));
+            avatarCircle.setBackground(CARD_HIGHLIGHT);
+            lblInitials.setFont(new Font("SansSerif", Font.BOLD, 16));
+            lblInitials.setForeground(TEXT_PRIMARY);
+            avatarCircle.add(lblInitials, BorderLayout.CENTER);
+
+            JPanel nameStack = new JPanel(new GridLayout(2, 1, 0, 2));
+            nameStack.setOpaque(false);
+            lblName.setFont(new Font("SansSerif", Font.BOLD, 16));
+            lblName.setForeground(TEXT_PRIMARY);
+            lblMeta.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            lblMeta.setForeground(TEXT_MUTED);
+            nameStack.add(lblName);
+            nameStack.add(lblMeta);
+
+            JPanel topIdentity = new JPanel(new BorderLayout(12, 0));
+            topIdentity.setOpaque(false);
+            topIdentity.add(avatarCircle, BorderLayout.WEST);
+            topIdentity.add(nameStack, BorderLayout.CENTER);
+
+            lblStatusPill.setFont(new Font("SansSerif", Font.BOLD, 11));
+            lblStatusPill.setOpaque(true);
+            lblStatusPill.setBorder(new EmptyBorder(5, 10, 5, 10));
+
+            header.add(topIdentity, BorderLayout.NORTH);
+            header.add(lblStatusPill, BorderLayout.SOUTH);
+
+            // Body: Cycle Progress + Hairline Metadata
+            JPanel body = new JPanel();
+            body.setOpaque(false);
+            body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+
+            JPanel cycleHead = new JPanel(new BorderLayout());
+            cycleHead.setOpaque(false);
+            cycleHead.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
+            JLabel lblCycleTitle = new JLabel("MEMBERSHIP CYCLE");
+            lblCycleTitle.setFont(new Font("SansSerif", Font.BOLD, 10));
+            lblCycleTitle.setForeground(TEXT_MUTED);
+            lblCycleDays.setFont(new Font("SansSerif", Font.BOLD, 11));
+            cycleHead.add(lblCycleTitle, BorderLayout.WEST);
+            cycleHead.add(lblCycleDays, BorderLayout.EAST);
+
+            cycleBar.setStringPainted(false);
+            cycleBar.setPreferredSize(new Dimension(0, 8));
+            cycleBar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 8));
+
+            body.add(cycleHead);
+            body.add(Box.createVerticalStrut(6));
+            body.add(cycleBar);
+            body.add(Box.createVerticalStrut(14));
+            body.add(makeTwoColMeta("FITNESS LEVEL", valLevel, "GENDER", valGender));
+            body.add(makeDivider());
+            body.add(makeSingleMeta("CONTACT & ADDRESS", valContact));
+            body.add(makeDivider());
+            body.add(makeSingleMeta("EMERGENCY CONTACT", valEmergency));
+            body.add(makeDivider());
+            body.add(makeSingleMeta("CURRENT 1-MONTH PERIOD", valPeriod));
+            body.add(makeDivider());
+            body.add(makeSingleMeta("NEXT RENEWAL WINDOW", valNextRenewal));
+
+            // Embedded Quick Actions Footer
+            JPanel footer = new JPanel(new GridLayout(allowDelete ? 2 : 1, 1, 0, 8));
+            footer.setOpaque(false);
+            JPanel primaryRow = new JPanel(new GridLayout(1, 2, 8, 0));
+            primaryRow.setOpaque(false);
+
+            btnRenew = createPrimaryButton("Renew +1 Mo", VectorIcon.Kind.REFRESH);
+            btnEdit = createSecondaryButton("Edit Profile", VectorIcon.Kind.EDIT, TEXT_SECONDARY);
+            btnDelete = createDangerButton("Delete Member", VectorIcon.Kind.TRASH);
+
+            btnRenew.addActionListener(e -> { if (activeMember != null) onRenew.accept(activeMember); });
+            btnEdit.addActionListener(e -> { if (activeMember != null) onEdit.accept(activeMember); });
+            btnDelete.addActionListener(e -> { if (activeMember != null) onDelete.accept(activeMember); });
+
+            primaryRow.add(btnRenew);
+            primaryRow.add(btnEdit);
+            footer.add(primaryRow);
+            if (allowDelete) {
+                footer.add(btnDelete);
+            }
+
+            add(header, BorderLayout.NORTH);
+            add(body, BorderLayout.CENTER);
+            add(footer, BorderLayout.SOUTH);
+            setMemberData(null, null);
+        }
+
+        private JPanel makeDivider() {
+            JPanel d = new JPanel();
+            d.setBackground(BORDER_SUBTLE);
+            d.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+            d.setPreferredSize(new Dimension(0, 1));
+            JPanel wrap = new JPanel(new BorderLayout());
+            wrap.setOpaque(false);
+            wrap.setBorder(new EmptyBorder(8, 0, 8, 0));
+            wrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 17));
+            wrap.add(d, BorderLayout.CENTER);
+            return wrap;
+        }
+
+        private JPanel makeSingleMeta(String title, JLabel val) {
+            JPanel p = new JPanel(new BorderLayout(0, 2));
+            p.setOpaque(false);
+            p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+            JLabel t = new JLabel(title);
+            t.setFont(new Font("SansSerif", Font.BOLD, 10));
+            t.setForeground(TEXT_MUTED);
+            val.setFont(new Font("SansSerif", Font.PLAIN, 13));
+            val.setForeground(TEXT_PRIMARY);
+            p.add(t, BorderLayout.NORTH);
+            p.add(val, BorderLayout.CENTER);
+            return p;
+        }
+
+        private JPanel makeTwoColMeta(String t1, JLabel v1, String t2, JLabel v2) {
+            JPanel row = new JPanel(new GridLayout(1, 2, 12, 0));
+            row.setOpaque(false);
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+            row.add(makeSingleMeta(t1, v1));
+            row.add(makeSingleMeta(t2, v2));
+            return row;
+        }
+
+        void setMemberData(User member, Membership latest) {
+            this.activeMember = member;
+            boolean hasMember = member != null;
+            btnRenew.setEnabled(hasMember);
+            btnEdit.setEnabled(hasMember);
+            btnDelete.setEnabled(hasMember);
+
+            if (!hasMember) {
+                lblInitials.setText("--");
+                avatarCircle.setBackground(CARD_HIGHLIGHT);
+                lblName.setText("No Member Selected");
+                lblMeta.setText("Select a row in the directory");
+                lblStatusPill.setText("READY");
+                lblStatusPill.setBackground(CARD_HIGHLIGHT);
+                lblStatusPill.setForeground(TEXT_MUTED);
+                lblCycleDays.setText("--");
+                lblCycleDays.setForeground(TEXT_MUTED);
+                cycleBar.setValue(0);
+                valLevel.setText("-");
+                valGender.setText("-");
+                valContact.setText("-");
+                valEmergency.setText("-");
+                valPeriod.setText("-");
+                valNextRenewal.setText("-");
+                return;
+            }
+
+            LocalDate today = LocalDate.now();
+            String status = latest != null ? latest.getComputedStatus(today) : "Expired";
+            boolean isActive = "Active".equalsIgnoreCase(status);
+            long daysLeft = latest != null ? latest.getDaysRemaining(today) : -999;
+
+            lblInitials.setText(member.getInitials());
+            lblInitials.setForeground(isActive ? NEON_EMERALD : CORAL_RED);
+            avatarCircle.setBackground(isActive
+                    ? (darkMode ? new Color(16, 185, 129, 40) : new Color(236, 253, 245))
+                    : (darkMode ? new Color(244, 63, 94, 40) : new Color(255, 241, 242)));
+            lblName.setText(member.getFullName());
+            lblMeta.setText("@" + member.username + "  •  Member #" + member.userId);
+
+            lblStatusPill.setText(isActive ? "ACTIVE PASS — ENTRY CLEARED" : "EXPIRED PASS — RENEWAL NEEDED");
+            lblStatusPill.setForeground(isActive ? NEON_EMERALD : CORAL_RED);
+            lblStatusPill.setBackground(isActive
+                    ? (darkMode ? new Color(16, 185, 129, 32) : new Color(236, 253, 245))
+                    : (darkMode ? new Color(244, 63, 94, 32) : new Color(255, 241, 242)));
+
+            lblCycleDays.setText(latest != null
+                    ? (daysLeft >= 0 ? daysLeft + " of 30 days left" : Math.abs(daysLeft) + " days overdue")
+                    : "No Record");
+            lblCycleDays.setForeground(isActive ? NEON_EMERALD : CORAL_RED);
+            cycleBar.setValue(isActive ? (int) Math.max(2, Math.min(30, daysLeft)) : 30);
+            cycleBar.setForeground(isActive ? NEON_EMERALD : CORAL_RED);
+
+            valLevel.setText(member.fitnessLevel != null ? member.fitnessLevel : "Beginner");
+            valGender.setText(member.gender != null ? member.gender : "Unspecified");
+            valContact.setText(member.contactNo + ((member.address != null && !member.address.isEmpty()) ? (" • " + member.address) : ""));
+            valEmergency.setText((member.emergencyContactName != null ? member.emergencyContactName : "N/A") +
+                    " (" + (member.emergencyContactNo != null ? member.emergencyContactNo : "N/A") + ")");
+            valPeriod.setText(latest != null ? (latest.startDate + "  ->  " + latest.endDate) : "No active period");
+            LocalDate[] nextR = BusinessRules.calculateRenewalDates(latest != null ? latest.endDate : null, today);
+            valNextRenewal.setText(nextR[0] + "  ->  " + nextR[1]);
+        }
+    }
+
+    /**
+     * Animated Workout Demonstration & Target Muscle Anatomy Card (Light & Dark aware).
+     */
+    private class WorkoutVisualCard extends JPanel {
+        private Exercise exercise;
+        private int animTick = 0;
+        private final javax.swing.Timer animTimer;
+        private ImageIcon loadedGifIcon;
+        private String loadedSourceLabel = "";
+
+        public WorkoutVisualCard() {
+            setOpaque(false);
+            setPreferredSize(new Dimension(360, 0));
+            setLayout(new BorderLayout());
+
+            JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
+            bottomBar.setOpaque(false);
+            JButton btnLocalGif = createSecondaryButton("Local GIF / File", VectorIcon.Kind.DOWNLOAD, TEXT_SECONDARY);
+            JButton btnUrlGif   = createSecondaryButton("Sync GIF URL", VectorIcon.Kind.REFRESH, TEXT_SECONDARY);
+            btnLocalGif.addActionListener(e -> {
+                if (exercise == null) return;
+                JFileChooser fc = new JFileChooser();
+                fc.setDialogTitle("Select Animated Workout GIF or PNG Image");
+                if (fc.showOpenDialog(gymsyncapp.this) == JFileChooser.APPROVE_OPTION) {
+                    exercise.customGifOrImagePath = fc.getSelectedFile().getAbsolutePath();
+                    loadGifForExercise(exercise);
+                }
+            });
+            btnUrlGif.addActionListener(e -> {
+                if (exercise == null) return;
+                String urlStr = JOptionPane.showInputDialog(gymsyncapp.this,
+                        "Paste direct GIF/Image URL to download and cache offline for '" + exercise.name + "':",
+                        "Sync Online GIF to Offline Cache", JOptionPane.QUESTION_MESSAGE);
+                if (urlStr == null || urlStr.trim().isEmpty()) return;
+                final String trimmedUrl = urlStr.trim();
+                new SwingWorker<java.io.File, Void>() {
+                    @Override
+                    protected java.io.File doInBackground() throws Exception {
+                        java.io.File imgDir = new java.io.File("images");
+                        if (!imgDir.exists()) imgDir.mkdirs();
+                        java.io.File dest = new java.io.File(imgDir, exercise.getDefaultGifFilename());
+                        try (java.io.InputStream in = java.net.URI.create(trimmedUrl).toURL().openStream()) {
+                            java.nio.file.Files.copy(in, dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        }
+                        return dest;
+                    }
+                    @Override
+                    protected void done() {
+                        try {
+                            java.io.File dest = get();
+                            exercise.customGifOrImagePath = dest.getAbsolutePath();
+                            loadGifForExercise(exercise);
+                            JOptionPane.showMessageDialog(gymsyncapp.this,
+                                    "Cached offline to:\n" + dest.getPath(),
+                                    "GIF Synced", JOptionPane.INFORMATION_MESSAGE);
+                        } catch (Exception ex) {
+                            Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                            JOptionPane.showMessageDialog(gymsyncapp.this,
+                                    "Could not download URL (" + cause.getMessage() + "). Using built-in motion preview.",
+                                    "Offline Fallback", JOptionPane.WARNING_MESSAGE);
+                        }
+                    }
+                }.execute();
+            });
+            bottomBar.add(btnLocalGif);
+            bottomBar.add(btnUrlGif);
+            add(bottomBar, BorderLayout.SOUTH);
+
+            animTimer = new javax.swing.Timer(45, e -> {
+                animTick = (animTick + 1) % 360;
+                repaint();
+            });
+            animTimer.start();
+        }
+
+        public void setExercise(Exercise ex) {
+            this.exercise = ex;
+            loadGifForExercise(ex);
+            repaint();
+        }
+
+        private void loadGifForExercise(Exercise ex) {
+            loadedGifIcon = null;
+            loadedSourceLabel = "";
+            if (ex == null) return;
+            java.util.List<java.io.File> candidates = new ArrayList<>();
+            if (ex.customGifOrImagePath != null && !ex.customGifOrImagePath.isEmpty()) {
+                candidates.add(new java.io.File(ex.customGifOrImagePath));
+            }
+            candidates.add(new java.io.File("images", ex.getDefaultGifFilename()));
+            for (java.io.File f : candidates) {
+                if (f.exists() && f.isFile() && f.length() > 0) {
+                    ImageIcon icon = new ImageIcon(f.getAbsolutePath());
+                    if (icon.getIconWidth() > 0) {
+                        loadedGifIcon = icon;
+                        loadedSourceLabel = f.getName();
+                        return;
+                    }
+                }
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+            g2.setColor(CARD_SURFACE);
+            g2.fillRoundRect(0, 0, w - 1, h - 1, 12, 12);
+            g2.setColor(BORDER_SUBTLE);
+            g2.drawRoundRect(0, 0, w - 1, h - 1, 12, 12);
+
+            if (exercise == null) {
+                g2.setColor(NEON_EMERALD);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+                g2.drawString("WORKOUT & MUSCLE TARGET PREVIEW", 20, 34);
+                g2.setColor(TEXT_SECONDARY);
+                g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
+                g2.drawString("Select any exercise row to preview", 20, 66);
+                g2.drawString("muscle targeting, form cues, and", 20, 86);
+                g2.drawString("machine requirements.", 20, 106);
+                g2.dispose();
+                return;
+            }
+
+            boolean needsMachine = exercise.requiresMachine();
+            Color headerAccent = needsMachine ? ELECTRIC_INDIGO : NEON_EMERALD;
+
+            g2.setColor(darkMode ? BG_OBSIDIAN : new Color(248, 250, 252));
+            g2.fillRoundRect(12, 12, w - 24, 78, 10, 10);
+            g2.setColor(BORDER_SUBTLE);
+            g2.drawRoundRect(12, 12, w - 24, 78, 10, 10);
+
+            g2.setColor(TEXT_PRIMARY);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 15));
+            String title = exercise.name.length() > 32 ? exercise.name.substring(0, 29) + "..." : exercise.name;
+            g2.drawString(title, 22, 38);
+
+            String machTag = needsMachine
+                    ? "MACHINE: " + exercise.equipment.replace("Machine: ", "")
+                    : "NO MACHINE (" + exercise.equipment.toUpperCase(Locale.ROOT) + ")";
+            g2.setColor(headerAccent);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+            g2.drawString(machTag.length() > 44 ? machTag.substring(0, 41) + "..." : machTag, 22, 62);
+            g2.setColor(TEXT_MUTED);
+            g2.drawString(exercise.muscleGroup + "  •  " + exercise.difficulty, 22, 79);
+
+            int canvasY = 102;
+            int canvasH = 215;
+            g2.setColor(darkMode ? new Color(13, 17, 23) : new Color(248, 250, 252));
+            g2.fillRoundRect(12, canvasY, w - 24, canvasH, 10, 10);
+            g2.setColor(BORDER_SUBTLE);
+            g2.drawRoundRect(12, canvasY, w - 24, canvasH, 10, 10);
+
+            g2.setColor(TEXT_MUTED);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+            g2.drawString("MUSCLE MAP", 24, canvasY + 18);
+            g2.drawString("FORM MOTION", w / 2 + 8, canvasY + 18);
+            g2.setColor(BORDER_SUBTLE);
+            g2.drawLine(w / 2, canvasY + 10, w / 2, canvasY + canvasH - 10);
+
+            drawMuscleAnatomyDiagram(g2, 24, canvasY + 26, (w / 2) - 34, canvasH - 36, exercise.muscleGroup);
+
+            if (loadedGifIcon != null && loadedGifIcon.getIconWidth() > 0) {
+                int imgX = w / 2 + 12;
+                int imgY = canvasY + 26;
+                int imgW = (w / 2) - 32;
+                int imgH = canvasH - 52;
+                g2.drawImage(loadedGifIcon.getImage(), imgX, imgY, imgW, imgH, this);
+                g2.setColor(NEON_EMERALD);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+                g2.drawString(loadedSourceLabel, imgX, canvasY + canvasH - 10);
+            } else {
+                drawLiveExerciseAnimation(g2, w / 2 + 10, canvasY + 26, (w / 2) - 28, canvasH - 36, exercise.name);
+            }
+
+            int infoY = canvasY + canvasH + 12;
+            g2.setColor(TEXT_MUTED);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+            g2.drawString("EXECUTION CUES", 16, infoY + 12);
+            g2.setColor(TEXT_PRIMARY);
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            drawWrappedText(g2, exercise.description, 16, infoY + 30, w - 32, 17);
+            g2.dispose();
+        }
+
+        private void drawMuscleAnatomyDiagram(Graphics2D g2, int x, int y, int w, int h, String muscleGroup) {
+            int cx = x + w / 2;
+            int top = y + 10;
+            double pulse = 0.55 + 0.45 * Math.sin(animTick * 0.14);
+            Color glow = new Color(CORAL_RED.getRed(), CORAL_RED.getGreen(), CORAL_RED.getBlue(), (int) (130 + 115 * pulse));
+            Color baseBody = darkMode ? new Color(56, 66, 82) : new Color(203, 213, 225);
+
+            g2.setColor(baseBody);
+            g2.fillOval(cx - 10, top, 20, 20);
+            g2.fillRoundRect(cx - 17, top + 24, 34, 48, 12, 12);
+            g2.fillRoundRect(cx - 28, top + 26, 9, 44, 6, 6);
+            g2.fillRoundRect(cx + 19, top + 26, 9, 44, 6, 6);
+            g2.fillRoundRect(cx - 15, top + 76, 12, 54, 8, 8);
+            g2.fillRoundRect(cx + 3, top + 76, 12, 54, 8, 8);
+
+            String mg = muscleGroup != null ? muscleGroup.toLowerCase(Locale.ROOT) : "";
+            g2.setColor(glow);
+            if (mg.contains("chest")) {
+                g2.fillRoundRect(cx - 15, top + 27, 13, 15, 5, 5);
+                g2.fillRoundRect(cx + 2, top + 27, 13, 15, 5, 5);
+            } else if (mg.contains("back")) {
+                g2.fillPolygon(new int[]{cx - 17, cx + 17, cx + 9, cx - 9},
+                        new int[]{top + 26, top + 26, top + 58, top + 58}, 4);
+            } else if (mg.contains("shoulder")) {
+                g2.fillOval(cx - 27, top + 22, 14, 14);
+                g2.fillOval(cx + 13, top + 22, 14, 14);
+            } else if (mg.contains("arm")) {
+                g2.fillRoundRect(cx - 28, top + 30, 10, 24, 6, 6);
+                g2.fillRoundRect(cx + 18, top + 30, 10, 24, 6, 6);
+            } else if (mg.contains("leg")) {
+                g2.fillRoundRect(cx - 16, top + 76, 14, 38, 8, 8);
+                g2.fillRoundRect(cx + 2, top + 76, 14, 38, 8, 8);
+            } else if (mg.contains("core")) {
+                g2.fillRoundRect(cx - 9, top + 40, 18, 28, 6, 6);
+            } else {
+                g2.fillRoundRect(cx - 14, top + 27, 28, 42, 10, 10);
+                g2.fillRoundRect(cx - 14, top + 78, 11, 34, 6, 6);
+                g2.fillRoundRect(cx + 3, top + 78, 11, 34, 6, 6);
+            }
+            g2.setColor(CORAL_RED);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+            String tag = "TARGET: " + (muscleGroup != null ? muscleGroup.toUpperCase(Locale.ROOT) : "BODY");
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(tag, cx - fm.stringWidth(tag) / 2, top + 148);
+        }
+
+        private void drawLiveExerciseAnimation(Graphics2D g2, int x, int y, int w, int h, String exName) {
+            int cx = x + w / 2;
+            int my = y + h / 2 - 14;
+            double phase = 0.5 * (1.0 - Math.cos(animTick * 0.11));
+            int off = (int) (phase * 22);
+
+            g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            String n = exName != null ? exName.toLowerCase(Locale.ROOT) : "";
+            if (n.contains("squat") || n.contains("leg") || n.contains("lunge") || n.contains("calf")) {
+                int drop = (int) (phase * 22);
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx - 9, my - 36 + drop, 18, 18);
+                g2.setColor(NEON_EMERALD);
+                g2.drawLine(cx, my - 18 + drop, cx, my + 12 + drop);
+                g2.setColor(CORAL_RED);
+                g2.drawLine(cx, my + 12 + drop, cx - 18, my + 24 + drop / 2);
+                g2.drawLine(cx - 18, my + 24 + drop / 2, cx - 14, my + 48);
+                g2.drawLine(cx, my + 12 + drop, cx + 18, my + 24 + drop / 2);
+                g2.drawLine(cx + 18, my + 24 + drop / 2, cx + 14, my + 48);
+            } else if (n.contains("pulldown") || n.contains("row") || n.contains("pull") || n.contains("dip")) {
+                int hy = my - 36 + off;
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx - 9, my - 30, 18, 18);
+                g2.setColor(ELECTRIC_INDIGO);
+                g2.fillRoundRect(cx - 12, my - 12, 24, 30, 6, 6);
+                g2.setColor(CORAL_RED);
+                g2.drawLine(cx - 12, my - 6, cx - 22, hy);
+                g2.drawLine(cx + 12, my - 6, cx + 22, hy);
+                g2.setColor(NEON_EMERALD);
+                g2.drawLine(cx - 28, hy, cx + 28, hy);
+            } else {
+                int by = my - 12 - off;
+                g2.setColor(TEXT_PRIMARY);
+                g2.fillOval(cx - 9, my - 14, 18, 18);
+                g2.setColor(CORAL_RED);
+                g2.fillRoundRect(cx - 14, my + 6, 28, 32, 6, 6);
+                g2.drawLine(cx - 14, my + 12, cx - 26, by);
+                g2.drawLine(cx + 14, my + 12, cx + 26, by);
+                g2.setColor(ELECTRIC_INDIGO);
+                g2.drawLine(cx - 34, by, cx + 34, by);
+                g2.setColor(NEON_EMERALD);
+                g2.fillRoundRect(cx - 38, by - 7, 6, 14, 3, 3);
+                g2.fillRoundRect(cx + 32, by - 7, 6, 14, 3, 3);
+            }
+
+            g2.setColor(BORDER_SUBTLE);
+            g2.fillRoundRect(cx - 46, my + 58, 92, 8, 6, 6);
+            g2.setColor(NEON_EMERALD);
+            g2.fillRoundRect(cx - 46, my + 58, Math.max(10, (int) (92 * (1.0 - phase))), 8, 6, 6);
+        }
+
+        private void drawWrappedText(Graphics2D g2, String text, int x, int y, int maxW, int lineH) {
+            if (text == null) return;
+            FontMetrics fm = g2.getFontMetrics();
+            String[] words = text.split(" ");
+            StringBuilder line = new StringBuilder();
+            int curY = y;
+            for (String w : words) {
+                String test = line.length() == 0 ? w : line + " " + w;
+                if (fm.stringWidth(test) > maxW) {
+                    g2.drawString(line.toString(), x, curY);
+                    line = new StringBuilder(w);
+                    curY += lineH;
+                } else {
+                    line = new StringBuilder(test);
+                }
+            }
+            if (line.length() > 0) g2.drawString(line.toString(), x, curY);
+        }
+    }
+
+    // ========================================================================
+    // 5. SPLIT-SCREEN LOGIN & SIDEBAR WORKSPACE SHELL
+    // ========================================================================
+
+    private void showLoginScreen() {
+        currentUser = null;
+        rootContainer.removeAll();
+        rootContainer.add(buildLoginPanel(), "LOGIN");
+        rootCardLayout.show(rootContainer, "LOGIN");
+        rootContainer.revalidate();
+        rootContainer.repaint();
+    }
+
+    private void routeToRoleDashboard(User user) {
+        if ("Admin".equalsIgnoreCase(user.role)) {
+            this.currentUser = user;
+            rootContainer.removeAll();
+            rootContainer.add(buildAdminDashboard(), "DASHBOARD");
+        } else if ("Staff".equalsIgnoreCase(user.role)) {
+            this.currentUser = user;
+            rootContainer.removeAll();
+            rootContainer.add(buildStaffDashboard(), "DASHBOARD");
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Desk Management Access Only.\nMember accounts are managed by Front Desk Staff — please sign in as Admin or Staff.",
+                    "Operator Access Required", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        rootCardLayout.show(rootContainer, "DASHBOARD");
+        rootContainer.revalidate();
+        rootContainer.repaint();
+    }
+
+    private JPanel buildLoginPanel() {
+        JPanel split = new JPanel(new GridLayout(1, 2));
+        split.setBackground(BG_OBSIDIAN);
+
+        // Left Editorial Showcase Panel (Clean Deep Slate)
+        JPanel leftHero = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(new Color(15, 23, 42));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.setColor(new Color(30, 41, 59));
+                g2.drawLine(0, getHeight() - 120, getWidth(), getHeight() - 220);
+                g2.drawLine(0, getHeight() - 80, getWidth(), getHeight() - 180);
+                g2.dispose();
+            }
+        };
+        leftHero.setBorder(new EmptyBorder(48, 52, 42, 52));
+
+        JPanel brandHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        brandHeader.setOpaque(false);
+        JLabel markLbl = new JLabel(new VectorIcon(VectorIcon.Kind.DUMBBELL, 22, new Color(16, 185, 129)));
+        JLabel brandName = new JLabel("GYMSYNC");
+        brandName.setFont(new Font("SansSerif", Font.BOLD, 20));
+        brandName.setForeground(Color.WHITE);
+        brandHeader.add(markLbl);
+        brandHeader.add(brandName);
+
+        JPanel heroCopy = new JPanel();
+        heroCopy.setOpaque(false);
+        heroCopy.setLayout(new BoxLayout(heroCopy, BoxLayout.Y_AXIS));
+        heroCopy.setBorder(new EmptyBorder(64, 0, 0, 0));
+
+        JLabel headline = new JLabel("<html>Front Desk &amp; Gym<br>Operations Console</html>");
+        headline.setFont(new Font("SansSerif", Font.BOLD, 34));
+        headline.setForeground(Color.WHITE);
+        headline.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel lead = new JLabel("<html>Manage member passes, 1-month renewals, expiry alerts, and equipment-aware workout plans from one unified desk console.</html>");
+        lead.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        lead.setForeground(new Color(148, 163, 184));
+        lead.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        heroCopy.add(headline);
+        heroCopy.add(Box.createVerticalStrut(14));
+        heroCopy.add(lead);
+        heroCopy.add(Box.createVerticalStrut(32));
+        heroCopy.add(makeHeroBullet("Instant Active / Expired pass check at front desk"));
+        heroCopy.add(Box.createVerticalStrut(12));
+        heroCopy.add(makeHeroBullet("Automated 1-month renewal date calculations"));
+        heroCopy.add(Box.createVerticalStrut(12));
+        heroCopy.add(makeHeroBullet("Rule-based & custom workout planning with muscle map"));
+
+        JLabel heroFoot = new JLabel("DIT 2-3 Group 3  •  Java Swing + MySQL Case Study");
+        heroFoot.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        heroFoot.setForeground(new Color(100, 116, 139));
+
+        leftHero.add(brandHeader, BorderLayout.NORTH);
+        leftHero.add(heroCopy, BorderLayout.CENTER);
+        leftHero.add(heroFoot, BorderLayout.SOUTH);
+
+        // Right Clean Sign-In Panel
+        JPanel rightWrap = new JPanel(new GridBagLayout());
+        rightWrap.setBackground(BG_SURFACE);
+
+        JPanel formBox = new JPanel();
+        formBox.setOpaque(false);
+        formBox.setLayout(new BoxLayout(formBox, BoxLayout.Y_AXIS));
+        formBox.setPreferredSize(new Dimension(380, 440));
+
+        JPanel topControls = new JPanel(new BorderLayout());
+        topControls.setOpaque(false);
+        topControls.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        JLabel roleChip = new JLabel("OPERATOR SIGN IN");
+        roleChip.setFont(new Font("SansSerif", Font.BOLD, 11));
+        roleChip.setForeground(NEON_EMERALD);
+        JButton btnTheme = createSecondaryButton(darkMode ? "Light Mode" : "Dark Mode",
+                darkMode ? VectorIcon.Kind.SUN : VectorIcon.Kind.MOON, TEXT_SECONDARY);
+        btnTheme.addActionListener(e -> toggleTheme());
+        topControls.add(roleChip, BorderLayout.WEST);
+        topControls.add(btnTheme, BorderLayout.EAST);
+
+        JLabel signInTitle = new JLabel("Welcome back");
+        signInTitle.setFont(new Font("SansSerif", Font.BOLD, 26));
+        signInTitle.setForeground(TEXT_PRIMARY);
+        signInTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel signInSub = new JLabel("Sign in with your Admin or Front Desk Staff account.");
+        signInSub.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        signInSub.setForeground(TEXT_MUTED);
+        signInSub.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel userLbl = new JLabel("Username");
+        userLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+        userLbl.setForeground(TEXT_PRIMARY);
+        userLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JTextField userField = createStyledTextField("");
+        userField.putClientProperty("JTextField.placeholderText", "e.g. admin or staff");
+        userField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        userField.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel passLbl = new JLabel("Password");
+        passLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+        passLbl.setForeground(TEXT_PRIMARY);
+        passLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPasswordField passField = createStyledPasswordField();
+        passField.putClientProperty("JTextField.placeholderText", "Enter password");
+        passField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        passField.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton loginBtn = createPrimaryButton("Sign in to Console", null);
+        loginBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        loginBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        ActionListener doLogin = e -> {
+            String u = userField.getText().trim();
+            String p = new String(passField.getPassword());
+            if (u.isEmpty() || p.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please enter both username and password.",
+                        "Missing Credentials", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            User auth = repo.authenticate(u, p);
+            if (auth == null) {
+                JOptionPane.showMessageDialog(this, "Invalid username or password.",
+                        "Sign-In Failed", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            routeToRoleDashboard(auth);
+        };
+        loginBtn.addActionListener(doLogin);
+        passField.addActionListener(doLogin);
+
+        JLabel quickLbl = new JLabel("QUICK DEMO OPERATOR ACCESS");
+        quickLbl.setFont(new Font("SansSerif", Font.BOLD, 10));
+        quickLbl.setForeground(TEXT_MUTED);
+        quickLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel demoBtns = new JPanel(new GridLayout(1, 2, 10, 0));
+        demoBtns.setOpaque(false);
+        demoBtns.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        demoBtns.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton btnAdminDemo = createSecondaryButton("Admin Console", VectorIcon.Kind.SHIELD, TEXT_SECONDARY);
+        JButton btnStaffDemo = createSecondaryButton("Front Desk Staff", VectorIcon.Kind.USERS, NEON_EMERALD);
+        btnAdminDemo.addActionListener(e -> { userField.setText("admin"); passField.setText("admin123"); doLogin.actionPerformed(null); });
+        btnStaffDemo.addActionListener(e -> { userField.setText("staff"); passField.setText("staff123"); doLogin.actionPerformed(null); });
+        demoBtns.add(btnAdminDemo);
+        demoBtns.add(btnStaffDemo);
+
+        formBox.add(topControls);
+        formBox.add(Box.createVerticalStrut(18));
+        formBox.add(signInTitle);
+        formBox.add(Box.createVerticalStrut(4));
+        formBox.add(signInSub);
+        formBox.add(Box.createVerticalStrut(24));
+        formBox.add(userLbl);
+        formBox.add(Box.createVerticalStrut(6));
+        formBox.add(userField);
+        formBox.add(Box.createVerticalStrut(14));
+        formBox.add(passLbl);
+        formBox.add(Box.createVerticalStrut(6));
+        formBox.add(passField);
+        formBox.add(Box.createVerticalStrut(20));
+        formBox.add(loginBtn);
+        formBox.add(Box.createVerticalStrut(24));
+        formBox.add(quickLbl);
+        formBox.add(Box.createVerticalStrut(8));
+        formBox.add(demoBtns);
+
+        rightWrap.add(formBox);
+
+        split.add(leftHero);
+        split.add(rightWrap);
+        return split;
+    }
+
+    private JPanel makeHeroBullet(String text) {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        p.setOpaque(false);
+        p.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        JLabel ico = new JLabel(new VectorIcon(VectorIcon.Kind.CHECK, 15, new Color(16, 185, 129)));
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        lbl.setForeground(new Color(226, 232, 240));
+        p.add(ico);
+        p.add(lbl);
+        return p;
+    }
+
+    private JPanel buildAppShell(String consoleSubtitle, LinkedHashMap<String, JPanel> navScreens) {
+        JPanel shell = new JPanel(new BorderLayout());
+        shell.setBackground(BG_OBSIDIAN);
+
+        CardLayout contentLayout = new CardLayout();
+        JPanel contentArea = new JPanel(contentLayout);
+        contentArea.setOpaque(false);
+
+        JPanel sidebar = new JPanel(new BorderLayout());
+        sidebar.setBackground(BG_SURFACE);
+        sidebar.setPreferredSize(new Dimension(232, 0));
+        sidebar.setBorder(new MatteBorder(0, 0, 0, 1, BORDER_SUBTLE));
+
+        // Sidebar Brand Header
+        JPanel brandPanel = new JPanel(new BorderLayout(0, 4));
+        brandPanel.setOpaque(false);
+        brandPanel.setBorder(new CompoundBorder(
+                new MatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
+                new EmptyBorder(16, 18, 14, 18)
+        ));
+        JPanel logoRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        logoRow.setOpaque(false);
+        JLabel logoIcon = new JLabel(new VectorIcon(VectorIcon.Kind.DUMBBELL, 18, NEON_EMERALD));
+        JLabel logoTitle = new JLabel("GYMSYNC");
+        logoTitle.setFont(new Font("SansSerif", Font.BOLD, 16));
+        logoTitle.setForeground(TEXT_PRIMARY);
+        logoRow.add(logoIcon);
+        logoRow.add(logoTitle);
+
+        JLabel subTitleLbl = new JLabel(consoleSubtitle);
+        subTitleLbl.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        subTitleLbl.setForeground(TEXT_MUTED);
+        subTitleLbl.setBorder(new EmptyBorder(2, 2, 0, 0));
+        brandPanel.add(logoRow, BorderLayout.NORTH);
+        brandPanel.add(subTitleLbl, BorderLayout.SOUTH);
+
+        // Sidebar Nav List
+        JPanel navWrap = new JPanel(new BorderLayout());
+        navWrap.setOpaque(false);
+        navWrap.setBorder(new EmptyBorder(14, 12, 14, 12));
+        JLabel navHdr = new JLabel("OPERATIONS");
+        navHdr.setFont(new Font("SansSerif", Font.BOLD, 10));
+        navHdr.setForeground(TEXT_MUTED);
+        navHdr.setBorder(new EmptyBorder(0, 10, 8, 10));
+
+        JPanel navList = new JPanel();
+        navList.setOpaque(false);
+        navList.setLayout(new BoxLayout(navList, BoxLayout.Y_AXIS));
+
+        String initialTitle = navScreens.isEmpty() ? consoleSubtitle : navScreens.keySet().iterator().next();
+        JLabel pageTitleLbl = new JLabel(initialTitle);
+        pageTitleLbl.setFont(new Font("SansSerif", Font.BOLD, 18));
+        pageTitleLbl.setForeground(TEXT_PRIMARY);
+
+        List<JButton> navButtons = new ArrayList<>();
+        int idx = 0;
+        for (Map.Entry<String, JPanel> entry : navScreens.entrySet()) {
+            String key = entry.getKey();
+            contentArea.add(entry.getValue(), key);
+            final int tabIdx = idx;
+            JButton navBtn = new JButton(key);
+            navBtn.putClientProperty("active", idx == 0);
+            navBtn.setIcon(new VectorIcon(VectorIcon.forTab(key), 15, idx == 0 ? NEON_EMERALD : TEXT_MUTED));
+            navBtn.setIconTextGap(10);
+            navBtn.setHorizontalAlignment(SwingConstants.LEFT);
+            navBtn.setFont(new Font("SansSerif", idx == 0 ? Font.BOLD : Font.PLAIN, 13));
+            navBtn.setFocusPainted(false);
+            navBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+            navBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+            navBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            applyNavBtnStyle(navBtn, idx == 0);
+
+            navBtn.addActionListener(e -> {
+                for (int i = 0; i < navButtons.size(); i++) {
+                    JButton b = navButtons.get(i);
+                    boolean isThis = (i == tabIdx);
+                    b.putClientProperty("active", isThis);
+                    b.setFont(new Font("SansSerif", isThis ? Font.BOLD : Font.PLAIN, 13));
+                    b.setIcon(new VectorIcon(VectorIcon.forTab(b.getText()), 15, isThis ? NEON_EMERALD : TEXT_MUTED));
+                    applyNavBtnStyle(b, isThis);
+                }
+                pageTitleLbl.setText(key);
+                Object onTabSelected = entry.getValue().getClientProperty("onTabSelected");
+                if (onTabSelected instanceof Runnable) {
+                    ((Runnable) onTabSelected).run();
+                }
+                contentLayout.show(contentArea, key);
+            });
+
+            navButtons.add(navBtn);
+            navList.add(navBtn);
+            navList.add(Box.createVerticalStrut(4));
+            idx++;
+        }
+        navWrap.add(navHdr, BorderLayout.NORTH);
+        navWrap.add(navList, BorderLayout.CENTER);
+
+        // Sidebar Footer: Theme Toggle + User + Sign Out
+        JPanel footer = new JPanel();
+        footer.setOpaque(false);
+        footer.setLayout(new BoxLayout(footer, BoxLayout.Y_AXIS));
+        footer.setBorder(new CompoundBorder(
+                new MatteBorder(1, 0, 0, 0, BORDER_SUBTLE),
+                new EmptyBorder(12, 14, 14, 14)
+        ));
+
+        JLabel userNameLbl = new JLabel(currentUser.getFullName());
+        userNameLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        userNameLbl.setForeground(TEXT_PRIMARY);
+        userNameLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        String dbTag = repo.isJdbcConnected() ? (repo.isMySql() ? "MySQL Live" : "SQLite Live") : "Memory DB";
+        JLabel userRoleLbl = new JLabel(currentUser.role.toUpperCase(Locale.ROOT) + "  •  " + dbTag);
+        userRoleLbl.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        userRoleLbl.setForeground(repo.isJdbcConnected() ? NEON_EMERALD : TEXT_MUTED);
+        userRoleLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel footerBtns = new JPanel(new GridLayout(1, 2, 6, 0));
+        footerBtns.setOpaque(false);
+        footerBtns.setAlignmentX(Component.LEFT_ALIGNMENT);
+        footerBtns.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+
+        JButton btnTheme = createSecondaryButton(darkMode ? "Light" : "Dark",
+                darkMode ? VectorIcon.Kind.SUN : VectorIcon.Kind.MOON, TEXT_SECONDARY);
+        btnTheme.addActionListener(e -> toggleTheme());
+        JButton btnLogout = createSecondaryButton("Sign Out", VectorIcon.Kind.LOGOUT, TEXT_SECONDARY);
+        btnLogout.addActionListener(e -> showLoginScreen());
+
+        footerBtns.add(btnTheme);
+        footerBtns.add(btnLogout);
+
+        footer.add(userNameLbl);
+        footer.add(Box.createVerticalStrut(2));
+        footer.add(userRoleLbl);
+        footer.add(Box.createVerticalStrut(10));
+        footer.add(footerBtns);
+
+        sidebar.add(brandPanel, BorderLayout.NORTH);
+        sidebar.add(navWrap, BorderLayout.CENTER);
+        sidebar.add(footer, BorderLayout.SOUTH);
+
+        // Main Workspace
+        JPanel workspace = new JPanel(new BorderLayout());
+        workspace.setBackground(BG_OBSIDIAN);
+
+        JPanel pageHeader = new JPanel(new BorderLayout());
+        pageHeader.setBackground(BG_SURFACE);
+        pageHeader.setBorder(new CompoundBorder(
+                new MatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
+                new EmptyBorder(14, 22, 14, 22)
+        ));
+        pageHeader.add(pageTitleLbl, BorderLayout.WEST);
+
+        JLabel dbPill = new JLabel(dbTag);
+        dbPill.setFont(new Font("SansSerif", Font.BOLD, 11));
+        dbPill.setForeground(repo.isJdbcConnected() ? NEON_EMERALD : TEXT_MUTED);
+        pageHeader.add(dbPill, BorderLayout.EAST);
+
+        workspace.add(pageHeader, BorderLayout.NORTH);
+        workspace.add(contentArea, BorderLayout.CENTER);
+
+        shell.add(sidebar, BorderLayout.WEST);
+        shell.add(workspace, BorderLayout.CENTER);
+        return shell;
+    }
+
+    private void applyNavBtnStyle(JButton b, boolean active) {
+        if (active) {
+            Color activeBg = darkMode ? new Color(16, 185, 129, 28) : new Color(236, 253, 245);
+            b.setForeground(darkMode ? TEXT_PRIMARY : new Color(6, 95, 70));
+            b.putClientProperty("FlatLaf.style",
+                    "background: " + hex(activeBg) + "; foreground: " + hex(b.getForeground()) + "; " +
+                    "borderWidth: 0; arc: 8; margin: 8,12,8,12");
+        } else {
+            b.setForeground(TEXT_SECONDARY);
+            b.putClientProperty("FlatLaf.style",
+                    "background: " + hex(BG_SURFACE) + "; foreground: " + hex(TEXT_SECONDARY) + "; " +
+                    "hoverBackground: " + hex(CARD_HIGHLIGHT) + "; borderWidth: 0; arc: 8; margin: 8,12,8,12");
+        }
+    }
+
+    private JPanel buildStaffDashboard() {
+        LinkedHashMap<String, JPanel> screens = new LinkedHashMap<>();
+        screens.put("Member Check-In", buildFrontDeskMemberTab(false));
+        screens.put("Expiry Alerts", buildAlertListTab());
+        screens.put("Workout Coach", buildStaffWorkoutHelperTab());
+        return buildAppShell("Front Desk Operator", screens);
+    }
+
+    private JPanel buildAdminDashboard() {
+        LinkedHashMap<String, JPanel> screens = new LinkedHashMap<>();
+        screens.put("Member Check-In & Renewals", buildFrontDeskMemberTab(true));
+        screens.put("Analytics & Reports", buildReportsTab());
+        screens.put("Exercise Library", buildExerciseLibraryTab());
+        screens.put("Staff Accounts", buildAdminUserManagementTab());
+        screens.put("Expiry Alerts", buildAlertListTab());
+        return buildAppShell("Administrator Console", screens);
+    }
+
+    // ========================================================================
+    // 6. FRONT DESK CHECK-IN (KPI Strip + Filter Pills + Split Master/Detail)
+    // ========================================================================
+
+    private JPanel buildFrontDeskMemberTab(boolean allowDelete) {
+        JPanel container = new JPanel(new BorderLayout(0, 14));
+        container.setBackground(BG_OBSIDIAN);
+        container.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+        // Top Live 4-KPI Summary Strip
+        JPanel kpiStrip = new JPanel(new GridLayout(1, 4, 12, 0));
+        kpiStrip.setOpaque(false);
+
+        // Toolbar: Search + Segmented Status Filter Pills + New Member CTA
+        JPanel toolbar = createCardPanel(new BorderLayout(12, 0));
+        toolbar.setBorder(new EmptyBorder(10, 14, 10, 14));
+
+        JPanel leftTools = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        leftTools.setOpaque(false);
+        JTextField searchField = createStyledTextField("");
+        searchField.setColumns(22);
+        searchField.putClientProperty("JTextField.placeholderText", "Search name, @username, phone...");
+        searchField.putClientProperty("JTextField.leadingIcon", new VectorIcon(VectorIcon.Kind.SEARCH, 15, TEXT_MUTED));
+        searchField.putClientProperty("JTextField.showClearButton", true);
+
+        ButtonGroup filterGroup = new ButtonGroup();
+        JToggleButton pillAll = createFilterPill("All", true);
+        JToggleButton pillActive = createFilterPill("Active", false);
+        JToggleButton pillExpiring = createFilterPill("Expiring", false);
+        JToggleButton pillExpired = createFilterPill("Expired", false);
+        for (JToggleButton p : new JToggleButton[]{pillAll, pillActive, pillExpiring, pillExpired}) {
+            filterGroup.add(p);
+        }
+
+        leftTools.add(searchField);
+        leftTools.add(Box.createHorizontalStrut(4));
+        leftTools.add(pillAll);
+        leftTools.add(pillActive);
+        leftTools.add(pillExpiring);
+        leftTools.add(pillExpired);
+
+        JButton btnRegister = createPrimaryButton("New Member", VectorIcon.Kind.PLUS);
+        toolbar.add(leftTools, BorderLayout.WEST);
+        toolbar.add(btnRegister, BorderLayout.EAST);
+
+        JPanel northWrap = new JPanel(new BorderLayout(0, 12));
+        northWrap.setOpaque(false);
+        northWrap.add(kpiStrip, BorderLayout.NORTH);
+        northWrap.add(toolbar, BorderLayout.SOUTH);
+
+        // Table + Inspector Split
+        String[] cols = {"ID", "Username", "Member Name", "Contact No.", "Level", "End Date", "Balance", "Status"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleModernTable(table);
+        table.getColumnModel().getColumn(7).setCellRenderer(new StatusBadgeRenderer());
+        int[] colWidths = {44, 100, 145, 112, 108, 96, 102, 92};
+        for (int c = 0; c < colWidths.length; c++) {
+            table.getColumnModel().getColumn(c).setPreferredWidth(colWidths[c]);
+        }
+
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
+        table.setRowSorter(sorter);
+
+        final Runnable[] refreshRef = new Runnable[1];
+
+        java.util.function.Consumer<User> doRenewMember = target -> {
+            Membership latest = repo.getLatestMembership(target.userId);
+            LocalDate today = LocalDate.now();
+            String currentStatus = latest != null ? latest.getComputedStatus(today) : "Expired";
+            LocalDate[] renewalDates = BusinessRules.calculateRenewalDates(latest != null ? latest.endDate : null, today);
+            String ruleExplanation = "Active".equalsIgnoreCase(currentStatus)
+                    ? "Member is currently ACTIVE (expires " + latest.endDate + ").\nNew 1-month period starts on current end date."
+                    : "Member is currently EXPIRED.\nNew 1-month period starts today (" + today + ").";
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Confirm 1-Month Renewal for " + target.getFullName() + "?\n\n" +
+                    ruleExplanation + "\n\nNew Period: " + renewalDates[0] + " -> " + renewalDates[1],
+                    "Confirm Monthly Renewal", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                repo.addMembership(target.userId, renewalDates[0], renewalDates[1]);
+                refreshRef[0].run();
+                JOptionPane.showMessageDialog(this,
+                        "Membership renewed for " + target.getFullName() + " through " + renewalDates[1] + ".",
+                        "Renewal Complete", JOptionPane.INFORMATION_MESSAGE);
+            }
+        };
+
+        java.util.function.Consumer<User> doEditMember = target -> showMemberRegistrationDialog(target, refreshRef[0]);
+
+        java.util.function.Consumer<User> doDeleteMember = target -> {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Delete Member #" + target.userId + " (" + target.getFullName() + ") and all memberships/plans?",
+                    "Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                repo.deleteUser(target.userId);
+                refreshRef[0].run();
+            }
+        };
+
+        MemberInspectorPanel inspector = new MemberInspectorPanel(allowDelete, doRenewMember, doEditMember, doDeleteMember);
+
+        Runnable applyFilters = () -> {
+            String q = searchField.getText().trim().toLowerCase(Locale.ROOT);
+            String mode = pillActive.isSelected() ? "active"
+                    : pillExpiring.isSelected() ? "expiring"
+                    : pillExpired.isSelected() ? "expired" : "all";
+            sorter.setRowFilter(new RowFilter<DefaultTableModel, Integer>() {
+                @Override
+                public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
+                    String status = String.valueOf(entry.getValue(7));
+                    String bal = String.valueOf(entry.getValue(6));
+                    if ("active".equals(mode) && !"Active".equalsIgnoreCase(status)) return false;
+                    if ("expired".equals(mode) && !"Expired".equalsIgnoreCase(status)) return false;
+                    if ("expiring".equals(mode)) {
+                        if (!"Active".equalsIgnoreCase(status)) return false;
+                        try {
+                            int d = Integer.parseInt(bal.replaceAll("[^0-9]", ""));
+                            if (d > 7) return false;
+                        } catch (NumberFormatException ex) { return false; }
+                    }
+                    if (!q.isEmpty()) {
+                        for (int c = 0; c < entry.getValueCount(); c++) {
+                            if (String.valueOf(entry.getValue(c)).toLowerCase(Locale.ROOT).contains(q)) return true;
+                        }
+                        return false;
+                    }
+                    return true;
+                }
+            });
+            if (table.getRowCount() > 0) {
+                table.setRowSelectionInterval(0, 0);
+            } else {
+                inspector.setMemberData(null, null);
+            }
+        };
+
+        refreshRef[0] = () -> {
+            int selectedUserId = -1;
+            int prevViewRow = table.getSelectedRow();
+            if (prevViewRow >= 0) {
+                selectedUserId = (int) model.getValueAt(table.convertRowIndexToModel(prevViewRow), 0);
+            }
+            model.setRowCount(0);
+            LocalDate today = LocalDate.now();
+            int total = 0, active = 0, expiring = 0, expired = 0;
+            for (User m : repo.getMembers()) {
+                total++;
+                Membership latest = repo.getLatestMembership(m.userId);
+                String endStr = latest != null ? latest.endDate.toString() : "N/A";
+                String status = latest != null ? latest.getComputedStatus(today) : "Expired";
+                long daysLeft = latest != null ? latest.getDaysRemaining(today) : -999;
+                if ("Active".equalsIgnoreCase(status)) {
+                    active++;
+                    if (daysLeft >= 0 && daysLeft <= 7) expiring++;
+                } else {
+                    expired++;
+                }
+                String daysStr = latest != null
+                        ? (daysLeft >= 0 ? daysLeft + "d left" : Math.abs(daysLeft) + "d overdue")
+                        : "None";
+                model.addRow(new Object[]{
+                        m.userId, "@" + m.username, m.getFullName(), m.contactNo,
+                        m.fitnessLevel != null ? m.fitnessLevel : "Beginner",
+                        endStr, daysStr, status
+                });
+            }
+
+            kpiStrip.removeAll();
+            kpiStrip.add(createKpiStatCard("TOTAL MEMBERS", String.valueOf(total), "Registered athletes", TEXT_MUTED, VectorIcon.Kind.USERS));
+            kpiStrip.add(createKpiStatCard("ACTIVE PASSES", String.valueOf(active), "Cleared for entry", NEON_EMERALD, VectorIcon.Kind.CHECK));
+            kpiStrip.add(createKpiStatCard("EXPIRING <= 7D", String.valueOf(expiring), "Due for renewal", AMBER_GOLD, VectorIcon.Kind.BELL));
+            kpiStrip.add(createKpiStatCard("EXPIRED", String.valueOf(expired), "Access blocked", CORAL_RED, VectorIcon.Kind.REFRESH));
+            kpiStrip.revalidate();
+            kpiStrip.repaint();
+
+            applyFilters.run();
+            if (selectedUserId != -1) {
+                for (int vr = 0; vr < table.getRowCount(); vr++) {
+                    int mr = table.convertRowIndexToModel(vr);
+                    if ((int) model.getValueAt(mr, 0) == selectedUserId) {
+                        table.setRowSelectionInterval(vr, vr);
+                        break;
+                    }
+                }
+            }
+        };
+
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { applyFilters.run(); }
+            @Override public void removeUpdate(DocumentEvent e) { applyFilters.run(); }
+            @Override public void changedUpdate(DocumentEvent e) { applyFilters.run(); }
+        });
+        for (JToggleButton p : new JToggleButton[]{pillAll, pillActive, pillExpiring, pillExpired}) {
+            p.addActionListener(e -> applyFilters.run());
+        }
+
+        table.getSelectionModel().addListSelectionListener(e -> {
+            int viewRow = table.getSelectedRow();
+            if (viewRow < 0) return;
+            int userId = (int) model.getValueAt(table.convertRowIndexToModel(viewRow), 0);
+            User selected = repo.getMembers().stream().filter(u -> u.userId == userId).findFirst().orElse(null);
+            if (selected != null) {
+                inspector.setMemberData(selected, repo.getLatestMembership(userId));
+            }
+        });
+
+        btnRegister.addActionListener(e -> showMemberRegistrationDialog(null, refreshRef[0]));
+        refreshRef[0].run();
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, wrapTableScrollPane(table), inspector);
+        splitPane.setResizeWeight(1.0);
+        splitPane.setContinuousLayout(true);
+        splitPane.setBorder(null);
+        splitPane.setOpaque(false);
+
+        container.putClientProperty("onTabSelected", refreshRef[0]);
+        container.add(northWrap, BorderLayout.NORTH);
+        container.add(splitPane, BorderLayout.CENTER);
+        return container;
+    }
+
+    private void showMemberRegistrationDialog(User existing, Runnable onComplete) {
+        boolean isNew = (existing == null);
+        JDialog dlg = new JDialog(this, isNew
+                ? "Register New Gym Member (+ Automatic 1-Month Pass)"
+                : "Edit Member Profile — " + existing.getFullName(), true);
+        dlg.setSize(580, 640);
+        dlg.setLocationRelativeTo(this);
+        dlg.getContentPane().setBackground(BG_OBSIDIAN);
+        dlg.setLayout(new BorderLayout(10, 10));
+
+        JPanel form = new JPanel(new GridLayout(11, 2, 12, 10));
+        form.setBackground(BG_SURFACE);
+        form.setBorder(new EmptyBorder(18, 24, 14, 24));
+
+        JTextField tfUsername  = createStyledTextField(isNew ? "" : existing.username);
+        JPasswordField pfPass  = createStyledPasswordField();
+        JTextField tfFirst     = createStyledTextField(isNew ? "" : existing.firstName);
+        JTextField tfLast      = createStyledTextField(isNew ? "" : existing.lastName);
+        JTextField tfContact   = createStyledTextField(isNew ? "09" : existing.contactNo);
+        JTextField tfBirthdate = createStyledTextField(isNew ? "" : (existing.birthdate != null ? existing.birthdate.toString() : ""));
+        JComboBox<String> cbGender = createStyledComboBox(new String[]{"Male", "Female", "Other", "Prefer not to say"});
+        if (!isNew && existing.gender != null) cbGender.setSelectedItem(existing.gender);
+        JTextField tfAddress   = createStyledTextField(isNew ? "" : (existing.address != null ? existing.address : ""));
+        JTextField tfEmName    = createStyledTextField(isNew ? "" : (existing.emergencyContactName != null ? existing.emergencyContactName : ""));
+        JTextField tfEmPhone   = createStyledTextField(isNew ? "09" : (existing.emergencyContactNo != null ? existing.emergencyContactNo : ""));
+        JComboBox<String> cbFitness = createStyledComboBox(new String[]{"Beginner", "Intermediate", "Advanced"});
+        if (!isNew && existing.fitnessLevel != null) cbFitness.setSelectedItem(existing.fitnessLevel);
+
+        addFormRow(form, "Username *:", tfUsername);
+        addFormRow(form, isNew ? "Password *:" : "New Password (optional):", pfPass);
+        addFormRow(form, "First Name *:", tfFirst);
+        addFormRow(form, "Last Name *:", tfLast);
+        addFormRow(form, "Contact No. *:", tfContact);
+        addFormRow(form, "Emergency Contact Name *:", tfEmName);
+        addFormRow(form, "Emergency Contact No. *:", tfEmPhone);
+        addFormRow(form, "Fitness Level *:", cbFitness);
+        addFormRow(form, "Gender (optional):", cbGender);
+        addFormRow(form, "Birthdate (YYYY-MM-DD, optional):", tfBirthdate);
+        addFormRow(form, "Address (optional):", tfAddress);
+
+        LocalDate start = LocalDate.now();
+        LocalDate end = start.plusMonths(1);
+        JLabel membershipNote = new JLabel(isNew
+                ? "Automatic 1-Month Pass will be activated: " + start + " -> " + end
+                : "Updating member profile details.");
+        membershipNote.setFont(new Font("SansSerif", Font.BOLD, 12));
+        membershipNote.setForeground(NEON_EMERALD);
+        membershipNote.setBorder(new EmptyBorder(8, 24, 4, 24));
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 12));
+        btnPanel.setBackground(BG_OBSIDIAN);
+        JButton btnCancel = createSecondaryButton("Cancel", null, null);
+        JButton btnSave = createPrimaryButton(isNew ? "Activate Member Pass" : "Save Changes", VectorIcon.Kind.CHECK);
+        btnCancel.addActionListener(e -> dlg.dispose());
+
+        btnSave.addActionListener(e -> {
+            String uname = tfUsername.getText().trim();
+            String rawPass = new String(pfPass.getPassword()).trim();
+            String fn = tfFirst.getText().trim();
+            String ln = tfLast.getText().trim();
+            String contact = tfContact.getText().trim();
+            String bdateStr = tfBirthdate.getText().trim();
+            String addr = tfAddress.getText().trim();
+            String emName = tfEmName.getText().trim();
+            String emPhone = tfEmPhone.getText().trim();
+
+            if (uname.isEmpty() || fn.isEmpty() || ln.isEmpty() || contact.isEmpty() || contact.equals("09")) {
+                JOptionPane.showMessageDialog(dlg, "Username, First Name, Last Name, and a valid Contact No. are required (*).",
+                        "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (emName.isEmpty() || emPhone.isEmpty() || emPhone.equals("09")) {
+                JOptionPane.showMessageDialog(dlg, "Emergency Contact Name and Phone No. are mandatory (*).",
+                        "Emergency Contact Required", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (isNew && rawPass.length() < 4) {
+                JOptionPane.showMessageDialog(dlg, "Password is required and must be at least 4 characters.",
+                        "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (repo.usernameExists(uname, isNew ? 0 : existing.userId)) {
+                JOptionPane.showMessageDialog(dlg, "Username '" + uname + "' is already taken.",
+                        "Duplicate Username", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            LocalDate parsedBirthdate = null;
+            if (!bdateStr.isEmpty()) {
+                try {
+                    parsedBirthdate = LocalDate.parse(bdateStr);
+                } catch (DateTimeParseException ex) {
+                    JOptionPane.showMessageDialog(dlg, "Birthdate must be in YYYY-MM-DD format, or left blank.",
+                            "Invalid Date Format", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+            }
+
+            User u = isNew ? new User() : existing;
+            u.username = uname;
+            u.role = "Member";
+            u.firstName = fn;
+            u.lastName = ln;
+            u.contactNo = contact;
+            u.birthdate = parsedBirthdate;
+            u.gender = (String) cbGender.getSelectedItem();
+            u.address = addr;
+            u.emergencyContactName = emName;
+            u.emergencyContactNo = emPhone;
+            u.fitnessLevel = (String) cbFitness.getSelectedItem();
+
+            repo.saveUser(u, rawPass);
+            if (isNew) repo.addMembership(u.userId, start, end);
+            onComplete.run();
+            dlg.dispose();
+            JOptionPane.showMessageDialog(this,
+                    isNew ? "Member " + u.getFullName() + " registered!\n1-Month Pass active: " + start + " to " + end + "."
+                          : "Profile updated for " + u.getFullName() + ".",
+                    "Success", JOptionPane.INFORMATION_MESSAGE);
+        });
+
+        btnPanel.add(btnCancel);
+        btnPanel.add(btnSave);
+
+        JPanel southBox = new JPanel(new BorderLayout());
+        southBox.setBackground(BG_OBSIDIAN);
+        southBox.add(membershipNote, BorderLayout.NORTH);
+        southBox.add(btnPanel, BorderLayout.SOUTH);
+
+        dlg.add(form, BorderLayout.CENTER);
+        dlg.add(southBox, BorderLayout.SOUTH);
+        dlg.setVisible(true);
+    }
+
+    private void addFormRow(JPanel form, String labelText, JComponent field) {
+        JLabel l = new JLabel(labelText);
+        l.setFont(new Font("SansSerif", Font.BOLD, 12));
+        l.setForeground(TEXT_SECONDARY);
+        form.add(l);
+        form.add(field);
+    }
+
+    private JPanel buildAlertListTab() {
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBackground(BG_OBSIDIAN);
+        panel.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+        JPanel banner = createCardPanel(new BorderLayout());
+        banner.setBorder(new CompoundBorder(
+                new MatteBorder(0, 4, 0, 0, CORAL_RED),
+                new EmptyBorder(12, 16, 12, 16)
+        ));
+        JLabel info = new JLabel("Expiry & Renewal Radar — Expired & Expiring Within 7 Days");
+        info.setFont(new Font("SansSerif", Font.BOLD, 14));
+        info.setForeground(TEXT_PRIMARY);
+
+        String[] cols = {"ID", "Member Name", "Contact No.", "Emergency Contact", "End Date", "Alert Status", "Timeline"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleModernTable(table);
+        table.getColumnModel().getColumn(5).setCellRenderer(new StatusBadgeRenderer());
+
+        Runnable loadAlerts = () -> {
+            model.setRowCount(0);
+            LocalDate today = LocalDate.now();
+            for (User m : repo.getMembers()) {
+                Membership latest = repo.getLatestMembership(m.userId);
+                String status = latest != null ? latest.getComputedStatus(today) : "Expired";
+                long days = latest != null ? latest.getDaysRemaining(today) : -999;
+
+                if ("Expired".equalsIgnoreCase(status)) {
+                    model.addRow(new Object[]{
+                            m.userId, m.getFullName(), m.contactNo,
+                            m.emergencyContactName + " (" + m.emergencyContactNo + ")",
+                            latest != null ? latest.endDate.toString() : "None",
+                            "Expired",
+                            latest != null ? Math.abs(days) + " days overdue" : "No pass"
+                    });
+                } else if (days >= 0 && days <= 7) {
+                    model.addRow(new Object[]{
+                            m.userId, m.getFullName(), m.contactNo,
+                            m.emergencyContactName + " (" + m.emergencyContactNo + ")",
+                            latest.endDate.toString(),
+                            "Expiring Soon",
+                            days + " days remaining"
+                    });
+                }
+            }
+        };
+        loadAlerts.run();
+
+        JButton btnRefresh = createSecondaryButton("Refresh Radar", VectorIcon.Kind.REFRESH, TEXT_SECONDARY);
+        btnRefresh.addActionListener(e -> loadAlerts.run());
+
+        banner.add(info, BorderLayout.WEST);
+        banner.add(btnRefresh, BorderLayout.EAST);
+
+        panel.putClientProperty("onTabSelected", loadAlerts);
+        panel.add(banner, BorderLayout.NORTH);
+        panel.add(wrapTableScrollPane(table), BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildAdminUserManagementTab() {
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBackground(BG_OBSIDIAN);
+        panel.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+        String[] cols = {"User ID", "Username", "Role", "First Name", "Last Name", "Contact No.", "Date Registered"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleModernTable(table);
+
+        Runnable refresh = () -> {
+            model.setRowCount(0);
+            for (User u : repo.getAllUsers()) {
+                model.addRow(new Object[]{
+                        u.userId, "@" + u.username, u.role, u.firstName, u.lastName, u.contactNo, u.dateRegistered
+                });
+            }
+        };
+        refresh.run();
+
+        JPanel top = createCardPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        JButton btnAddStaff = createPrimaryButton("Add Admin / Staff Account", VectorIcon.Kind.PLUS);
+        JButton btnDeleteUser = createDangerButton("Delete Selected Account", VectorIcon.Kind.TRASH);
+        top.add(btnAddStaff);
+        top.add(btnDeleteUser);
+
+        btnAddStaff.addActionListener(e -> {
+            JTextField tfUser = createStyledTextField("");
+            JPasswordField pfPass = createStyledPasswordField();
+            JComboBox<String> cbRole = createStyledComboBox(new String[]{"Staff", "Admin"});
+            JTextField tfFirst = createStyledTextField("");
+            JTextField tfLast = createStyledTextField("");
+            JTextField tfContact = createStyledTextField("09");
+
+            Object[] fields = {
+                    "Username *:", tfUser,
+                    "Password (min 4 chars) *:", pfPass,
+                    "Role *:", cbRole,
+                    "First Name *:", tfFirst,
+                    "Last Name *:", tfLast,
+                    "Contact No. *:", tfContact
+            };
+            int res = JOptionPane.showConfirmDialog(this, fields, "Create Staff / Admin Account", JOptionPane.OK_CANCEL_OPTION);
+            if (res == JOptionPane.OK_OPTION) {
+                String un = tfUser.getText().trim();
+                String pw = new String(pfPass.getPassword()).trim();
+                String fn = tfFirst.getText().trim();
+                String ln = tfLast.getText().trim();
+                String contact = tfContact.getText().trim();
+                if (un.isEmpty() || fn.isEmpty() || ln.isEmpty() || contact.isEmpty() || contact.equals("09")) {
+                    JOptionPane.showMessageDialog(this, "Username, First Name, Last Name, and Contact No. are required.");
+                    return;
+                }
+                if (pw.length() < 4) {
+                    JOptionPane.showMessageDialog(this, "Password must be at least 4 characters.");
+                    return;
+                }
+                if (repo.usernameExists(un, 0)) {
+                    JOptionPane.showMessageDialog(this, "Username already exists.");
+                    return;
+                }
+                User u = new User();
+                u.username = un;
+                u.role = (String) cbRole.getSelectedItem();
+                u.firstName = fn;
+                u.lastName = ln;
+                u.contactNo = contact;
+                u.dateRegistered = LocalDate.now();
+                repo.saveUser(u, pw);
+                refresh.run();
+            }
+        });
+
+        btnDeleteUser.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "Please select a user account to delete.");
+                return;
+            }
+            int modelRow = table.convertRowIndexToModel(row);
+            int id = (int) model.getValueAt(modelRow, 0);
+            if (id == currentUser.userId) {
+                JOptionPane.showMessageDialog(this, "You cannot delete your own active Admin account.");
+                return;
+            }
+            String username = String.valueOf(model.getValueAt(modelRow, 1));
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Delete user account " + username + " (#" + id + ")?",
+                    "Confirm Account Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                repo.deleteUser(id);
+                refresh.run();
+            }
+        });
+
+        panel.putClientProperty("onTabSelected", refresh);
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(wrapTableScrollPane(table), BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildExerciseLibraryTab() {
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBackground(BG_OBSIDIAN);
+        panel.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+        String[] cols = {"ID", "Workout Name", "Target Muscle", "Level", "Equipment", "Form Cues"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleModernTable(table);
+        table.getColumnModel().getColumn(4).setCellRenderer(new MachineBadgeRenderer());
+
+        WorkoutVisualCard visualCard = new WorkoutVisualCard();
+
+        JCheckBox chkShowMachines = new JCheckBox("Show Gym Machine Workouts", true);
+        chkShowMachines.setOpaque(false);
+        chkShowMachines.setForeground(TEXT_PRIMARY);
+        chkShowMachines.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        JCheckBox chkShowFree = new JCheckBox("Show Free-Weight / Bodyweight", true);
+        chkShowFree.setOpaque(false);
+        chkShowFree.setForeground(TEXT_PRIMARY);
+        chkShowFree.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        Runnable refresh = () -> {
+            model.setRowCount(0);
+            boolean showM = chkShowMachines.isSelected();
+            boolean showF = chkShowFree.isSelected();
+            for (Exercise ex : repo.getAllExercises()) {
+                if (ex.requiresMachine() && !showM) continue;
+                if (!ex.requiresMachine() && !showF) continue;
+                model.addRow(new Object[]{
+                        ex.exerciseId, ex.name, ex.muscleGroup, ex.difficulty, ex.getMachineBadgeText(), ex.description
+                });
+            }
+            if (table.getRowCount() > 0) {
+                table.setRowSelectionInterval(0, 0);
+            } else {
+                visualCard.setExercise(null);
+            }
+        };
+
+        table.getSelectionModel().addListSelectionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) return;
+            int id = (int) model.getValueAt(table.convertRowIndexToModel(row), 0);
+            Exercise selected = repo.getAllExercises().stream().filter(x -> x.exerciseId == id).findFirst().orElse(null);
+            visualCard.setExercise(selected);
+        });
+
+        chkShowMachines.addActionListener(e -> refresh.run());
+        chkShowFree.addActionListener(e -> refresh.run());
+        refresh.run();
+
+        JPanel top = createCardPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        JButton btnAdd = createPrimaryButton("Add Workout / Machine", VectorIcon.Kind.PLUS);
+        JButton btnEdit = createSecondaryButton("Edit Selected", VectorIcon.Kind.EDIT, TEXT_SECONDARY);
+        JButton btnDel = createDangerButton("Delete", VectorIcon.Kind.TRASH);
+        top.add(btnAdd);
+        top.add(btnEdit);
+        top.add(btnDel);
+        top.add(Box.createHorizontalStrut(12));
+        top.add(chkShowMachines);
+        top.add(chkShowFree);
+
+        ActionListener addOrEdit = e -> {
+            boolean isEdit = (e.getSource() == btnEdit);
+            Exercise target = null;
+            if (isEdit) {
+                int row = table.getSelectedRow();
+                if (row < 0) {
+                    JOptionPane.showMessageDialog(this, "Select a workout first.");
+                    return;
+                }
+                int id = (int) model.getValueAt(table.convertRowIndexToModel(row), 0);
+                target = repo.getAllExercises().stream().filter(x -> x.exerciseId == id).findFirst().orElse(null);
+            }
+            JTextField tfName = createStyledTextField(target != null ? target.name : "");
+            JComboBox<String> cbGroup = createStyledComboBox(new String[]{"Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full Body"});
+            if (target != null) cbGroup.setSelectedItem(target.muscleGroup);
+            JComboBox<String> cbDiff = createStyledComboBox(new String[]{"Beginner", "Intermediate", "Advanced"});
+            if (target != null) cbDiff.setSelectedItem(target.difficulty);
+
+            JCheckBox chkNeedsMachine = new JCheckBox("This workout requires a Gym Machine", target == null || target.requiresMachine());
+            String[] equipOptions = new String[]{
+                    "Machine: Lat Pulldown Station", "Machine: Seated Cable Row Station",
+                    "Machine: Assisted Dip & Chin-Up Machine", "Machine: Converging Chest Press Machine",
+                    "Machine: Pec Deck Fly Station", "Machine: Angled Smith Machine",
+                    "Machine: 45-Degree Leg Press Sled", "Machine: Quad Extension Machine",
+                    "Machine: Prone Leg Curl Machine", "Machine: Standing Calf Machine",
+                    "Machine: Linear Hack Squat Sled", "Machine: Overhead Press Machine",
+                    "Machine: Dual Adjustable Pulley Tower", "Machine: High Pulley Cable Station",
+                    "Machine: Bicep Preacher Curl Machine", "Machine: Captain's Chair / Roman Chair",
+                    "Machine: Abdominal Crunch Machine", "Machine: Motorized Gym Treadmill",
+                    "Machine: Indoor Concept Rower", "Bodyweight", "Dumbbells", "Barbell"
+            };
+            JComboBox<String> cbEquip = createStyledComboBox(equipOptions);
+            cbEquip.setEditable(true);
+            if (target != null) cbEquip.setSelectedItem(target.equipment);
+
+            chkNeedsMachine.addActionListener(ev -> {
+                Object selItem = cbEquip.getSelectedItem();
+                String selStr = selItem != null ? selItem.toString() : "";
+                if (!chkNeedsMachine.isSelected()) {
+                    cbEquip.setSelectedItem("Dumbbells");
+                } else if (!Exercise.isMachineEquipment(selStr)) {
+                    cbEquip.setSelectedItem("Machine: Lat Pulldown Station");
+                }
+            });
+
+            JTextArea taDesc = new JTextArea(target != null ? target.description : "", 3, 24);
+            taDesc.setLineWrap(true);
+            taDesc.setWrapStyleWord(true);
+
+            Object[] fields = {
+                    "Workout Name *:", tfName,
+                    "Target Muscle Group *:", cbGroup,
+                    "Difficulty Level *:", cbDiff,
+                    "Machine Requirement Toggle:", chkNeedsMachine,
+                    "Gym Machine / Equipment *:", cbEquip,
+                    "Form & Execution Cues *:", new JScrollPane(taDesc)
+            };
+            int res = JOptionPane.showConfirmDialog(this, fields,
+                    isEdit ? "Edit Workout & Machine Settings" : "Add New Workout / Gym Machine", JOptionPane.OK_CANCEL_OPTION);
+            if (res == JOptionPane.OK_OPTION) {
+                String exName = tfName.getText().trim();
+                String exDesc = taDesc.getText().trim();
+                if (exName.isEmpty() || exDesc.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Workout name and instructions are required.");
+                    return;
+                }
+                int excludeId = (isEdit && target != null) ? target.exerciseId : 0;
+                if (repo.exerciseNameExists(exName, excludeId)) {
+                    JOptionPane.showMessageDialog(this, "An exercise named '" + exName + "' already exists.",
+                            "Duplicate Exercise", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                Exercise ex = isEdit && target != null ? target : new Exercise();
+                ex.name = exName;
+                ex.muscleGroup = (String) cbGroup.getSelectedItem();
+                ex.difficulty = (String) cbDiff.getSelectedItem();
+                String chosenEq = cbEquip.getSelectedItem() != null ? cbEquip.getSelectedItem().toString().trim() : "Bodyweight";
+                if (chosenEq.isEmpty()) chosenEq = chkNeedsMachine.isSelected() ? "Machine: Gym Station" : "Bodyweight";
+                if (chkNeedsMachine.isSelected() && !Exercise.isMachineEquipment(chosenEq)) {
+                    chosenEq = "Machine: " + chosenEq;
+                } else if (!chkNeedsMachine.isSelected() && Exercise.isMachineEquipment(chosenEq)) {
+                    chosenEq = "Dumbbells";
+                }
+                ex.equipment = chosenEq;
+                ex.description = exDesc;
+                repo.saveExercise(ex);
+                refresh.run();
+            }
+        };
+        btnAdd.addActionListener(addOrEdit);
+        btnEdit.addActionListener(addOrEdit);
+
+        btnDel.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "Please select an exercise to delete.");
+                return;
+            }
+            int modelRow = table.convertRowIndexToModel(row);
+            int id = (int) model.getValueAt(modelRow, 0);
+            String exName = String.valueOf(model.getValueAt(modelRow, 1));
+            if (repo.isExerciseUsedInPlans(id)) {
+                JOptionPane.showMessageDialog(this,
+                        "Cannot delete '" + exName + "' because it is assigned to one or more Workout Plans.",
+                        "Exercise In Use", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Delete exercise '" + exName + "' (#" + id + ") from the library?",
+                    "Confirm Exercise Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                repo.deleteExercise(id);
+                refresh.run();
+            }
+        });
+
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, wrapTableScrollPane(table), visualCard);
+        split.setResizeWeight(1.0);
+        split.setContinuousLayout(true);
+        split.setBorder(null);
+        split.setOpaque(false);
+
+        panel.putClientProperty("onTabSelected", refresh);
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(split, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel wrapReportTable(String title, JTable table) {
+        styleModernTable(table);
+        JPanel box = createCardPanel(new BorderLayout(0, 10));
+        box.setBorder(new EmptyBorder(14, 14, 14, 14));
+        JLabel lbl = new JLabel(title);
+        lbl.setFont(new Font("SansSerif", Font.BOLD, 14));
+        lbl.setForeground(TEXT_PRIMARY);
+        box.add(lbl, BorderLayout.NORTH);
+        box.add(wrapTableScrollPane(table), BorderLayout.CENTER);
+        return box;
+    }
+
+    private JPanel buildReportsTab() {
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBackground(BG_OBSIDIAN);
+        panel.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+        JPanel kpiRow = new JPanel(new GridLayout(1, 4, 12, 0));
+        kpiRow.setOpaque(false);
+        JPanel tablesGrid = new JPanel(new GridLayout(1, 3, 12, 12));
+        tablesGrid.setOpaque(false);
+
+        Runnable buildReportContent = () -> {
+            kpiRow.removeAll();
+            tablesGrid.removeAll();
+
+            LocalDate today = LocalDate.now();
+            int activeCount = 0, expiredCount = 0, expiring7Count = 0;
+
+            DefaultTableModel expSoonModel = new DefaultTableModel(new String[]{"Member", "End Date", "Remaining"}, 0) {
+                @Override public boolean isCellEditable(int r, int c) { return false; }
+            };
+
+            for (User m : repo.getMembers()) {
+                Membership latest = repo.getLatestMembership(m.userId);
+                String st = latest != null ? latest.getComputedStatus(today) : "Expired";
+                long days = latest != null ? latest.getDaysRemaining(today) : -999;
+                if ("Active".equalsIgnoreCase(st)) {
+                    activeCount++;
+                    if (days >= 0 && days <= 7) {
+                        expiring7Count++;
+                        expSoonModel.addRow(new Object[]{m.getFullName(), latest.endDate, days + " days"});
+                    }
+                } else {
+                    expiredCount++;
+                }
+            }
+
+            int totalMembers = activeCount + expiredCount;
+            DefaultTableModel r1Model = new DefaultTableModel(new String[]{"Pass Status", "Members", "Share"}, 0) {
+                @Override public boolean isCellEditable(int r, int c) { return false; }
+            };
+            r1Model.addRow(new Object[]{"Active Passes", activeCount,
+                    totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (activeCount * 100.0) / totalMembers) : "0%"});
+            r1Model.addRow(new Object[]{"Expired Passes", expiredCount,
+                    totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (expiredCount * 100.0) / totalMembers) : "0%"});
+            r1Model.addRow(new Object[]{"Total Registered", totalMembers, "100.0%"});
+
+            Map<YearMonth, Integer> monthlyCounts = new TreeMap<>(Comparator.reverseOrder());
+            for (Membership m : repo.getAllMemberships()) {
+                YearMonth ym = YearMonth.from(m.startDate);
+                monthlyCounts.put(ym, monthlyCounts.getOrDefault(ym, 0) + 1);
+            }
+            DefaultTableModel r3Model = new DefaultTableModel(new String[]{"Month (YYYY-MM)", "Renewals"}, 0) {
+                @Override public boolean isCellEditable(int r, int c) { return false; }
+            };
+            for (Map.Entry<YearMonth, Integer> entry : monthlyCounts.entrySet()) {
+                r3Model.addRow(new Object[]{entry.getKey().toString(), entry.getValue()});
+            }
+
+            kpiRow.add(createKpiStatCard("TOTAL MEMBERS", String.valueOf(totalMembers), "Registered Athletes", TEXT_MUTED, VectorIcon.Kind.USERS));
+            kpiRow.add(createKpiStatCard("ACTIVE PASSES", String.valueOf(activeCount), "Cleared for Entry", NEON_EMERALD, VectorIcon.Kind.CHECK));
+            kpiRow.add(createKpiStatCard("EXPIRED PASSES", String.valueOf(expiredCount), "Needs Renewal", CORAL_RED, VectorIcon.Kind.REFRESH));
+            kpiRow.add(createKpiStatCard("EXPIRING <= 7 DAYS", String.valueOf(expiring7Count), "Upcoming Renewals", AMBER_GOLD, VectorIcon.Kind.BELL));
+
+            tablesGrid.add(wrapReportTable("1. Active vs. Expired Summary", new JTable(r1Model)));
+            tablesGrid.add(wrapReportTable("2. Expiring Within 7 Days", new JTable(expSoonModel)));
+            tablesGrid.add(wrapReportTable("3. Monthly Renewals Log", new JTable(r3Model)));
+
+            panel.revalidate();
+            panel.repaint();
+        };
+        buildReportContent.run();
+
+        JButton btnRefresh = createSecondaryButton("Refresh Analytics", VectorIcon.Kind.REFRESH, TEXT_SECONDARY);
+        btnRefresh.addActionListener(e -> buildReportContent.run());
+        JButton btnExportCsv = createPrimaryButton("Export Reports CSV", VectorIcon.Kind.DOWNLOAD);
+        btnExportCsv.addActionListener(e -> exportReportsCsv());
+        JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        south.setOpaque(false);
+        south.add(btnExportCsv);
+        south.add(btnRefresh);
+
+        panel.putClientProperty("onTabSelected", buildReportContent);
+        panel.add(kpiRow, BorderLayout.NORTH);
+        panel.add(tablesGrid, BorderLayout.CENTER);
+        panel.add(south, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    private void exportReportsCsv() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Export GymSync Management Reports (CSV)");
+        fc.setSelectedFile(new java.io.File("gymsync_reports_" + LocalDate.now() + ".csv"));
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        java.io.File target = fc.getSelectedFile();
+        if (!target.getName().toLowerCase(Locale.ROOT).endsWith(".csv")) {
+            target = new java.io.File(target.getParentFile(), target.getName() + ".csv");
+        }
+
+        LocalDate today = LocalDate.now();
+        int activeCount = 0, expiredCount = 0;
+        List<String[]> expiringRows = new ArrayList<>();
+        for (User m : repo.getMembers()) {
+            Membership latest = repo.getLatestMembership(m.userId);
+            String st = latest != null ? latest.getComputedStatus(today) : "Expired";
+            long days = latest != null ? latest.getDaysRemaining(today) : -999;
+            if ("Active".equalsIgnoreCase(st)) {
+                activeCount++;
+                if (days >= 0 && days <= 7) expiringRows.add(new String[]{m.getFullName(), latest.endDate.toString(), String.valueOf(days)});
+            } else {
+                expiredCount++;
+            }
+        }
+        int totalMembers = activeCount + expiredCount;
+
+        Map<YearMonth, Integer> monthlyCounts = new TreeMap<>(Comparator.reverseOrder());
+        for (Membership m : repo.getAllMemberships()) {
+            YearMonth ym = YearMonth.from(m.startDate);
+            monthlyCounts.put(ym, monthlyCounts.getOrDefault(ym, 0) + 1);
+        }
+
+        StringBuilder csv = new StringBuilder();
+        csv.append("Report 1: Active vs. Expired Summary\nPass Status,Members,Share\n");
+        csv.append("Active Passes,").append(activeCount).append(',')
+                .append(totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (activeCount * 100.0) / totalMembers) : "0%").append('\n');
+        csv.append("Expired Passes,").append(expiredCount).append(',')
+                .append(totalMembers > 0 ? String.format(Locale.ROOT, "%.1f%%", (expiredCount * 100.0) / totalMembers) : "0%").append('\n');
+        csv.append("Total Registered,").append(totalMembers).append(",100.0%\n\n");
+        csv.append("Report 2: Memberships Expiring Within 7 Days\nMember,End Date,Days Remaining\n");
+        for (String[] r : expiringRows) {
+            csv.append(escapeCsv(r[0])).append(',').append(r[1]).append(',').append(r[2]).append('\n');
+        }
+        csv.append("\nReport 3: Monthly Renewals Log\nMonth (YYYY-MM),Renewals\n");
+        for (Map.Entry<YearMonth, Integer> entry : monthlyCounts.entrySet()) {
+            csv.append(entry.getKey()).append(',').append(entry.getValue()).append('\n');
+        }
+
+        try {
+            java.nio.file.Files.writeString(target.toPath(), csv.toString(), StandardCharsets.UTF_8);
+            JOptionPane.showMessageDialog(this, "Exported management summary reports to:\n" + target.getAbsolutePath(),
+                    "CSV Export Complete", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Could not export CSV file: " + ex.getMessage(),
+                    "Export Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private static String escapeCsv(String val) {
+        if (val == null) return "";
+        if (val.contains(",") || val.contains("\"") || val.contains("\n")) {
+            return "\"" + val.replace("\"", "\"\"") + "\"";
+        }
+        return val;
+    }
+
+    private JPanel buildMemberWorkoutTab(User targetMember) {
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBackground(BG_OBSIDIAN);
+
+        JPanel topControls = createCardPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        JComboBox<String> cbGoal = createStyledComboBox(new String[]{"Weight Loss", "Muscle Gain", "General Fitness", "Strength Foundation"});
+        JComboBox<String> cbLevel = createStyledComboBox(new String[]{"Beginner", "Intermediate", "Advanced"});
+        if (targetMember.fitnessLevel != null) cbLevel.setSelectedItem(targetMember.fitnessLevel);
+        JComboBox<Integer> cbDays = createStyledComboBox(new Integer[]{2, 3, 4, 5});
+        cbDays.setSelectedItem(3);
+        JComboBox<String> cbEquip = createStyledComboBox(new String[]{"Full Gym", "Gym Machines Only", "Dumbbells", "Bodyweight"});
+
+        JCheckBox chkUseMachines = new JCheckBox("Include Gym Machines", true);
+        chkUseMachines.setOpaque(false);
+        chkUseMachines.setForeground(TEXT_PRIMARY);
+        chkUseMachines.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        JButton btnGenerate = createPrimaryButton("Generate Plan", VectorIcon.Kind.PLUS);
+        JButton btnCustom = createSecondaryButton("Custom Builder", VectorIcon.Kind.EDIT, TEXT_SECONDARY);
+
+        topControls.add(createChipLabel("GOAL"));
+        topControls.add(cbGoal);
+        topControls.add(createChipLabel("LEVEL"));
+        topControls.add(cbLevel);
+        topControls.add(createChipLabel("DAYS"));
+        topControls.add(cbDays);
+        topControls.add(createChipLabel("ZONE"));
+        topControls.add(cbEquip);
+        topControls.add(chkUseMachines);
+        topControls.add(btnGenerate);
+        topControls.add(btnCustom);
+
+        JLabel planHeaderLbl = new JLabel("Current Active Workout Plan:");
+        planHeaderLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        planHeaderLbl.setForeground(NEON_EMERALD);
+
+        JComboBox<WorkoutPlan> cbSavedPlans = createStyledComboBox(new WorkoutPlan[0]);
+        cbSavedPlans.setMaximumRowCount(8);
+        JButton btnDeletePlan = createDangerButton("Delete Plan", VectorIcon.Kind.TRASH);
+
+        JPanel planHeaderBar = new JPanel(new BorderLayout(10, 6));
+        planHeaderBar.setOpaque(false);
+        JPanel planSelectorBar = new JPanel(new BorderLayout(8, 0));
+        planSelectorBar.setOpaque(false);
+        planSelectorBar.add(createChipLabel("SAVED PLANS"), BorderLayout.WEST);
+        planSelectorBar.add(cbSavedPlans, BorderLayout.CENTER);
+        planSelectorBar.add(btnDeletePlan, BorderLayout.EAST);
+        planHeaderBar.add(planHeaderLbl, BorderLayout.NORTH);
+        planHeaderBar.add(planSelectorBar, BorderLayout.SOUTH);
+
+        String[] cols = {"Day", "Workout Name", "Target Muscle", "Equipment", "Sets", "Reps"};
+        DefaultTableModel exModel = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable exTable = new JTable(exModel);
+        styleModernTable(exTable);
+        exTable.getColumnModel().getColumn(3).setCellRenderer(new MachineBadgeRenderer());
+
+        WorkoutVisualCard visualCard = new WorkoutVisualCard();
+        final boolean[] updatingPlanCombo = {false};
+
+        Runnable renderSelectedPlan = () -> {
+            exModel.setRowCount(0);
+            WorkoutPlan selected = (WorkoutPlan) cbSavedPlans.getSelectedItem();
+            if (selected == null) {
+                planHeaderLbl.setText("No workout plan yet — use Generate Plan or Custom Builder above.");
+                visualCard.setExercise(null);
+                return;
+            }
+            String typeTag = selected.planType != null ? selected.planType.toUpperCase(Locale.ROOT) : "PLAN";
+            planHeaderLbl.setText("ACTIVE PLAN #" + selected.workoutPlanId + " [" + typeTag + "]  •  " + selected.goal);
+            boolean showMachines = chkUseMachines.isSelected();
+            for (WorkoutPlanExercise item : selected.exercises) {
+                boolean isMach = Exercise.isMachineEquipment(item.equipment);
+                if (!showMachines && isMach) continue;
+                String badge = isMach ? item.equipment.replace("Machine: ", "") : ("No Machine (" + item.equipment + ")");
+                exModel.addRow(new Object[]{item.dayOfWeek, item.exerciseName, item.muscleGroup, badge, item.sets + " sets", item.reps});
+            }
+            if (exTable.getRowCount() > 0) {
+                exTable.setRowSelectionInterval(0, 0);
+            } else {
+                visualCard.setExercise(null);
+            }
+        };
+
+        java.util.function.Consumer<Boolean> refreshPlans = selectNewest -> {
+            WorkoutPlan prev = (WorkoutPlan) cbSavedPlans.getSelectedItem();
+            int prevId = (!selectNewest && prev != null) ? prev.workoutPlanId : -1;
+            List<WorkoutPlan> plans = repo.getWorkoutPlansByUser(targetMember.userId);
+            updatingPlanCombo[0] = true;
+            try {
+                cbSavedPlans.removeAllItems();
+                int restoreIdx = 0;
+                for (int i = 0; i < plans.size(); i++) {
+                    WorkoutPlan wp = plans.get(i);
+                    cbSavedPlans.addItem(wp);
+                    if (wp.workoutPlanId == prevId) restoreIdx = i;
+                }
+                boolean hasPlans = !plans.isEmpty();
+                cbSavedPlans.setEnabled(hasPlans);
+                btnDeletePlan.setEnabled(hasPlans);
+                if (hasPlans) cbSavedPlans.setSelectedIndex(restoreIdx);
+            } finally {
+                updatingPlanCombo[0] = false;
+            }
+            renderSelectedPlan.run();
+        };
+
+        Runnable refreshPlansKeepSelection = () -> refreshPlans.accept(false);
+        Runnable refreshPlansSelectNewest = () -> refreshPlans.accept(true);
+
+        cbSavedPlans.addActionListener(e -> { if (!updatingPlanCombo[0]) renderSelectedPlan.run(); });
+        btnDeletePlan.addActionListener(e -> {
+            WorkoutPlan selected = (WorkoutPlan) cbSavedPlans.getSelectedItem();
+            if (selected == null) return;
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Delete workout plan #" + selected.workoutPlanId + " (" + selected.goal + ")?",
+                    "Confirm Delete Plan", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                repo.deleteWorkoutPlan(selected.workoutPlanId);
+                refreshPlansSelectNewest.run();
+            }
+        });
+
+        exTable.getSelectionModel().addListSelectionListener(e -> {
+            int row = exTable.getSelectedRow();
+            if (row < 0) return;
+            String exName = exModel.getValueAt(exTable.convertRowIndexToModel(row), 1).toString();
+            Exercise matched = repo.getAllExercises().stream().filter(x -> x.name.equalsIgnoreCase(exName)).findFirst().orElse(null);
+            visualCard.setExercise(matched);
+        });
+
+        cbEquip.addActionListener(e -> {
+            if ("Gym Machines Only".equals(cbEquip.getSelectedItem()) && !chkUseMachines.isSelected()) {
+                chkUseMachines.setSelected(true);
+                renderSelectedPlan.run();
+            }
+        });
+        chkUseMachines.addActionListener(e -> {
+            if (!chkUseMachines.isSelected() && "Gym Machines Only".equals(cbEquip.getSelectedItem())) {
+                cbEquip.setSelectedItem("Dumbbells");
+            }
+            renderSelectedPlan.run();
+        });
+
+        refreshPlansSelectNewest.run();
+
+        btnGenerate.addActionListener(e -> {
+            String eqPref = (String) cbEquip.getSelectedItem();
+            boolean useMach = chkUseMachines.isSelected();
+            if (!useMach && ("Full Gym".equals(eqPref) || "Gym Machines Only".equals(eqPref))) eqPref = "Dumbbells";
+            WorkoutPlan generated = BusinessRules.generateRuleBasedPlan(
+                    targetMember.userId, (String) cbGoal.getSelectedItem(), (String) cbLevel.getSelectedItem(),
+                    (Integer) cbDays.getSelectedItem(), eqPref, useMach, repo.getAllExercises());
+            repo.saveWorkoutPlan(generated);
+            refreshPlansSelectNewest.run();
+            JOptionPane.showMessageDialog(this, "Workout plan generated: " + generated.goal,
+                    "Workout Plan Ready", JOptionPane.INFORMATION_MESSAGE);
+        });
+        btnCustom.addActionListener(e -> showCustomPlanBuilderDialog(targetMember, refreshPlansSelectNewest));
+
+        JPanel centerBox = new JPanel(new BorderLayout(0, 10));
+        centerBox.setOpaque(false);
+        centerBox.add(planHeaderBar, BorderLayout.NORTH);
+        centerBox.add(wrapTableScrollPane(exTable), BorderLayout.CENTER);
+
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, centerBox, visualCard);
+        split.setResizeWeight(1.0);
+        split.setContinuousLayout(true);
+        split.setBorder(null);
+        split.setOpaque(false);
+
+        panel.putClientProperty("onTabSelected", refreshPlansKeepSelection);
+        panel.add(topControls, BorderLayout.NORTH);
+        panel.add(split, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JLabel createChipLabel(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(new Font("SansSerif", Font.BOLD, 10));
+        l.setForeground(TEXT_MUTED);
+        return l;
+    }
+
+    private JPanel buildStaffWorkoutHelperTab() {
+        JPanel wrapper = new JPanel(new BorderLayout(0, 14));
+        wrapper.setBackground(BG_OBSIDIAN);
+        wrapper.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+        JPanel selectorBar = createCardPanel(new FlowLayout(FlowLayout.LEFT, 12, 10));
+        JLabel lbl = new JLabel("Member Workout Plan:");
+        lbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        lbl.setForeground(TEXT_PRIMARY);
+        JComboBox<String> memberCombo = createStyledComboBox(new String[]{});
+        List<User> members = new ArrayList<>();
+
+        selectorBar.add(lbl);
+        selectorBar.add(memberCombo);
+
+        JPanel dynamicHolder = new JPanel(new BorderLayout());
+        dynamicHolder.setOpaque(false);
+
+        Runnable loadSelectedMemberPlanner = () -> {
+            dynamicHolder.removeAll();
+            int idx = memberCombo.getSelectedIndex();
+            if (idx >= 0 && idx < members.size()) {
+                dynamicHolder.add(buildMemberWorkoutTab(members.get(idx)), BorderLayout.CENTER);
+            }
+            dynamicHolder.revalidate();
+            dynamicHolder.repaint();
+        };
+
+        Runnable refreshMembers = () -> {
+            int selectedUserId = -1;
+            int prevIdx = memberCombo.getSelectedIndex();
+            if (prevIdx >= 0 && prevIdx < members.size()) selectedUserId = members.get(prevIdx).userId;
+            members.clear();
+            members.addAll(repo.getMembers());
+            ActionListener[] listeners = memberCombo.getActionListeners();
+            for (ActionListener al : listeners) memberCombo.removeActionListener(al);
+            memberCombo.removeAllItems();
+            int restoreIdx = 0;
+            for (int i = 0; i < members.size(); i++) {
+                User m = members.get(i);
+                memberCombo.addItem(m.userId + " - " + m.getFullName() + " (" + m.fitnessLevel + ")");
+                if (m.userId == selectedUserId) restoreIdx = i;
+            }
+            if (!members.isEmpty()) memberCombo.setSelectedIndex(restoreIdx);
+            for (ActionListener al : listeners) memberCombo.addActionListener(al);
+            loadSelectedMemberPlanner.run();
+        };
+
+        memberCombo.addActionListener(e -> loadSelectedMemberPlanner.run());
+        refreshMembers.run();
+
+        wrapper.putClientProperty("onTabSelected", refreshMembers);
+        wrapper.add(selectorBar, BorderLayout.NORTH);
+        wrapper.add(dynamicHolder, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private void showCustomPlanBuilderDialog(User member, Runnable onSaved) {
+        JDialog dlg = new JDialog(this, "Custom Workout Builder — " + member.getFullName(), true);
+        dlg.setSize(820, 560);
+        dlg.setLocationRelativeTo(this);
+        dlg.getContentPane().setBackground(BG_OBSIDIAN);
+        dlg.setLayout(new BorderLayout(12, 12));
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 12));
+        top.setBackground(BG_OBSIDIAN);
+        JLabel goalLbl = new JLabel("Custom Routine Title *:");
+        goalLbl.setForeground(TEXT_PRIMARY);
+        goalLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        JTextField tfGoal = createStyledTextField("Custom Hypertrophy & Conditioning Split");
+        tfGoal.setColumns(28);
+        top.add(goalLbl);
+        top.add(tfGoal);
+
+        String[] cols = {"Day of Week", "Exercise ID", "Exercise Name", "Muscle Group", "Sets", "Reps"};
+        DefaultTableModel draftModel = new DefaultTableModel(cols, 0);
+        JTable draftTable = new JTable(draftModel);
+        styleModernTable(draftTable);
+
+        JPanel adder = createCardPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+        JComboBox<String> cbDay = createStyledComboBox(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
+        JComboBox<Exercise> cbEx = createStyledComboBox(repo.getAllExercises().toArray(new Exercise[0]));
+        JSpinner spSets = new JSpinner(new SpinnerNumberModel(3, 1, 10, 1));
+        JTextField tfReps = createStyledTextField("10-12");
+        tfReps.setColumns(6);
+        JButton btnAddRow = createPrimaryButton("Add Exercise", VectorIcon.Kind.PLUS);
+        JButton btnRemoveRow = createDangerButton("Remove", VectorIcon.Kind.TRASH);
+
+        adder.add(createChipLabel("DAY"));
+        adder.add(cbDay);
+        adder.add(createChipLabel("EXERCISE"));
+        adder.add(cbEx);
+        adder.add(createChipLabel("SETS"));
+        adder.add(spSets);
+        adder.add(createChipLabel("REPS"));
+        adder.add(tfReps);
+        adder.add(btnAddRow);
+        adder.add(btnRemoveRow);
+
+        List<WorkoutPlanExercise> draftItems = new ArrayList<>();
+        btnAddRow.addActionListener(e -> {
+            Exercise ex = (Exercise) cbEx.getSelectedItem();
+            if (ex == null) return;
+            String reps = tfReps.getText().trim();
+            if (reps.isEmpty()) {
+                JOptionPane.showMessageDialog(dlg, "Please enter target reps (e.g., 10-12).");
+                return;
+            }
+            WorkoutPlanExercise item = new WorkoutPlanExercise();
+            item.exerciseId = ex.exerciseId;
+            item.exerciseName = ex.name;
+            item.muscleGroup = ex.muscleGroup;
+            item.equipment = ex.equipment;
+            item.dayOfWeek = (String) cbDay.getSelectedItem();
+            item.sets = (Integer) spSets.getValue();
+            item.reps = reps;
+            draftItems.add(item);
+            draftModel.addRow(new Object[]{item.dayOfWeek, ex.exerciseId, ex.name, ex.muscleGroup, item.sets, item.reps});
+        });
+
+        btnRemoveRow.addActionListener(e -> {
+            int row = draftTable.getSelectedRow();
+            if (row < 0) return;
+            int modelRow = draftTable.convertRowIndexToModel(row);
+            draftItems.remove(modelRow);
+            draftModel.removeRow(modelRow);
+        });
+
+        JButton btnSavePlan = createPrimaryButton("Save Custom Workout Plan", VectorIcon.Kind.CHECK);
+        btnSavePlan.addActionListener(e -> {
+            if (tfGoal.getText().trim().isEmpty() || draftItems.isEmpty()) {
+                JOptionPane.showMessageDialog(dlg, "Please enter a plan title and add at least one exercise.");
+                return;
+            }
+            WorkoutPlan custom = new WorkoutPlan();
+            custom.userId = member.userId;
+            custom.planType = "custom";
+            custom.goal = tfGoal.getText().trim();
+            custom.dateCreated = LocalDate.now();
+            custom.exercises.addAll(draftItems);
+            repo.saveWorkoutPlan(custom);
+            onSaved.run();
+            dlg.dispose();
+        });
+
+        JPanel south = new JPanel(new BorderLayout(0, 8));
+        south.setBackground(BG_OBSIDIAN);
+        south.setBorder(new EmptyBorder(0, 12, 12, 12));
+        south.add(adder, BorderLayout.CENTER);
+        JPanel saveBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 6));
+        saveBar.setOpaque(false);
+        saveBar.add(btnSavePlan);
+        south.add(saveBar, BorderLayout.SOUTH);
+
+        dlg.add(top, BorderLayout.NORTH);
+        dlg.add(wrapTableScrollPane(draftTable), BorderLayout.CENTER);
+        dlg.add(south, BorderLayout.SOUTH);
+        dlg.setVisible(true);
+    }
+
+    public static void main(String[] args) {
+        installLookAndFeel(false);
         SwingUtilities.invokeLater(() -> {
             gymsyncapp app = new gymsyncapp();
             app.setVisible(true);

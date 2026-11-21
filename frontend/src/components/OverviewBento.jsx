@@ -1,8 +1,21 @@
 import React from 'react'
 import NumberFlow from '@number-flow/react'
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowUpRight, CheckCircle2, Clock, Download, RefreshCw, UserPlus, Users, XCircle } from 'lucide-react'
-import { Badge, Button, Card, cn } from './ui'
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import { ArrowUpRight, Clock, Download, RefreshCw, ShieldAlert, UserPlus, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { BlurFade } from '@/components/ui/blur-fade'
+import { Progress } from '@/components/ui/progress'
+import { cn } from '@/lib/utils'
 
 export function OverviewBento({
   members,
@@ -15,6 +28,8 @@ export function OverviewBento({
   const activeCount = members.filter((m) => m.status === 'Active').length
   const expiredCount = members.filter((m) => m.status !== 'Active').length
   const expiringList = members.filter((m) => m.status === 'Active' && m.daysRemaining >= 0 && m.daysRemaining <= 7)
+  const healthyCount = Math.max(0, activeCount - expiringList.length)
+
   const attentionQueue = members
     .filter((m) => m.status !== 'Active' || (m.daysRemaining >= 0 && m.daysRemaining <= 7))
     .slice(0, 6)
@@ -27,223 +42,256 @@ export function OverviewBento({
 
   return (
     <div className="space-y-6">
-      {/* Top Hero Intro */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-            Live Operations Snapshot
-          </p>
-          <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-            Front Desk Command Center
-          </h1>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <a href="/api/reports/csv" download>
-            <Button variant="secondary">
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
-          </a>
-          <Button onClick={onNewMember}>
-            <UserPlus className="h-4 w-4" />
-            New Member
-          </Button>
-        </div>
-      </div>
-
-      {/* Bento Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left 8 cols: Hero Stats + Recharts Area Chart */}
-        <div className="lg:col-span-8 space-y-5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <BentoStat
-              label="Total Roster"
-              value={members.length}
-              sub="Registered members"
-              icon={Users}
-              tone="neutral"
-            />
-            <BentoStat
-              label="Active Passes"
-              value={activeCount}
-              sub={`${activePct}% pass health`}
-              icon={CheckCircle2}
-              tone="emerald"
-            />
-            <BentoStat
-              label="Expiring ≤ 7d"
-              value={expiringList.length}
-              sub="Due soon"
-              icon={Clock}
-              tone="amber"
-            />
-            <BentoStat
-              label="Expired"
-              value={expiredCount}
-              sub="Needs renewal"
-              icon={XCircle}
-              tone="rose"
-            />
+      {/* Studio Page Header */}
+      <BlurFade delay={0.02}>
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-5">
+          <div>
+            <div className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Real-Time Front Desk Operations
+            </div>
+            <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight">Operations Dashboard</h1>
           </div>
+          <div className="flex items-center gap-2">
+            <a href="/api/reports/csv" download>
+              <Button variant="outline" size="sm" className="cursor-pointer">
+                <Download className="h-3.5 w-3.5" />
+                Export CSV
+              </Button>
+            </a>
+            <Button size="sm" onClick={onNewMember} className="cursor-pointer">
+              <UserPlus className="h-3.5 w-3.5" />
+              Register Member
+            </Button>
+          </div>
+        </div>
+      </BlurFade>
 
-          {/* Interactive Recharts Renewal Activity Chart */}
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-4">
+      {/* Clean Studio Metric Strip — NumberFlow animated digits, zero gradient bloat */}
+      <BlurFade delay={0.06}>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricTile
+            label="Total Roster"
+            value={members.length}
+            footnote="Registered athletes"
+            dotClass="bg-zinc-900 dark:bg-zinc-100"
+            icon={Users}
+          />
+          <MetricTile
+            label="Active Passes"
+            value={activeCount}
+            suffix={`(${activePct}%)`}
+            footnote="Entry cleared today"
+            dotClass="bg-emerald-500"
+            icon={ShieldAlert}
+          />
+          <MetricTile
+            label="Expiring ≤ 7d"
+            value={expiringList.length}
+            footnote="Renewal reminders"
+            dotClass="bg-amber-500"
+            icon={Clock}
+          />
+          <MetricTile
+            label="Expired Passes"
+            value={expiredCount}
+            footnote="Blocked at desk"
+            dotClass="bg-rose-500"
+            icon={RefreshCw}
+          />
+        </div>
+      </BlurFade>
+
+      {/* Asymmetric 7/5 Operations Split */}
+      <BlurFade delay={0.1}>
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+          {/* Chart + Roster Composition */}
+          <Card className="xl:col-span-7 py-5 gap-4">
+            <div className="px-5 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
-                  Monthly Pass Activations &amp; Renewals
-                </h2>
-                <p className="text-xs text-zinc-500">
-                  Historical 1-month pass volume across the GymSync roster
-                </p>
+                <CardTitle className="text-base">Monthly Pass Volume</CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  1-month memberships issued and renewed across cycles
+                </CardDescription>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => onNavigate('directory')}>
-                Full Directory
+              <Button variant="ghost" size="sm" onClick={() => onNavigate('directory')} className="shrink-0 cursor-pointer">
+                View Roster
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </Button>
             </div>
 
-            <div className="h-64 w-full">
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="emeraldFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.28} />
-                        <stop offset="65%" stopColor="#10b981" stopOpacity={0.08} />
-                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(161,161,170,0.18)" />
-                    <XAxis
-                      dataKey="month"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 11, fill: '#71717a' }}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 11, fill: '#71717a' }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#18181b',
-                        borderColor: '#27272a',
-                        borderRadius: '10px',
-                        fontSize: '12px',
-                        color: '#fafafa',
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="renewals"
-                      stroke="#10b981"
-                      strokeWidth={2.2}
-                      fill="url(#emeraldFill)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-xs text-zinc-500">
-                  No renewal data available yet.
-                </div>
-              )}
-            </div>
-          </Card>
-        </div>
-
-        {/* Right 4 cols: Live Action Queue */}
-        <Card className="lg:col-span-4 p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
-                  Needs Attention
-                </h2>
-                <p className="text-xs text-zinc-500">Expired or expiring within 7 days</p>
+            <CardContent className="px-5 space-y-4">
+              <div className="h-56 w-full">
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="studioInkFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity={0.22} />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity={0.0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(161,161,170,0.2)" />
+                      <XAxis
+                        dataKey="month"
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 11, fill: '#71717a' }}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 11, fill: '#71717a' }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#18181b',
+                          borderColor: '#27272a',
+                          borderRadius: '10px',
+                          fontSize: '12px',
+                          color: '#fafafa',
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="renewals"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        fill="url(#studioInkFill)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                    No monthly renewal history recorded yet.
+                  </div>
+                )}
               </div>
-              <Badge tone={attentionQueue.length > 0 ? 'amber' : 'emerald'}>
-                {attentionQueue.length} queued
-              </Badge>
+
+              {/* Clean Segmented Roster Health Bar */}
+              <div className="rounded-xl border bg-muted/35 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium">Roster Health Breakdown</span>
+                  <span className="font-mono text-muted-foreground tabular-nums">{activePct}% healthy</span>
+                </div>
+                <div className="flex h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800 gap-0.5">
+                  {members.length > 0 && (
+                    <>
+                      <div
+                        className="bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${(healthyCount / members.length) * 100}%` }}
+                      />
+                      <div
+                        className="bg-amber-500 transition-all duration-500"
+                        style={{ width: `${(expiringList.length / members.length) * 100}%` }}
+                      />
+                      <div
+                        className="bg-rose-500 transition-all duration-500"
+                        style={{ width: `${(expiredCount / members.length) * 100}%` }}
+                      />
+                    </>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    Healthy ({healthyCount})
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-amber-500" />
+                    Due ≤7d ({expiringList.length})
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-rose-500" />
+                    Expired ({expiredCount})
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Actionable Desk Triage Queue */}
+          <Card className="xl:col-span-5 py-5 gap-3 flex flex-col">
+            <div className="px-5 flex items-center justify-between gap-3 pb-1">
+              <div>
+                <CardTitle className="text-base">Renewal Queue</CardTitle>
+                <CardDescription className="text-xs mt-0.5">Passes needing immediate front-desk action</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate('radar')} className="shrink-0 cursor-pointer">
+                All ({attentionQueue.length})
+              </Button>
             </div>
 
-            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <CardContent className="px-3 flex-1 divide-y">
               {attentionQueue.map((m) => {
-                const isExp = m.status !== 'Active'
+                const isExpired = m.status !== 'Active'
                 return (
                   <div
                     key={m.userId}
-                    className="py-3 flex items-center justify-between gap-2 group"
+                    onClick={() => onSelectMember(m)}
+                    className="flex items-center justify-between gap-3 px-2.5 py-3 rounded-lg hover:bg-muted/60 transition-colors cursor-pointer"
                   >
-                    <button
-                      onClick={() => onSelectMember(m)}
-                      className="flex items-center gap-2.5 text-left min-w-0 cursor-pointer"
-                    >
-                      <span
-                        className={cn(
-                          'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold border',
-                          isExp
-                            ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900'
-                            : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900'
-                        )}
-                      >
-                        {m.initials}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-zinc-900 group-hover:text-emerald-600 dark:text-zinc-100">
-                          {m.fullName}
-                        </p>
-                        <p className="text-xs text-zinc-500 tabular-nums">
-                          {m.balanceLabel} • {m.endDate}
-                        </p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            'h-2 w-2 rounded-full shrink-0',
+                            isExpired ? 'bg-rose-500' : 'bg-amber-500'
+                          )}
+                        />
+                        <p className="truncate text-sm font-medium">{m.fullName}</p>
                       </div>
-                    </button>
-                    <Button variant="secondary" size="sm" onClick={() => onRenewMember(m)}>
+                      <p className="mt-0.5 pl-4 font-mono text-[11px] text-muted-foreground tabular-nums">
+                        {m.balanceLabel} · Ends {m.endDate}
+                      </p>
+                    </div>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      className="shrink-0 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRenewMember(m)
+                      }}
+                    >
                       <RefreshCw className="h-3 w-3" />
-                      Renew
+                      +1 Mo
                     </Button>
                   </div>
                 )
               })}
-              {attentionQueue.length === 0 && (
-                <p className="py-12 text-center text-xs text-zinc-500">
-                  All active passes are healthy.
-                </p>
-              )}
-            </div>
-          </div>
 
-          <Button variant="ghost" className="w-full mt-3" onClick={() => onNavigate('radar')}>
-            View Full Expiry Radar
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Button>
-        </Card>
-      </div>
+              {attentionQueue.length === 0 && (
+                <div className="py-16 text-center text-xs text-muted-foreground space-y-2">
+                  <Progress value={100} className="w-24 mx-auto h-1.5 [&>div]:bg-emerald-500" />
+                  <p>All active athlete passes are healthy.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </BlurFade>
     </div>
   )
 }
 
-function BentoStat({ label, value, sub, icon: Icon, tone }) {
-  const iconWrap = {
-    neutral: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400',
-    emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400',
-    amber: 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400',
-    rose: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400',
-  }
+function MetricTile({ label, value, suffix, footnote, dotClass }) {
   return (
-    <Card className="p-4 space-y-2">
+    <Card className="py-4 px-5 gap-2 shadow-none">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{label}</span>
-        <div className={cn('h-7 w-7 rounded-lg flex items-center justify-center', iconWrap[tone])}>
-          <Icon className="h-3.5 w-3.5" />
-        </div>
+        <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+          {label}
+        </span>
+        <span className={cn('h-2 w-2 rounded-full', dotClass)} />
       </div>
-      <div className="text-3xl font-bold tracking-tight tabular-nums">
-        <NumberFlow value={value} />
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-bold tracking-tight tabular-nums">
+          <NumberFlow value={value} />
+        </span>
+        {suffix && <span className="font-mono text-xs text-muted-foreground">{suffix}</span>}
       </div>
-      <div className="text-xs text-zinc-500 dark:text-zinc-400">{sub}</div>
+      <p className="text-xs text-muted-foreground">{footnote}</p>
     </Card>
   )
 }

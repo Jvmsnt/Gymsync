@@ -50,12 +50,12 @@ public final class GymsyncServer {
                 : "In-Memory Fallback"));
         System.out.println("====================================================");
 
-        Process appWindow = launchDesktopAppWindow(url);
+        Process appWindow = Boolean.getBoolean("gymsync.headless") ? null : launchDesktopAppWindow(url);
         if (appWindow != null) {
             appWindow.waitFor();
             server.stop(0);
             System.exit(0);
-        } else if (Desktop.isDesktopSupported()) {
+        } else if (!Boolean.getBoolean("gymsync.headless") && Desktop.isDesktopSupported()) {
             try {
                 Desktop.getDesktop().browse(new URI(url));
             } catch (Exception ignored) {}
@@ -83,7 +83,7 @@ public final class GymsyncServer {
                             exe,
                             "--app=" + url,
                             "--user-data-dir=" + profileDir.toAbsolutePath(),
-                            "--window-size=1360,860",
+                            "--window-size=1400,880",
                             "--no-first-run",
                             "--no-default-browser-check"
                     ).start();

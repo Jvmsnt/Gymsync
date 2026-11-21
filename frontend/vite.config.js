@@ -10,6 +10,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1600,
+  },
   server: {
     proxy: {
       "/api": "http://localhost:8080",

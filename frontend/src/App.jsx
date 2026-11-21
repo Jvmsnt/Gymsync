@@ -1,30 +1,68 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Toaster, toast } from 'sonner'
-import { motion } from 'motion/react'
+import { toast } from 'sonner'
+import { AnimatePresence, motion } from 'motion/react'
 import {
   Activity,
   Bell,
+  ChevronsUpDown,
+  Download,
   Dumbbell,
   Eye,
   EyeOff,
   LayoutDashboard,
   LogOut,
-  Moon,
   Pencil,
   Plus,
   RefreshCw,
   Search,
   Shield,
-  Sun,
+  ShieldCheck,
   Trash2,
   UserPlus,
   Users,
 } from 'lucide-react'
-import { Badge, Button, Card, Input, Modal, Select, Tabs, TabsContent, TabsList, TabsTrigger, cn } from './components/ui'
-import { MemberDrawer } from './components/MemberDrawer'
-import { CommandMenu } from './components/CommandMenu'
-import { OverviewBento } from './components/OverviewBento'
-import { MusclePreviewCard } from './components/MuscleMap'
+import { Toaster } from '@/components/ui/sonner'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { DotPattern } from '@/components/ui/dot-pattern'
+import { Spotlight } from '@/components/ui/spotlight'
+import { BorderBeam } from '@/components/ui/border-beam'
+import { BaseActionMenu, StudioSwitch } from '@/components/BaseControls'
+import { MemberDrawer } from '@/components/MemberDrawer'
+import { CommandMenu } from '@/components/CommandMenu'
+import { OverviewBento } from '@/components/OverviewBento'
+import { MusclePreviewCard } from '@/components/MuscleMap'
+import { cn } from '@/lib/utils'
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -77,18 +115,27 @@ export default function App() {
   const renewMember = async (m) => {
     try {
       const res = await api(`/api/members/${m.userId}/renew`, { method: 'POST' })
-      toast.success(`Renewed ${m.fullName}`, { description: `Active through ${res.endDate}` })
       await loadWorkspaceData()
+      toast.success(`Renewed ${m.fullName}`, {
+        description: `1-month pass active through ${res.endDate}`,
+        action: {
+          label: 'Inspect Pass',
+          onClick: () => {
+            setDrawerMember(m)
+            setDrawerOpen(true)
+          },
+        },
+      })
     } catch (e) {
       toast.error(e.message)
     }
   }
 
   const deleteMember = async (m) => {
-    if (!window.confirm(`Delete member ${m.fullName} (#${m.userId}) and all records?`)) return
+    if (!window.confirm(`Delete member ${m.fullName} (#${m.userId}) and all associated records?`)) return
     try {
       await api(`/api/members/${m.userId}`, { method: 'DELETE' })
-      toast.success(`Deleted ${m.fullName}`)
+      toast.success(`Removed ${m.fullName} from roster`)
       setDrawerOpen(false)
       setDrawerMember(null)
       await loadWorkspaceData()
@@ -99,8 +146,8 @@ export default function App() {
 
   if (!user) {
     return (
-      <>
-        <Toaster position="bottom-right" richColors theme={dark ? 'dark' : 'light'} />
+      <TooltipProvider>
+        <Toaster position="bottom-right" theme={dark ? 'dark' : 'light'} />
         <LoginView
           dark={dark}
           onToggleDark={() => setDark(!dark)}
@@ -110,181 +157,329 @@ export default function App() {
             toast.success(`Signed in as ${authUser.fullName}`)
           }}
         />
-      </>
+      </TooltipProvider>
     )
   }
 
   const isAdmin = (user.role || '').toLowerCase() === 'admin'
-  const navItems = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'directory', label: 'Directory', icon: Users },
-    { id: 'workouts', label: 'Workouts', icon: Dumbbell },
-    { id: 'radar', label: 'Radar', icon: Bell },
-    ...(isAdmin ? [{ id: 'team', label: 'Team', icon: Shield }] : []),
+  const alertCount = members.filter((m) => m.status !== 'Active' || (m.daysRemaining >= 0 && m.daysRemaining <= 7)).length
+
+  const navGroups = [
+    {
+      label: 'Operations',
+      items: [
+        { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'directory', label: 'Directory', icon: Users, badge: members.length },
+        { id: 'radar', label: 'Expiry Radar', icon: Bell, badge: alertCount || null, alert: alertCount > 0 },
+      ],
+    },
+    {
+      label: 'Coaching',
+      items: [{ id: 'workouts', label: 'Workouts Hub', icon: Dumbbell }],
+    },
+    ...(isAdmin
+      ? [
+          {
+            label: 'Administration',
+            items: [{ id: 'team', label: 'Staff & Accounts', icon: Shield }],
+          },
+        ]
+      : []),
   ]
 
-  return (
-    <div className="min-h-screen bg-[#fafaf9] text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50 flex flex-col">
-      <Toaster position="bottom-right" richColors theme={dark ? 'dark' : 'light'} />
+  const flatNav = navGroups.flatMap((g) => g.items)
+  const currentNav = flatNav.find((n) => n.id === activeTab) || flatNav[0]
 
-      {/* Top Glass Command Bar */}
-      <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/85 backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-950/85">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3">
-          {/* Brand */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-emerald-600">
-              <Dumbbell className="h-4 w-4" />
+  const operatorInitials = (user.fullName || user.username || 'OP')
+    .split(' ')
+    .map((s) => s[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
+  return (
+    <TooltipProvider>
+      <div className="h-screen w-screen overflow-hidden flex bg-muted text-foreground">
+        <Toaster position="bottom-right" theme={dark ? 'dark' : 'light'} />
+
+        {/* Inset Application Sidebar */}
+        <aside className="w-60 shrink-0 flex flex-col justify-between p-3 select-none">
+          <div className="space-y-5">
+            {/* Brand + App Pill */}
+            <div className="flex items-center justify-between px-2 pt-1">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
+                  <Dumbbell className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="font-display text-sm font-bold leading-none tracking-tight">GymSync</p>
+                  <p className="mt-0.5 text-[10px] font-medium text-muted-foreground">Desk OS · DIT 2-3</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0">
+                {isAdmin ? 'ADM' : 'STF'}
+              </Badge>
             </div>
-            <div className="hidden sm:block">
-              <span className="text-sm font-bold tracking-tight">GYMSYNC</span>
-              <span className="ml-2 text-xs text-zinc-400">{isAdmin ? 'Admin' : 'Staff'}</span>
+
+            {/* Sidebar Grouped Navigation with Motion Spring Indicator */}
+            <div className="space-y-4">
+              {navGroups.map((group) => (
+                <div key={group.label} className="space-y-1">
+                  <p className="px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                    {group.label}
+                  </p>
+                  <div className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const Icon = item.icon
+                      const active = activeTab === item.id
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setActiveTab(item.id)}
+                          className={cn(
+                            'relative w-full flex items-center justify-between rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors cursor-pointer',
+                            active
+                              ? 'text-foreground'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                          )}
+                        >
+                          {active && (
+                            <motion.span
+                              layoutId="sidebarActiveNav"
+                              transition={{ type: 'spring', stiffness: 460, damping: 36 }}
+                              className="absolute inset-0 rounded-lg bg-background border shadow-2xs"
+                            />
+                          )}
+                          <span className="relative z-10 flex items-center gap-2.5">
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span>{item.label}</span>
+                          </span>
+                          {item.badge != null && (
+                            <span
+                              className={cn(
+                                'relative z-10 rounded-md px-1.5 py-0.5 font-mono text-[10px] tabular-nums',
+                                item.alert
+                                  ? 'bg-rose-500/12 text-rose-600 dark:text-rose-400 font-semibold'
+                                  : 'bg-muted text-muted-foreground'
+                              )}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Motion Spring Pill Nav */}
-          <nav className="flex items-center gap-1 rounded-xl border border-zinc-200/80 bg-zinc-100/70 p-1 dark:border-zinc-800 dark:bg-zinc-900/70">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const active = activeTab === item.id
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={cn(
-                    'relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                    active ? 'text-zinc-950 dark:text-zinc-50' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-                  )}
+          {/* Bottom Dock: Theme BaseUI Switch + DB Health + BaseUI Operator Menu */}
+          <div className="space-y-2.5 pt-3 border-t">
+            <div className="px-2.5 py-1.5 rounded-lg bg-background/60 border">
+              <StudioSwitch
+                id="sidebar-theme-switch"
+                checked={dark}
+                onCheckedChange={setDark}
+                label="Obsidian Mode"
+                description={dark ? 'Low-glare dark canvas' : 'Architectural light'}
+              />
+            </div>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] text-muted-foreground cursor-default">
+                  <span className="flex items-center gap-1.5">
+                    <Activity className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>{health.dbLabel}</span>
+                  </span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {health.jdbcConnected ? 'Connected via JDBC' : 'Running with instant seeded dataset'}
+              </TooltipContent>
+            </Tooltip>
+
+            <BaseActionMenu
+              trigger={
+                <div className="flex items-center justify-between gap-2 rounded-xl border bg-background p-2 hover:bg-accent/60 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Avatar className="h-8 w-8 border">
+                      <AvatarFallback className="text-[11px] font-semibold">{operatorInitials}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold">{user.fullName}</p>
+                      <p className="truncate font-mono text-[10px] text-muted-foreground">@{user.username}</p>
+                    </div>
+                  </div>
+                  <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                </div>
+              }
+              items={[
+                {
+                  label: 'Command Palette (Ctrl+K)',
+                  icon: <Search className="h-3.5 w-3.5" />,
+                  onClick: () => setCmdOpen(true),
+                },
+                {
+                  label: 'Register New Member',
+                  icon: <UserPlus className="h-3.5 w-3.5" />,
+                  onClick: () => {
+                    setEditingMember(null)
+                    setMemberModalOpen(true)
+                  },
+                },
+                ...(isAdmin
+                  ? [
+                      {
+                        label: 'Export CSV Report',
+                        icon: <Download className="h-3.5 w-3.5" />,
+                        onClick: () => (window.location.href = '/api/reports/csv'),
+                      },
+                    ]
+                  : []),
+                { separator: true },
+                {
+                  label: 'Sign Out',
+                  icon: <LogOut className="h-3.5 w-3.5" />,
+                  danger: true,
+                  onClick: () => setUser(null),
+                },
+              ]}
+            />
+          </div>
+        </aside>
+
+        {/* Rounded Inset Main Application Window */}
+        <section className="flex-1 my-2 mr-2 rounded-xl border bg-background shadow-xs flex flex-col overflow-hidden">
+          {/* Contextual Top Header */}
+          <header className="h-13 shrink-0 border-b px-6 flex items-center justify-between gap-4 bg-background/90 backdrop-blur-xs">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>GymSync</span>
+              <span>/</span>
+              <span className="font-medium text-foreground">{currentNav?.label}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCmdOpen(true)}
+                className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span>Jump to member or action...</span>
+                <kbd className="ml-3 rounded border bg-background px-1.5 py-0.5 font-mono text-[10px]">
+                  Ctrl K
+                </kbd>
+              </button>
+
+              <Button variant="ghost" size="icon-sm" onClick={loadWorkspaceData} title="Sync roster">
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </header>
+
+          {/* Scrollable Workspace Content */}
+          <main className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="mx-auto max-w-6xl">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.16, ease: 'easeOut' }}
                 >
-                  {active && (
-                    <motion.span
-                      layoutId="activeNavPill"
-                      transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                      className="absolute inset-0 rounded-lg bg-white shadow-2xs border border-zinc-200/60 dark:bg-zinc-800 dark:border-zinc-700/60"
+                  {activeTab === 'overview' && (
+                    <OverviewBento
+                      members={members}
+                      report={report}
+                      onSelectMember={(m) => {
+                        setDrawerMember(m)
+                        setDrawerOpen(true)
+                      }}
+                      onRenewMember={renewMember}
+                      onNewMember={() => {
+                        setEditingMember(null)
+                        setMemberModalOpen(true)
+                      }}
+                      onNavigate={setActiveTab}
                     />
                   )}
-                  <Icon className="relative z-10 h-3.5 w-3.5" />
-                  <span className="relative z-10">{item.label}</span>
-                </button>
-              )
-            })}
-          </nav>
 
-          {/* Right Controls: Ctrl+K Trigger, Theme, User */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCmdOpen(true)}
-              className="hidden md:flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-500 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 cursor-pointer"
-            >
-              <Search className="h-3.5 w-3.5" />
-              <span>Quick lookup...</span>
-              <kbd className="ml-2 rounded border border-zinc-200 bg-white px-1.5 py-0.5 font-mono text-[10px] dark:border-zinc-700 dark:bg-zinc-950">
-                Ctrl K
-              </kbd>
-            </button>
+                  {activeTab === 'directory' && (
+                    <DirectoryView
+                      members={members}
+                      onSelectMember={(m) => {
+                        setDrawerMember(m)
+                        setDrawerOpen(true)
+                      }}
+                      onNewMember={() => {
+                        setEditingMember(null)
+                        setMemberModalOpen(true)
+                      }}
+                    />
+                  )}
 
-            <Badge tone={health.jdbcConnected ? 'emerald' : 'neutral'} className="hidden lg:inline-flex">
-              <Activity className="h-3 w-3" />
-              {health.dbLabel}
-            </Badge>
+                  {activeTab === 'workouts' && <WorkoutsHubView isAdmin={isAdmin} members={members} />}
+                  {activeTab === 'radar' && <ExpiryAlertsView onRenewMember={renewMember} members={members} />}
+                  {activeTab === 'team' && isAdmin && <StaffAccountsView currentUser={user} />}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </main>
+        </section>
 
-            <Button variant="ghost" size="sm" onClick={() => setDark(!dark)} title="Toggle theme">
-              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
+        {/* Vaul Slide-Over Drawer for Digital Member Pass */}
+        <MemberDrawer
+          member={drawerMember}
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          isAdmin={isAdmin}
+          onRenew={renewMember}
+          onEdit={(m) => {
+            setEditingMember(m)
+            setMemberModalOpen(true)
+          }}
+          onDelete={deleteMember}
+        />
 
-            <Button variant="secondary" size="sm" onClick={() => setUser(null)}>
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Sign Out</span>
-            </Button>
-          </div>
-        </div>
-      </header>
+        {/* cmdk Ctrl+K Command Palette */}
+        <CommandMenu
+          open={cmdOpen}
+          onOpenChange={setCmdOpen}
+          members={members}
+          isAdmin={isAdmin}
+          dark={dark}
+          onToggleDark={() => setDark(!dark)}
+          onNavigate={setActiveTab}
+          onSelectMember={(m) => {
+            setDrawerMember(m)
+            setDrawerOpen(true)
+          }}
+          onNewMember={() => {
+            setEditingMember(null)
+            setMemberModalOpen(true)
+          }}
+        />
 
-      {/* Main Content Container */}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-5 py-6">
-        {activeTab === 'overview' && (
-          <OverviewBento
-            members={members}
-            report={report}
-            onSelectMember={(m) => {
-              setDrawerMember(m)
-              setDrawerOpen(true)
-            }}
-            onRenewMember={renewMember}
-            onNewMember={() => {
-              setEditingMember(null)
-              setMemberModalOpen(true)
-            }}
-            onNavigate={setActiveTab}
-          />
-        )}
-
-        {activeTab === 'directory' && (
-          <DirectoryView
-            members={members}
-            onSelectMember={(m) => {
-              setDrawerMember(m)
-              setDrawerOpen(true)
-            }}
-            onNewMember={() => {
-              setEditingMember(null)
-              setMemberModalOpen(true)
-            }}
-          />
-        )}
-
-        {activeTab === 'workouts' && <WorkoutsHubView isAdmin={isAdmin} members={members} />}
-        {activeTab === 'radar' && <ExpiryAlertsView onRenewMember={renewMember} members={members} />}
-        {activeTab === 'team' && isAdmin && <StaffAccountsView currentUser={user} />}
-      </main>
-
-      {/* Vaul Slide-Over Drawer for Member Pass Inspection */}
-      <MemberDrawer
-        member={drawerMember}
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        isAdmin={isAdmin}
-        onRenew={renewMember}
-        onEdit={(m) => {
-          setEditingMember(m)
-          setMemberModalOpen(true)
-        }}
-        onDelete={deleteMember}
-      />
-
-      {/* cmdk Ctrl+K Command Palette */}
-      <CommandMenu
-        open={cmdOpen}
-        onOpenChange={setCmdOpen}
-        members={members}
-        isAdmin={isAdmin}
-        dark={dark}
-        onToggleDark={() => setDark(!dark)}
-        onNavigate={setActiveTab}
-        onSelectMember={(m) => {
-          setDrawerMember(m)
-          setDrawerOpen(true)
-        }}
-        onNewMember={() => {
-          setEditingMember(null)
-          setMemberModalOpen(true)
-        }}
-      />
-
-      <MemberFormModal
-        open={memberModalOpen}
-        member={editingMember}
-        onClose={() => setMemberModalOpen(false)}
-        onSaved={() => {
-          setMemberModalOpen(false)
-          loadWorkspaceData()
-        }}
-      />
-    </div>
+        <MemberFormModal
+          open={memberModalOpen}
+          member={editingMember}
+          onClose={() => setMemberModalOpen(false)}
+          onSaved={() => {
+            setMemberModalOpen(false)
+            loadWorkspaceData()
+          }}
+        />
+      </div>
+    </TooltipProvider>
   )
 }
 
 /* ============================================================================
-   1. SPLIT-SCREEN OPERATOR LOGIN
+   1. ARCHITECTURAL SPLIT LOGIN (Aceternity Spotlight + MagicUI DotPattern & BorderBeam)
    ============================================================================ */
 function LoginView({ dark, onToggleDark, onSuccess }) {
   const [username, setUsername] = useState('')
@@ -308,52 +503,95 @@ function LoginView({ dark, onToggleDark, onSuccess }) {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-white dark:bg-zinc-950">
-      <div className="hidden lg:flex flex-col justify-between bg-zinc-900 p-12 text-white border-r border-zinc-800">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white">
-            <Dumbbell className="h-5 w-5" />
+    <div className="min-h-screen grid lg:grid-cols-12 bg-background text-foreground">
+      {/* Left Showcase Canvas */}
+      <div className="hidden lg:flex lg:col-span-7 relative overflow-hidden flex-col justify-between bg-zinc-950 p-12 text-zinc-50 border-r border-zinc-800/80">
+        <Spotlight className="-top-40 left-0 md:left-40 md:-top-20" fill="#10b981" />
+        <DotPattern
+          width={22}
+          height={22}
+          cr={1}
+          className="text-zinc-800/80 [mask-image:radial-gradient(600px_circle_at_center,white,transparent)]"
+        />
+
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-zinc-950 shadow-sm">
+            <Dumbbell className="h-4 w-4" />
           </div>
-          <span className="text-lg font-bold tracking-tight">GYMSYNC</span>
+          <div>
+            <span className="font-display text-base font-bold tracking-tight">GYMSYNC</span>
+            <span className="ml-2 font-mono text-[11px] text-zinc-500">v2.0 DESK</span>
+          </div>
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="max-w-md space-y-5"
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="relative z-10 max-w-lg space-y-6"
         >
-          <Badge tone="emerald" className="bg-emerald-950 text-emerald-400 border-emerald-800">
-            Front Desk Operations
-          </Badge>
-          <h1 className="text-4xl font-bold leading-tight">
-            Gym Membership &amp; Workout Operations
-          </h1>
-          <p className="text-sm text-zinc-400 leading-relaxed max-w-[42ch]">
-            Verify passes in milliseconds, automate 1-month renewals, track expiring athletes, and coach workout plans from one fast operator console.
-          </p>
+          <div className="space-y-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/90 px-3 py-1 text-xs font-medium text-zinc-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Front Desk &amp; Workout Operations
+            </span>
+            <h1 className="text-4xl font-bold tracking-tight leading-[1.12] text-white">
+              Fast desk check-ins. Zero spreadsheet guesswork.
+            </h1>
+            <p className="text-sm text-zinc-400 leading-relaxed max-w-[46ch]">
+              Verify member eligibility instantaneously, trigger automated 1-month pass cycles, monitor expiring athletes, and coach structured training plans in one operator console.
+            </p>
+          </div>
+
+          {/* Preview Standout Pass Card */}
+          <div className="relative rounded-2xl border border-zinc-800 bg-zinc-900/75 backdrop-blur-md p-5 max-w-md overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">Live Desk Verification</p>
+                <p className="mt-1 font-semibold text-sm text-white">Carlos Mendoza · Pass #0003</p>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300">
+                <ShieldCheck className="h-3 w-3" />
+                Cleared
+              </span>
+            </div>
+            <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between font-mono text-xs text-zinc-400">
+              <span>Balance: 18 days remaining</span>
+              <span className="text-emerald-400">+1 Mo Ready</span>
+            </div>
+            <BorderBeam size={90} duration={7} colorFrom="#10b981" colorTo="#06b6d4" />
+          </div>
         </motion.div>
 
-        <p className="text-xs text-zinc-500">DIT 2-3 Group 3 • Java + MySQL + React</p>
+        <div className="relative z-10 flex items-center justify-between text-xs text-zinc-500 font-mono">
+          <span>DIT 2-3 Group 3 · Integrative Stack</span>
+          <span>Admin &amp; Staff Operators Only</span>
+        </div>
       </div>
 
-      <div className="flex flex-col justify-between p-8 sm:p-12">
-        <div className="flex justify-end">
-          <Button variant="secondary" size="sm" onClick={onToggleDark}>
-            {dark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-            {dark ? 'Light' : 'Dark'}
-          </Button>
+      {/* Right Operator Sign-In Column */}
+      <div className="lg:col-span-5 flex flex-col justify-between p-8 sm:p-12">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 lg:hidden">
+            <Dumbbell className="h-4 w-4" />
+            <span className="font-display font-bold">GYMSYNC</span>
+          </div>
+          <div className="ml-auto">
+            <StudioSwitch id="login-theme" checked={dark} onCheckedChange={onToggleDark} label={dark ? 'Dark' : 'Light'} />
+          </div>
         </div>
 
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
+          transition={{ duration: 0.25 }}
           className="mx-auto w-full max-w-sm space-y-6"
         >
           <div>
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Sign in</h2>
-            <p className="mt-1 text-sm text-zinc-500">Enter your Admin or Front Desk Staff credentials.</p>
+            <h2 className="text-2xl font-bold tracking-tight">Operator Sign In</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Authenticate with your Admin or Front Desk Staff credentials.
+            </p>
           </div>
 
           <form
@@ -364,14 +602,21 @@ function LoginView({ dark, onToggleDark, onSuccess }) {
             }}
           >
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Username</label>
-              <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="admin or staff" autoFocus />
+              <Label htmlFor="login-user">Username</Label>
+              <Input
+                id="login-user"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin or staff"
+                autoFocus
+              />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Password</label>
+              <Label htmlFor="login-pass">Password</Label>
               <div className="relative">
                 <Input
+                  id="login-pass"
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -381,30 +626,32 @@ function LoginView({ dark, onToggleDark, onSuccess }) {
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in to Console'}
+            <Button type="submit" size="lg" className="w-full cursor-pointer" disabled={loading}>
+              {loading ? 'Authenticating...' : 'Open Desk Console'}
             </Button>
           </form>
 
-          <div className="border-t border-zinc-200 dark:border-zinc-800 pt-5 space-y-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-              Quick Demo Operator Sign-In
+          <Separator />
+
+          <div className="space-y-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              1-Click Demo Operator Access
             </p>
             <div className="grid grid-cols-2 gap-2.5">
-              <Button variant="secondary" onClick={() => submitLogin('admin', 'admin123')}>
-                <Shield className="h-3.5 w-3.5 text-zinc-500" />
-                Admin
+              <Button variant="outline" onClick={() => submitLogin('admin', 'admin123')} className="cursor-pointer">
+                <Shield className="h-3.5 w-3.5" />
+                Admin Desk
               </Button>
-              <Button variant="secondary" onClick={() => submitLogin('staff', 'staff123')}>
+              <Button variant="outline" onClick={() => submitLogin('staff', 'staff123')} className="cursor-pointer">
                 <Users className="h-3.5 w-3.5 text-emerald-600" />
-                Staff
+                Staff Desk
               </Button>
             </div>
           </div>
@@ -417,7 +664,7 @@ function LoginView({ dark, onToggleDark, onSuccess }) {
 }
 
 /* ============================================================================
-   2. FULL-WIDTH DIRECTORY VIEW (Opens Vaul Drawer on Row Click)
+   2. DIRECTORY VIEW (shadcn Table + Tabs + Vaul Drawer on row click)
    ============================================================================ */
 function DirectoryView({ members, onSelectMember, onNewMember }) {
   const [search, setSearch] = useState('')
@@ -440,25 +687,27 @@ function DirectoryView({ members, onSelectMember, onNewMember }) {
   }, [members, search, filter])
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-5">
         <div>
-          <h1 className="text-2xl font-bold">Member Directory</h1>
-          <p className="text-xs text-zinc-500">Click any athlete row to open their digital pass drawer</p>
+          <h1 className="text-2xl font-bold tracking-tight">Member Directory</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Click any member row to slide out their interactive Digital Member Pass
+          </p>
         </div>
-        <Button onClick={onNewMember}>
-          <UserPlus className="h-4 w-4" />
-          New Member
+        <Button size="sm" onClick={onNewMember} className="cursor-pointer">
+          <UserPlus className="h-3.5 w-3.5" />
+          Register Member
         </Button>
       </div>
 
-      <Card className="p-3 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative w-80 max-w-full">
-          <Search className="h-4 w-4 text-zinc-400 absolute left-3 top-2.5" />
+          <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-2.5" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter by name, @username, phone..."
+            placeholder="Filter by athlete, @handle, phone..."
             className="pl-9"
           />
         </div>
@@ -467,70 +716,91 @@ function DirectoryView({ members, onSelectMember, onNewMember }) {
           <TabsList>
             <TabsTrigger value="all">All ({members.length})</TabsTrigger>
             <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="expiring">Expiring</TabsTrigger>
+            <TabsTrigger value="expiring">Expiring ≤7d</TabsTrigger>
             <TabsTrigger value="expired">Expired</TabsTrigger>
           </TabsList>
         </Tabs>
-      </Card>
+      </div>
 
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-900/50 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                <th className="py-3 px-4">ID</th>
-                <th className="py-3 px-4">Athlete</th>
-                <th className="py-3 px-4">Contact</th>
-                <th className="py-3 px-4">Level</th>
-                <th className="py-3 px-4">Period</th>
-                <th className="py-3 px-4">Balance</th>
-                <th className="py-3 px-4">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-sm">
-              {filtered.map((m) => {
-                const isAct = m.status === 'Active'
-                const isExpSoon = isAct && m.daysRemaining >= 0 && m.daysRemaining <= 7
-                return (
-                  <tr
-                    key={m.userId}
-                    onClick={() => onSelectMember(m)}
-                    className="cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/60"
-                  >
-                    <td className="py-3.5 px-4 font-mono text-xs text-zinc-400 tabular-nums">#{m.userId}</td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                          {m.initials}
-                        </span>
-                        <div>
-                          <div className="font-medium">{m.fullName}</div>
-                          <div className="text-xs text-zinc-500">@{m.username}</div>
-                        </div>
+      <Card className="p-0 overflow-hidden shadow-none">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableHead className="w-16">ID</TableHead>
+              <TableHead>Athlete</TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead>Tier</TableHead>
+              <TableHead>Current Cycle</TableHead>
+              <TableHead>Balance</TableHead>
+              <TableHead className="text-right">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((m) => {
+              const isAct = m.status === 'Active'
+              const isExpSoon = isAct && m.daysRemaining >= 0 && m.daysRemaining <= 7
+              return (
+                <TableRow
+                  key={m.userId}
+                  onClick={() => onSelectMember(m)}
+                  className="cursor-pointer"
+                >
+                  <TableCell className="font-mono text-xs text-muted-foreground tabular-nums">
+                    #{String(m.userId).padStart(3, '0')}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2.5">
+                      <Avatar className="h-7 w-7 border">
+                        <AvatarFallback className="text-[10px] font-semibold">{m.initials}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm leading-none">{m.fullName}</p>
+                        <p className="font-mono text-[11px] text-muted-foreground mt-0.5">@{m.username}</p>
                       </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-zinc-600 dark:text-zinc-300 tabular-nums">{m.contactNo}</td>
-                    <td className="py-3.5 px-4 text-zinc-600 dark:text-zinc-300">{m.fitnessLevel}</td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-zinc-500 tabular-nums">{m.startDate} → {m.endDate}</td>
-                    <td className="py-3.5 px-4 text-xs font-medium tabular-nums">{m.balanceLabel}</td>
-                    <td className="py-3.5 px-4">
-                      <Badge tone={isAct ? (isExpSoon ? 'amber' : 'emerald') : 'rose'}>
-                        {isAct ? (isExpSoon ? 'Expiring' : 'Active') : 'Expired'}
-                      </Badge>
-                    </td>
-                  </tr>
-                )
-              })}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-sm text-zinc-500">
-                    No members match your filter.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs tabular-nums text-muted-foreground">
+                    {m.contactNo}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[11px] font-normal">
+                      {m.fitnessLevel}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground tabular-nums">
+                    {m.startDate} → {m.endDate}
+                  </TableCell>
+                  <TableCell className="text-xs font-medium tabular-nums">{m.balanceLabel}</TableCell>
+                  <TableCell className="text-right">
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border',
+                        isAct && !isExpSoon && 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+                        isExpSoon && 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                        !isAct && 'border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-400'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'h-1.5 w-1.5 rounded-full',
+                          isAct && !isExpSoon ? 'bg-emerald-500' : isExpSoon ? 'bg-amber-500' : 'bg-rose-500'
+                        )}
+                      />
+                      {isAct ? (isExpSoon ? 'Expiring' : 'Active') : 'Expired'}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+            {filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
+                  No members match your search criteria.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </Card>
     </div>
   )
@@ -577,88 +847,101 @@ function MemberFormModal({ open, member, onClose, onSaved }) {
   }
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isNew ? 'Register New Member' : `Edit Member — ${member?.fullName}`}
-      subtitle={isNew ? 'Automatically activates a 1-month gym pass from today.' : 'Update athlete profile details.'}
-      maxWidth="max-w-xl"
-    >
-      <form onSubmit={submit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          <div>
-            <label className="text-xs font-semibold">Username *</label>
-            <Input className="mt-1" value={form.username || ''} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{isNew ? 'Register New Member' : `Edit Profile — ${member?.fullName}`}</DialogTitle>
+          <DialogDescription>
+            {isNew ? 'Issues an active 1-month studio pass starting today.' : 'Update athlete dossier fields.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={submit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="space-y-1">
+              <Label>Username *</Label>
+              <Input value={form.username || ''} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>{isNew ? 'Password *' : 'New Password (optional)'}</Label>
+              <Input type="password" value={form.password || ''} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>First Name *</Label>
+              <Input value={form.firstName || ''} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>Last Name *</Label>
+              <Input value={form.lastName || ''} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>Contact No. *</Label>
+              <Input value={form.contactNo || ''} onChange={(e) => setForm({ ...form, contactNo: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>Fitness Level *</Label>
+              <Select value={form.fitnessLevel || 'Beginner'} onValueChange={(v) => setForm({ ...form, fitnessLevel: v })}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Beginner">Beginner</SelectItem>
+                  <SelectItem value="Intermediate">Intermediate</SelectItem>
+                  <SelectItem value="Advanced">Advanced</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Emergency Contact Name *</Label>
+              <Input value={form.emergencyContactName || ''} onChange={(e) => setForm({ ...form, emergencyContactName: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>Emergency Contact No. *</Label>
+              <Input value={form.emergencyContactNo || ''} onChange={(e) => setForm({ ...form, emergencyContactNo: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>Gender</Label>
+              <Select value={form.gender || 'Male'} onValueChange={(v) => setForm({ ...form, gender: v })}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                  <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Birthdate (YYYY-MM-DD)</Label>
+              <Input placeholder="2002-05-15" value={form.birthdate || ''} onChange={(e) => setForm({ ...form, birthdate: e.target.value })} />
+            </div>
           </div>
-          <div>
-            <label className="text-xs font-semibold">{isNew ? 'Password *' : 'New Password (optional)'}</label>
-            <Input type="password" className="mt-1" value={form.password || ''} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+
+          <div className="space-y-1">
+            <Label>Address (optional)</Label>
+            <Input value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} />
           </div>
-          <div>
-            <label className="text-xs font-semibold">First Name *</label>
-            <Input className="mt-1" value={form.firstName || ''} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold">Last Name *</label>
-            <Input className="mt-1" value={form.lastName || ''} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold">Contact No. *</label>
-            <Input className="mt-1" value={form.contactNo || ''} onChange={(e) => setForm({ ...form, contactNo: e.target.value })} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold">Fitness Level *</label>
-            <Select className="mt-1" value={form.fitnessLevel || 'Beginner'} onChange={(e) => setForm({ ...form, fitnessLevel: e.target.value })}>
-              <option>Beginner</option>
-              <option>Intermediate</option>
-              <option>Advanced</option>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold">Emergency Contact Name *</label>
-            <Input className="mt-1" value={form.emergencyContactName || ''} onChange={(e) => setForm({ ...form, emergencyContactName: e.target.value })} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold">Emergency Contact No. *</label>
-            <Input className="mt-1" value={form.emergencyContactNo || ''} onChange={(e) => setForm({ ...form, emergencyContactNo: e.target.value })} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold">Gender</label>
-            <Select className="mt-1" value={form.gender || 'Male'} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
-              <option>Male</option>
-              <option>Female</option>
-              <option>Other</option>
-              <option>Prefer not to say</option>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold">Birthdate (YYYY-MM-DD)</label>
-            <Input className="mt-1" placeholder="2002-05-15" value={form.birthdate || ''} onChange={(e) => setForm({ ...form, birthdate: e.target.value })} />
-          </div>
-        </div>
-        <div>
-          <label className="text-xs font-semibold">Address (optional)</label>
-          <Input className="mt-1" value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit">{isNew ? 'Activate Member Pass' : 'Save Changes'}</Button>
-        </div>
-      </form>
-    </Modal>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit">{isNew ? 'Activate Member Pass' : 'Save Changes'}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
 /* ============================================================================
-   3. WORKOUTS HUB (Coach + Exercise Library under Radix Tabs)
+   3. WORKOUTS HUB
    ============================================================================ */
 function WorkoutsHubView({ isAdmin, members }) {
   return (
     <Tabs defaultValue="coach" className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-5">
         <div>
-          <h1 className="text-2xl font-bold">Workouts &amp; Coaching</h1>
-          <p className="text-xs text-zinc-500">Build member routines and manage gym floor exercises</p>
+          <h1 className="text-2xl font-bold tracking-tight">Workouts &amp; Coaching</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Generate rule-based athlete training splits and inspect target muscle stations
+          </p>
         </div>
         <TabsList>
           <TabsTrigger value="coach">Workout Coach</TabsTrigger>
@@ -687,7 +970,6 @@ function WorkoutCoachView({ members }) {
 
   const [goal, setGoal] = useState('General Fitness')
   const [level, setLevel] = useState('Beginner')
-  const [days, setDays] = useState('3')
   const [zone, setZone] = useState('Full Gym')
 
   useEffect(() => {
@@ -721,12 +1003,12 @@ function WorkoutCoachView({ members }) {
           userId: Number(memberId),
           goal,
           fitnessLevel: level,
-          daysPerWeek: Number(days),
+          daysPerWeek: 3,
           equipmentPref: zone,
           includeMachines: zone === 'Full Gym' || zone === 'Gym Machines Only',
         }),
       })
-      toast.success('Workout plan generated', { description: res.plan.goal })
+      toast.success('Generated custom training split', { description: res.plan.goal })
       await loadPlans(memberId)
       setPlanId(String(res.plan.workoutPlanId))
     } catch (e) {
@@ -737,113 +1019,130 @@ function WorkoutCoachView({ members }) {
   const deletePlan = async () => {
     if (!activePlan) return
     await api(`/api/workout-plans/${activePlan.workoutPlanId}`, { method: 'DELETE' })
-    toast.success(`Deleted plan #${activePlan.workoutPlanId}`)
+    toast.success(`Removed Plan #${activePlan.workoutPlanId}`)
     await loadPlans(memberId)
   }
 
   return (
     <div className="space-y-5">
-      <Card className="p-4 grid grid-cols-2 sm:grid-cols-6 gap-3 items-end">
-        <div className="col-span-2">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Member</label>
-          <Select className="mt-1" value={memberId} onChange={(e) => setMemberId(e.target.value)}>
-            {members.map((m) => (
-              <option key={m.userId} value={String(m.userId)}>
-                #{m.userId} — {m.fullName}
-              </option>
-            ))}
-          </Select>
+      <Card className="py-4 px-5 shadow-none">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          <div className="md:col-span-3 space-y-1">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Athlete</Label>
+            <Select value={memberId} onValueChange={setMemberId}>
+              <SelectTrigger className="w-full"><SelectValue placeholder="Choose member" /></SelectTrigger>
+              <SelectContent>
+                {members.map((m) => (
+                  <SelectItem key={m.userId} value={String(m.userId)}>
+                    #{m.userId} — {m.fullName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-3 space-y-1">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Goal</Label>
+            <Select value={goal} onValueChange={setGoal}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['Weight Loss', 'Muscle Gain', 'General Fitness', 'Strength Foundation'].map((g) => (
+                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-2 space-y-1">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Level</Label>
+            <Select value={level} onValueChange={setLevel}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['Beginner', 'Intermediate', 'Advanced'].map((l) => (
+                  <SelectItem key={l} value={l}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-2 space-y-1">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Equipment Zone</Label>
+            <Select value={zone} onValueChange={setZone}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['Full Gym', 'Gym Machines Only', 'Dumbbells', 'Bodyweight'].map((z) => (
+                  <SelectItem key={z} value={z}>{z}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-2">
+            <Button onClick={generate} className="w-full cursor-pointer">
+              <Plus className="h-4 w-4" />
+              Generate
+            </Button>
+          </div>
         </div>
-        <div>
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Goal</label>
-          <Select className="mt-1" value={goal} onChange={(e) => setGoal(e.target.value)}>
-            {['Weight Loss', 'Muscle Gain', 'General Fitness', 'Strength Foundation'].map((g) => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Level</label>
-          <Select className="mt-1" value={level} onChange={(e) => setLevel(e.target.value)}>
-            {['Beginner', 'Intermediate', 'Advanced'].map((l) => (
-              <option key={l} value={l}>{l}</option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Zone</label>
-          <Select className="mt-1" value={zone} onChange={(e) => setZone(e.target.value)}>
-            {['Full Gym', 'Gym Machines Only', 'Dumbbells', 'Bodyweight'].map((z) => (
-              <option key={z} value={z}>{z}</option>
-            ))}
-          </Select>
-        </div>
-        <Button onClick={generate} className="w-full">
-          <Plus className="h-4 w-4" />
-          Generate
-        </Button>
       </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
         <div className="xl:col-span-8 space-y-3">
-          <Card className="p-3 flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex-1">
-              <Select value={planId || 'none'} onChange={(e) => setPlanId(e.target.value)}>
-                {plans.length === 0 && <option value="none">No saved plans yet</option>}
-                {plans.map((p) => (
-                  <option key={p.workoutPlanId} value={String(p.workoutPlanId)}>
-                    Plan #{p.workoutPlanId} [{p.planType}] — {p.goal}
-                  </option>
-                ))}
+              <Select value={planId || 'none'} onValueChange={setPlanId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="No saved plans" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.length === 0 && <SelectItem value="none">No saved plans yet</SelectItem>}
+                  {plans.map((p) => (
+                    <SelectItem key={p.workoutPlanId} value={String(p.workoutPlanId)}>
+                      Plan #{p.workoutPlanId} [{p.planType}] — {p.goal}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
-            <Button variant="danger" size="sm" disabled={!activePlan} onClick={deletePlan}>
+            <Button variant="outline" size="sm" disabled={!activePlan} onClick={deletePlan} className="text-rose-600 cursor-pointer">
               <Trash2 className="h-3.5 w-3.5" />
               Delete Plan
             </Button>
-          </Card>
+          </div>
 
-          <Card className="overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-900/50 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                  <th className="py-3 px-4">Day</th>
-                  <th className="py-3 px-4">Exercise</th>
-                  <th className="py-3 px-4">Muscle</th>
-                  <th className="py-3 px-4">Equipment</th>
-                  <th className="py-3 px-4">Sets × Reps</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-sm">
+          <Card className="p-0 overflow-hidden shadow-none">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead>Day</TableHead>
+                  <TableHead>Exercise</TableHead>
+                  <TableHead>Muscle</TableHead>
+                  <TableHead>Station</TableHead>
+                  <TableHead className="text-right">Sets × Reps</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {(activePlan?.exercises || []).map((item, idx) => {
                   const fullEx = exercises.find((e) => e.name.toLowerCase() === item.exerciseName.toLowerCase()) || null
                   return (
-                    <tr
-                      key={idx}
-                      onClick={() => setSelectedEx(fullEx)}
-                      className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900/60"
-                    >
-                      <td className="py-3 px-4 font-medium">{item.dayOfWeek}</td>
-                      <td className="py-3 px-4 font-medium">{item.exerciseName}</td>
-                      <td className="py-3 px-4 text-zinc-500">{item.muscleGroup}</td>
-                      <td className="py-3 px-4">
-                        <Badge tone={(item.equipment || '').toLowerCase().includes('machine') ? 'blue' : 'emerald'}>
-                          {(item.equipment || '').replace('Machine: ', '')}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 font-mono text-xs tabular-nums">{item.sets} × {item.reps}</td>
-                    </tr>
+                    <TableRow key={idx} onClick={() => setSelectedEx(fullEx)} className="cursor-pointer">
+                      <TableCell className="font-medium">{item.dayOfWeek}</TableCell>
+                      <TableCell className="font-medium">{item.exerciseName}</TableCell>
+                      <TableCell className="text-muted-foreground">{item.muscleGroup}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{(item.equipment || '').replace('Machine: ', '')}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-xs tabular-nums">
+                        {item.sets} × {item.reps}
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
                 {(!activePlan || activePlan.exercises.length === 0) && (
-                  <tr>
-                    <td colSpan={5} className="py-10 text-center text-sm text-zinc-500">
-                      Generate a workout plan above to view exercises.
-                    </td>
-                  </tr>
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                      Generate a workout plan above to view athlete exercises.
+                    </TableCell>
+                  </TableRow>
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </Card>
         </div>
 
@@ -900,23 +1199,27 @@ function ExerciseLibraryView() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
-            <input type="checkbox" checked={showMachines} onChange={(e) => setShowMachines(e.target.checked)} className="accent-emerald-600" />
-            Gym Machine Workouts
-          </label>
-          <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
-            <input type="checkbox" checked={showFree} onChange={(e) => setShowFree(e.target.checked)} className="accent-emerald-600" />
-            Free-Weight / Bodyweight
-          </label>
+      <Card className="py-3 px-4 flex flex-row flex-wrap items-center justify-between gap-4 shadow-none">
+        <div className="flex flex-wrap items-center gap-6">
+          <StudioSwitch
+            id="filter-machines"
+            checked={showMachines}
+            onCheckedChange={setShowMachines}
+            label="Gym Machines"
+          />
+          <StudioSwitch
+            id="filter-freeweights"
+            checked={showFree}
+            onCheckedChange={setShowFree}
+            label="Free Weights & Bodyweight"
+          />
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" disabled={!selected} onClick={() => { setEditing(selected); setModalOpen(true) }}>
+          <Button variant="outline" size="sm" disabled={!selected} onClick={() => { setEditing(selected); setModalOpen(true) }}>
             <Pencil className="h-3.5 w-3.5" />
             Edit
           </Button>
-          <Button variant="danger" size="sm" disabled={!selected} onClick={() => selected && remove(selected)}>
+          <Button variant="outline" size="sm" disabled={!selected} onClick={() => selected && remove(selected)} className="text-rose-600">
             <Trash2 className="h-3.5 w-3.5" />
             Delete
           </Button>
@@ -928,43 +1231,40 @@ function ExerciseLibraryView() {
       </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
-        <Card className="xl:col-span-8 overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-900/50 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                <th className="py-3 px-4">ID</th>
-                <th className="py-3 px-4">Workout</th>
-                <th className="py-3 px-4">Muscle</th>
-                <th className="py-3 px-4">Level</th>
-                <th className="py-3 px-4">Equipment</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-sm">
-              {filtered.map((ex) => {
-                const isMach = (ex.equipment || '').toLowerCase().includes('machine')
-                return (
-                  <tr
-                    key={ex.exerciseId}
-                    onClick={() => setSelectedId(ex.exerciseId)}
-                    className={cn(
-                      'cursor-pointer transition-colors',
-                      selected?.exerciseId === ex.exerciseId
-                        ? 'bg-emerald-50/70 dark:bg-emerald-950/30'
-                        : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/60'
-                    )}
-                  >
-                    <td className="py-3 px-4 font-mono text-xs text-zinc-400">#{ex.exerciseId}</td>
-                    <td className="py-3 px-4 font-medium">{ex.name}</td>
-                    <td className="py-3 px-4 text-zinc-600 dark:text-zinc-300">{ex.muscleGroup}</td>
-                    <td className="py-3 px-4 text-zinc-600 dark:text-zinc-300">{ex.difficulty}</td>
-                    <td className="py-3 px-4">
-                      <Badge tone={isMach ? 'blue' : 'emerald'}>{ex.equipment.replace('Machine: ', '')}</Badge>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        <Card className="xl:col-span-8 p-0 overflow-hidden shadow-none">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className="w-16">ID</TableHead>
+                <TableHead>Workout</TableHead>
+                <TableHead>Muscle</TableHead>
+                <TableHead>Difficulty</TableHead>
+                <TableHead>Station</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((ex) => (
+                <TableRow
+                  key={ex.exerciseId}
+                  onClick={() => setSelectedId(ex.exerciseId)}
+                  className={cn(
+                    'cursor-pointer',
+                    selected?.exerciseId === ex.exerciseId && 'bg-muted/70'
+                  )}
+                >
+                  <TableCell className="font-mono text-xs text-muted-foreground">#{ex.exerciseId}</TableCell>
+                  <TableCell className="font-medium">{ex.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{ex.muscleGroup}</TableCell>
+                  <TableCell className="text-muted-foreground">{ex.difficulty}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="max-w-[180px] truncate block">
+                      {ex.equipment.replace('Machine: ', '')}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </Card>
         <div className="xl:col-span-4">
           <MusclePreviewCard exercise={selected} />
@@ -1005,102 +1305,135 @@ function ExerciseModal({ open, exercise, onClose, onSaved }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Exercise' : 'Add Exercise'}>
-      <form onSubmit={submit} className="space-y-3.5">
-        <div>
-          <label className="text-xs font-semibold">Workout Name *</label>
-          <Input className="mt-1" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold">Muscle Group</label>
-            <Select className="mt-1" value={form.muscleGroup || 'Chest'} onChange={(e) => setForm({ ...form, muscleGroup: e.target.value })}>
-              {['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'].map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </Select>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Edit Exercise' : 'Add New Exercise'}</DialogTitle>
+          <DialogDescription>Configure station requirements and target muscle group.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-3.5">
+          <div className="space-y-1">
+            <Label>Workout Name *</Label>
+            <Input value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
-          <div>
-            <label className="text-xs font-semibold">Difficulty</label>
-            <Select className="mt-1" value={form.difficulty || 'Beginner'} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}>
-              {['Beginner', 'Intermediate', 'Advanced'].map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Muscle Group</Label>
+              <Select value={form.muscleGroup || 'Chest'} onValueChange={(v) => setForm({ ...form, muscleGroup: v })}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'].map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Difficulty</Label>
+              <Select value={form.difficulty || 'Beginner'} onValueChange={(v) => setForm({ ...form, difficulty: v })}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['Beginner', 'Intermediate', 'Advanced'].map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="text-xs font-semibold">Equipment</label>
-          <Input className="mt-1" value={form.equipment || ''} onChange={(e) => setForm({ ...form, equipment: e.target.value })} />
-        </div>
-        <div>
-          <label className="text-xs font-semibold">Execution Cues *</label>
-          <textarea
-            rows={3}
-            className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900/60"
-            value={form.description || ''}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit">Save Exercise</Button>
-        </div>
-      </form>
-    </Modal>
+          <div className="space-y-1">
+            <Label>Equipment</Label>
+            <Input value={form.equipment || ''} onChange={(e) => setForm({ ...form, equipment: e.target.value })} />
+          </div>
+          <div className="space-y-1">
+            <Label>Execution Cues *</Label>
+            <textarea
+              rows={3}
+              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              value={form.description || ''}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit">Save Exercise</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
 /* ============================================================================
-   4. RADAR & TEAM VIEWS
+   4. EXPIRY RADAR & STAFF ACCOUNTS
    ============================================================================ */
 function ExpiryAlertsView({ members, onRenewMember }) {
   const alerts = members.filter((m) => m.status !== 'Active' || (m.daysRemaining >= 0 && m.daysRemaining <= 7))
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Expiry &amp; Renewal Radar</h1>
-        <p className="text-xs text-zinc-500">Athletes whose 1-month pass is expired or expiring within 7 days</p>
+    <div className="space-y-5">
+      <div className="border-b pb-5">
+        <h1 className="text-2xl font-bold tracking-tight">Expiry &amp; Renewal Radar</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Athletes whose 1-month pass is overdue or expiring within 7 days
+        </p>
       </div>
 
-      <Card className="overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-900/50 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              <th className="py-3 px-4">Member</th>
-              <th className="py-3 px-4">Contact</th>
-              <th className="py-3 px-4">Emergency Contact</th>
-              <th className="py-3 px-4">End Date</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-sm">
+      <Card className="p-0 overflow-hidden shadow-none">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableHead>Athlete</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Emergency Contact</TableHead>
+              <TableHead>End Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Desk Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {alerts.map((a) => (
-              <tr key={a.userId} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
-                <td className="py-3.5 px-4 font-medium">{a.fullName}</td>
-                <td className="py-3.5 px-4 text-zinc-600 dark:text-zinc-300 tabular-nums">{a.contactNo}</td>
-                <td className="py-3.5 px-4 text-zinc-500 text-xs">{a.emergencyContactName} ({a.emergencyContactNo})</td>
-                <td className="py-3.5 px-4 font-mono text-xs tabular-nums">{a.endDate}</td>
-                <td className="py-3.5 px-4">
-                  <Badge tone={a.status !== 'Active' ? 'rose' : 'amber'}>{a.balanceLabel}</Badge>
-                </td>
-                <td className="py-3.5 px-4 text-right">
-                  <Button size="sm" onClick={() => onRenewMember(a)}>
+              <TableRow key={a.userId}>
+                <TableCell className="font-medium">{a.fullName}</TableCell>
+                <TableCell className="font-mono text-xs tabular-nums text-muted-foreground">{a.contactNo}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {a.emergencyContactName} ({a.emergencyContactNo})
+                </TableCell>
+                <TableCell className="font-mono text-xs tabular-nums">{a.endDate}</TableCell>
+                <TableCell>
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border tabular-nums',
+                      a.status !== 'Active'
+                        ? 'border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-400'
+                        : 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'h-1.5 w-1.5 rounded-full',
+                        a.status !== 'Active' ? 'bg-rose-500' : 'bg-amber-500'
+                      )}
+                    />
+                    {a.balanceLabel}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button size="sm" variant="outline" onClick={() => onRenewMember(a)} className="cursor-pointer">
                     <RefreshCw className="h-3.5 w-3.5" />
                     Renew +1 Mo
                   </Button>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {alerts.length === 0 && (
-              <tr>
-                <td colSpan={6} className="py-12 text-center text-sm text-zinc-500">All member passes are active and healthy.</td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                  All athlete passes are currently healthy.
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </Card>
     </div>
   )
@@ -1124,7 +1457,7 @@ function StaffAccountsView({ currentUser }) {
     e.preventDefault()
     try {
       await api('/api/staff', { method: 'POST', body: JSON.stringify(form) })
-      toast.success(`Created account @${form.username}`)
+      toast.success(`Created operator account @${form.username}`)
       setOpen(false)
       setForm({ username: '', password: '', role: 'Staff', firstName: '', lastName: '', contactNo: '09' })
       load()
@@ -1134,7 +1467,7 @@ function StaffAccountsView({ currentUser }) {
   }
 
   const remove = async (u) => {
-    if (u.userId === currentUser.userId) return toast.error('Cannot delete your own active Admin account.')
+    if (u.userId === currentUser.userId) return toast.error('Cannot delete your own active Admin session.')
     if (!window.confirm(`Delete @${u.username}?`)) return
     await api(`/api/staff/${u.userId}`, { method: 'DELETE' })
     toast.success(`Deleted @${u.username}`)
@@ -1142,88 +1475,101 @@ function StaffAccountsView({ currentUser }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-5">
         <div>
-          <h1 className="text-2xl font-bold">Team &amp; Accounts</h1>
-          <p className="text-xs text-zinc-500">Manage Admin, Front Desk Staff, and registered user records</p>
+          <h1 className="text-2xl font-bold tracking-tight">Staff &amp; Operator Accounts</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Provision Admin and Front Desk Staff console credentials
+          </p>
         </div>
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" />
+        <Button size="sm" onClick={() => setOpen(true)} className="cursor-pointer">
+          <Plus className="h-3.5 w-3.5" />
           Add Operator
         </Button>
       </div>
 
-      <Card className="overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-900/50 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              <th className="py-3 px-4">ID</th>
-              <th className="py-3 px-4">Name</th>
-              <th className="py-3 px-4">Username</th>
-              <th className="py-3 px-4">Role</th>
-              <th className="py-3 px-4">Contact</th>
-              <th className="py-3 px-4 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-sm">
+      <Card className="p-0 overflow-hidden shadow-none">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableHead className="w-16">ID</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Username</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {users.map((u) => (
-              <tr key={u.userId} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
-                <td className="py-3 px-4 font-mono text-xs text-zinc-400">#{u.userId}</td>
-                <td className="py-3 px-4 font-medium">{u.fullName}</td>
-                <td className="py-3 px-4 text-zinc-500">@{u.username}</td>
-                <td className="py-3 px-4">
-                  <Badge tone={u.role === 'Admin' ? 'blue' : u.role === 'Staff' ? 'emerald' : 'neutral'}>{u.role}</Badge>
-                </td>
-                <td className="py-3 px-4 text-zinc-600 dark:text-zinc-300 tabular-nums">{u.contactNo}</td>
-                <td className="py-3 px-4 text-right">
-                  <Button variant="danger" size="sm" onClick={() => remove(u)}>
+              <TableRow key={u.userId}>
+                <TableCell className="font-mono text-xs text-muted-foreground">#{u.userId}</TableCell>
+                <TableCell className="font-medium">{u.fullName}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">@{u.username}</TableCell>
+                <TableCell>
+                  <Badge variant={u.role === 'Admin' ? 'default' : u.role === 'Staff' ? 'secondary' : 'outline'}>
+                    {u.role}
+                  </Badge>
+                </TableCell>
+                <TableCell className="font-mono text-xs tabular-nums text-muted-foreground">{u.contactNo}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon-sm" onClick={() => remove(u)} className="text-rose-600 cursor-pointer">
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </Card>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Create Operator Account">
-        <form onSubmit={create} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold">Username *</label>
-              <Input className="mt-1" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Operator Account</DialogTitle>
+            <DialogDescription>Grant Admin or Front Desk Staff console access.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={create} className="space-y-3.5">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Username *</Label>
+                <Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Password *</Label>
+                <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>First Name *</Label>
+                <Input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Last Name *</Label>
+                <Input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Role</Label>
+                <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Staff">Staff</SelectItem>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Contact No. *</Label>
+                <Input value={form.contactNo} onChange={(e) => setForm({ ...form, contactNo: e.target.value })} />
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-semibold">Password *</label>
-              <Input type="password" className="mt-1" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold">First Name *</label>
-              <Input className="mt-1" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold">Last Name *</label>
-              <Input className="mt-1" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold">Role</label>
-              <Select className="mt-1" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                <option value="Staff">Staff</option>
-                <option value="Admin">Admin</option>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold">Contact No. *</label>
-              <Input className="mt-1" value={form.contactNo} onChange={(e) => setForm({ ...form, contactNo: e.target.value })} />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit">Create Account</Button>
-          </div>
-        </form>
-      </Modal>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button type="submit">Create Account</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

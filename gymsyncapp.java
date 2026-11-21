@@ -2239,20 +2239,20 @@ public final class gymsyncapp extends JFrame {
                         g2.setColor(CARD_HIGHLIGHT);
                         g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                     }
-                    g2.setColor(active ? NEON_EMERALD : TEXT_MUTED);
-                    g2.fillOval(14, (getHeight() - 6) / 2, 6, 6);
                     g2.dispose();
                     super.paintComponent(g);
                 }
             };
             navBtn.putClientProperty("active", idx == 0);
+            navBtn.setIcon(new VectorIcon(VectorIcon.forTab(key), 15, idx == 0 ? NEON_EMERALD : TEXT_MUTED));
+            navBtn.setIconTextGap(10);
             navBtn.setHorizontalAlignment(SwingConstants.LEFT);
             navBtn.setForeground(idx == 0 ? TEXT_PRIMARY : TEXT_SECONDARY);
             navBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
             navBtn.setContentAreaFilled(false);
             navBtn.setBorderPainted(false);
             navBtn.setFocusPainted(false);
-            navBtn.setBorder(new EmptyBorder(10, 28, 10, 12));
+            navBtn.setBorder(new EmptyBorder(10, 14, 10, 12));
             navBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
             navBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
             navBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -2263,6 +2263,7 @@ public final class gymsyncapp extends JFrame {
                     boolean isThis = (i == tabIdx);
                     b.putClientProperty("active", isThis);
                     b.setForeground(isThis ? TEXT_PRIMARY : TEXT_SECONDARY);
+                    b.setIcon(new VectorIcon(VectorIcon.forTab(b.getText()), 15, isThis ? NEON_EMERALD : TEXT_MUTED));
                     b.repaint();
                 }
                 pageTitleLbl.setText(key);
@@ -2305,6 +2306,8 @@ public final class gymsyncapp extends JFrame {
         userMeta.add(userRoleLbl);
 
         JButton logoutBtn = createStyledButton("Sign Out", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        logoutBtn.setIcon(new VectorIcon(VectorIcon.Kind.LOGOUT, 14, TEXT_SECONDARY));
+        logoutBtn.setIconTextGap(8);
         logoutBtn.addActionListener(e -> showLoginScreen());
 
         sidebarFooter.add(userMeta, BorderLayout.NORTH);
@@ -2376,21 +2379,30 @@ public final class gymsyncapp extends JFrame {
 
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         searchPanel.setOpaque(false);
-        JLabel searchLbl = new JLabel("Check-In Search:");
-        searchLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
-        searchLbl.setForeground(TEXT_SECONDARY);
         JTextField searchField = createDarkTextField("");
-        searchField.setColumns(22);
+        searchField.setColumns(26);
+        searchField.putClientProperty("JTextField.placeholderText", "Search member, @username, or phone...");
+        searchField.putClientProperty("JTextField.leadingIcon", new VectorIcon(VectorIcon.Kind.SEARCH, 15, TEXT_MUTED));
+        searchField.putClientProperty("JTextField.showClearButton", true);
         searchField.setToolTipText("Filter by member name, @username, contact, or status");
-        searchPanel.add(searchLbl);
         searchPanel.add(searchField);
 
         JPanel actionBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actionBtns.setOpaque(false);
-        JButton btnRegister = createGradientButton("+ New Member (1-Mo)", NEON_EMERALD, NEON_EMERALD);
+        JButton btnRegister = createGradientButton("New Member (1-Mo)", NEON_EMERALD, NEON_EMERALD);
+        btnRegister.setIcon(new VectorIcon(VectorIcon.Kind.PLUS, 14, Color.WHITE));
+        btnRegister.setIconTextGap(6);
         JButton btnRenew = createStyledButton("Renew +1 Month", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        btnRenew.setIcon(new VectorIcon(VectorIcon.Kind.REFRESH, 14, NEON_EMERALD));
+        btnRenew.setIconTextGap(6);
         JButton btnEdit = createStyledButton("Edit Profile", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        btnEdit.setIcon(new VectorIcon(VectorIcon.Kind.EDIT, 14, TEXT_SECONDARY));
+        btnEdit.setIconTextGap(6);
         JButton btnDel = allowDelete ? createStyledButton("Delete", CARD_HIGHLIGHT, CORAL_RED) : null;
+        if (btnDel != null) {
+            btnDel.setIcon(new VectorIcon(VectorIcon.Kind.TRASH, 14, CORAL_RED));
+            btnDel.setIconTextGap(6);
+        }
         actionBtns.add(btnRegister);
         actionBtns.add(btnRenew);
         actionBtns.add(btnEdit);
@@ -2779,6 +2791,8 @@ public final class gymsyncapp extends JFrame {
         loadAlerts.run();
 
         JButton btnRefresh = createStyledButton("Refresh Radar", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        btnRefresh.setIcon(new VectorIcon(VectorIcon.Kind.REFRESH, 14, TEXT_SECONDARY));
+        btnRefresh.setIconTextGap(6);
         btnRefresh.addActionListener(e -> loadAlerts.run());
 
         banner.add(info, BorderLayout.WEST);
@@ -2814,8 +2828,12 @@ public final class gymsyncapp extends JFrame {
 
         RoundedCardPanel top = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12);
         top.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        JButton btnAddStaff = createGradientButton("+ Add Admin / Staff Account", NEON_EMERALD, NEON_EMERALD);
+        JButton btnAddStaff = createGradientButton("Add Admin / Staff Account", NEON_EMERALD, NEON_EMERALD);
+        btnAddStaff.setIcon(new VectorIcon(VectorIcon.Kind.PLUS, 14, Color.WHITE));
+        btnAddStaff.setIconTextGap(6);
         JButton btnDeleteUser = createStyledButton("Delete Selected Account", CARD_HIGHLIGHT, CORAL_RED);
+        btnDeleteUser.setIcon(new VectorIcon(VectorIcon.Kind.TRASH, 14, CORAL_RED));
+        btnDeleteUser.setIconTextGap(6);
         top.add(btnAddStaff);
         top.add(btnDeleteUser);
 
@@ -2951,9 +2969,15 @@ public final class gymsyncapp extends JFrame {
 
         RoundedCardPanel top = new RoundedCardPanel(CARD_SURFACE, BORDER_SUBTLE, 12);
         top.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        JButton btnAdd = createGradientButton("+ Add Workout / Machine", NEON_EMERALD, NEON_EMERALD);
+        JButton btnAdd = createGradientButton("Add Workout / Machine", NEON_EMERALD, NEON_EMERALD);
+        btnAdd.setIcon(new VectorIcon(VectorIcon.Kind.PLUS, 14, Color.WHITE));
+        btnAdd.setIconTextGap(6);
         JButton btnEdit = createStyledButton("Edit Selected", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        btnEdit.setIcon(new VectorIcon(VectorIcon.Kind.EDIT, 14, TEXT_SECONDARY));
+        btnEdit.setIconTextGap(6);
         JButton btnDel = createStyledButton("Delete", CARD_HIGHLIGHT, CORAL_RED);
+        btnDel.setIcon(new VectorIcon(VectorIcon.Kind.TRASH, 14, CORAL_RED));
+        btnDel.setIconTextGap(6);
         top.add(btnAdd);
         top.add(btnEdit);
         top.add(btnDel);
@@ -3178,8 +3202,12 @@ public final class gymsyncapp extends JFrame {
         buildReportContent.run();
 
         JButton btnRefresh = createStyledButton("Refresh Analytics", CARD_HIGHLIGHT, TEXT_PRIMARY);
+        btnRefresh.setIcon(new VectorIcon(VectorIcon.Kind.REFRESH, 14, TEXT_SECONDARY));
+        btnRefresh.setIconTextGap(6);
         btnRefresh.addActionListener(e -> buildReportContent.run());
         JButton btnExportCsv = createGradientButton("Export Reports CSV", NEON_EMERALD, NEON_EMERALD);
+        btnExportCsv.setIcon(new VectorIcon(VectorIcon.Kind.DOWNLOAD, 14, Color.WHITE));
+        btnExportCsv.setIconTextGap(6);
         btnExportCsv.addActionListener(e -> exportReportsCsv());
         JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         south.setOpaque(false);
@@ -3769,6 +3797,127 @@ public final class gymsyncapp extends JFrame {
     // ========================================================================
     // 8. PLAY STORE DARK-MODE STYLING HELPERS & RENDERERS
     // ========================================================================
+
+    /**
+     * Crisp Lucide-style 2D vector icons drawn with Graphics2D (DPI-sharp, zero emoji glitches).
+     */
+    private static class VectorIcon implements Icon {
+        enum Kind { USERS, CHART, DUMBBELL, SHIELD, BELL, SEARCH, PLUS, REFRESH, EDIT, TRASH, DOWNLOAD, LOGOUT }
+
+        private final Kind kind;
+        private final int size;
+        private final Color color;
+
+        VectorIcon(Kind kind, int size, Color color) {
+            this.kind = kind;
+            this.size = size;
+            this.color = color;
+        }
+
+        static Kind forTab(String label) {
+            String s = label != null ? label.toLowerCase(Locale.ROOT) : "";
+            if (s.contains("analytics") || s.contains("report")) return Kind.CHART;
+            if (s.contains("exercise") || s.contains("workout")) return Kind.DUMBBELL;
+            if (s.contains("account") || s.contains("admin")) return Kind.SHIELD;
+            if (s.contains("alert") || s.contains("expiry")) return Kind.BELL;
+            return Kind.USERS;
+        }
+
+        @Override public int getIconWidth() { return size; }
+        @Override public int getIconHeight() { return size; }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            g2.translate(x, y);
+            g2.scale(size / 16.0, size / 16.0);
+            g2.setColor(color);
+            g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+            switch (kind) {
+                case USERS:
+                    g2.drawOval(3, 2, 5, 5);
+                    g2.drawArc(1, 9, 9, 6, 0, 180);
+                    g2.drawArc(9, 3, 4, 4, -90, 180);
+                    g2.drawArc(10, 9, 5, 5, 0, 90);
+                    break;
+                case CHART:
+                    g2.drawLine(2, 14, 14, 14);
+                    g2.drawRect(3, 8, 2, 6);
+                    g2.drawRect(7, 5, 2, 9);
+                    g2.drawRect(11, 2, 2, 12);
+                    break;
+                case DUMBBELL:
+                    g2.drawLine(4, 8, 12, 8);
+                    g2.drawRoundRect(2, 4, 2, 8, 1, 1);
+                    g2.drawRoundRect(12, 4, 2, 8, 1, 1);
+                    g2.drawLine(1, 6, 1, 10);
+                    g2.drawLine(15, 6, 15, 10);
+                    break;
+                case SHIELD:
+                    java.awt.geom.Path2D sp = new java.awt.geom.Path2D.Double();
+                    sp.moveTo(8, 1.5);
+                    sp.lineTo(13.5, 3.8);
+                    sp.lineTo(13.5, 8.2);
+                    sp.curveTo(13.5, 11.5, 10.8, 13.5, 8, 14.5);
+                    sp.curveTo(5.2, 13.5, 2.5, 11.5, 2.5, 8.2);
+                    sp.lineTo(2.5, 3.8);
+                    sp.closePath();
+                    g2.draw(sp);
+                    break;
+                case BELL:
+                    g2.drawArc(4, 2, 8, 9, 0, 180);
+                    g2.drawLine(4, 6, 3, 11);
+                    g2.drawLine(12, 6, 13, 11);
+                    g2.drawLine(2, 11, 14, 11);
+                    g2.draw(new java.awt.geom.Arc2D.Double(6.5, 12, 3, 2, 180, 180, java.awt.geom.Arc2D.OPEN));
+                    break;
+                case SEARCH:
+                    g2.drawOval(2, 2, 9, 9);
+                    g2.drawLine(10, 10, 14, 14);
+                    break;
+                case PLUS:
+                    g2.drawLine(8, 3, 8, 13);
+                    g2.drawLine(3, 8, 13, 8);
+                    break;
+                case REFRESH:
+                    g2.draw(new java.awt.geom.Arc2D.Double(2.5, 2.5, 11, 11, 35, 290, java.awt.geom.Arc2D.OPEN));
+                    g2.draw(new java.awt.geom.Line2D.Double(13.5, 2.5, 13.5, 6));
+                    g2.draw(new java.awt.geom.Line2D.Double(10, 6, 13.5, 6));
+                    break;
+                case EDIT:
+                    g2.draw(new java.awt.geom.Line2D.Double(10.5, 2.5, 13.5, 5.5));
+                    g2.draw(new java.awt.geom.Line2D.Double(4, 12, 13.5, 2.5));
+                    g2.draw(new java.awt.geom.Line2D.Double(2.5, 13.5, 4, 12));
+                    g2.draw(new java.awt.geom.Line2D.Double(2.5, 13.5, 6, 13));
+                    break;
+                case TRASH:
+                    g2.draw(new java.awt.geom.Line2D.Double(2.5, 4, 13.5, 4));
+                    g2.drawLine(6, 2, 10, 2);
+                    g2.drawRect(4, 4, 8, 10);
+                    g2.draw(new java.awt.geom.Line2D.Double(6.5, 7, 6.5, 11));
+                    g2.draw(new java.awt.geom.Line2D.Double(9.5, 7, 9.5, 11));
+                    break;
+                case DOWNLOAD:
+                    g2.drawLine(8, 2, 8, 10);
+                    g2.draw(new java.awt.geom.Line2D.Double(5, 7.5, 8, 10.5));
+                    g2.draw(new java.awt.geom.Line2D.Double(11, 7.5, 8, 10.5));
+                    g2.draw(new java.awt.geom.Line2D.Double(2.5, 13.5, 13.5, 13.5));
+                    break;
+                case LOGOUT:
+                    g2.draw(new java.awt.geom.Line2D.Double(6, 2.5, 2.5, 2.5));
+                    g2.draw(new java.awt.geom.Line2D.Double(2.5, 2.5, 2.5, 13.5));
+                    g2.draw(new java.awt.geom.Line2D.Double(2.5, 13.5, 6, 13.5));
+                    g2.draw(new java.awt.geom.Line2D.Double(6.5, 8, 13.5, 8));
+                    g2.draw(new java.awt.geom.Line2D.Double(10.5, 5, 13.5, 8));
+                    g2.draw(new java.awt.geom.Line2D.Double(10.5, 11, 13.5, 8));
+                    break;
+            }
+            g2.dispose();
+        }
+    }
 
     private static void attachFocusBorder(JTextField field) {
         final Border unfocused = new CompoundBorder(

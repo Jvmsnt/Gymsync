@@ -368,15 +368,97 @@ public final class GymsyncServer {
 
             if ("GET".equals(method) && "/api/workout-plans".equals(path)) {
                 int userId = 0;
-                if (query != null && query.startsWith("userId=")) {
-                    String rawUid = query.substring("userId=".length()).split("&")[0];
-                    if (!rawUid.isEmpty()) userId = parsePositiveInt(rawUid, "userId");
-                }
+                String rawUid = extractQueryParam(query, "userId");
+                if (!rawUid.isEmpty()) userId = parsePositiveInt(rawUid, "userId");
                 List<String> items = new ArrayList<>();
                 for (gymsyncapp.WorkoutPlan wp : repo.getWorkoutPlansByUser(userId)) {
                     items.add(workoutPlanJson(wp));
                 }
                 sendJson(ex, 200, obj("plans", arr(items)));
+                return;
+            }
+
+            if ("POST".equals(method) && "/api/workout-plans".equals(path)) {
+                Map<String, Object> body = parseJsonObject(readBody(ex));
+                int userId = parsePositiveInt(jsonAsString(body.get("userId")), "member ID");
+                if (findMember(userId) == null) {
+                    sendError(ex, 404, "Member not found.");
+                    return;
+                }
+                String goal = jsonAsString(body.get("goal")).trim();
+                if (goal.isEmpty()) {
+                    sendError(ex, 400, "Custom routine title (goal) is required.");
+                    return;
+                }
+                if (goal.length() > 120) {
+                    sendError(ex, 400, "Routine title must be 120 characters or fewer.");
+                    return;
+                }
+                Object rawExercises = body.get("exercises");
+                if (!(rawExercises instanceof List)) {
+                    sendError(ex, 400, "exercises must be a non-empty array.");
+                    return;
+                }
+                List<?> rawList = (List<?>) rawExercises;
+                if (rawList.isEmpty() || rawList.size() > 40) {
+                    sendError(ex, 400, "Custom workout plan must include between 1 and 40 exercises.");
+                    return;
+                }
+
+                Map<Integer, gymsyncapp.Exercise> exerciseById = new HashMap<>();
+                for (gymsyncapp.Exercise item : repo.getAllExercises()) {
+                    exerciseById.put(item.exerciseId, item);
+                }
+
+                gymsyncapp.WorkoutPlan custom = new gymsyncapp.WorkoutPlan();
+                custom.userId = userId;
+                custom.planType = "custom";
+                custom.goal = goal;
+                custom.dateCreated = LocalDate.now();
+
+                for (int idx = 0; idx < rawList.size(); idx++) {
+                    Object entry = rawList.get(idx);
+                    if (!(entry instanceof Map)) {
+                        sendError(ex, 400, "Exercise item #" + (idx + 1) + " must be an object.");
+                        return;
+                    }
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> itemMap = (Map<String, Object>) entry;
+                    int exerciseId = parsePositiveInt(jsonAsString(itemMap.get("exerciseId")), "exerciseId");
+                    gymsyncapp.Exercise matched = exerciseById.get(exerciseId);
+                    if (matched == null) {
+                        sendError(ex, 400, "Exercise #" + exerciseId + " was not found in the library.");
+                        return;
+                    }
+                    String day = normalizeDayOfWeek(jsonAsString(itemMap.get("dayOfWeek")));
+                    if (day == null) {
+                        sendError(ex, 400, "dayOfWeek must be a valid weekday (Monday through Sunday).");
+                        return;
+                    }
+                    int sets = parsePositiveInt(jsonAsString(itemMap.get("sets")), "sets");
+                    if (sets < 1 || sets > 20) {
+                        sendError(ex, 400, "sets must be between 1 and 20.");
+                        return;
+                    }
+                    String reps = jsonAsString(itemMap.get("reps")).trim();
+                    if (reps.isEmpty() || reps.length() > 25) {
+                        sendError(ex, 400, "reps is required and must be 25 characters or fewer.");
+                        return;
+                    }
+
+                    gymsyncapp.WorkoutPlanExercise wpe = new gymsyncapp.WorkoutPlanExercise();
+                    wpe.exerciseId = matched.exerciseId;
+                    wpe.exerciseName = matched.name;
+                    wpe.muscleGroup = matched.muscleGroup;
+                    wpe.equipment = matched.equipment;
+                    wpe.dayOfWeek = day;
+                    wpe.sets = sets;
+                    wpe.reps = reps;
+                    custom.exercises.add(wpe);
+                }
+
+                repo.saveWorkoutPlan(custom);
+                sendJson(ex, 201, obj("plan", workoutPlanJson(custom)));
                 return;
             }
 
@@ -519,6 +601,30 @@ public final class GymsyncServer {
         } catch (NumberFormatException ex) {
             throw new IllegalArgumentException("Invalid " + fieldLabel + ".");
         }
+    }
+
+    private static String extractQueryParam(String query, String key) {
+        if (query == null || query.isEmpty()) return "";
+        for (String pair : query.split("&")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0 && pair.substring(0, eq).equals(key)) {
+                return java.net.URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8);
+            }
+        }
+        return "";
+    }
+
+    private static String normalizeDayOfWeek(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return null;
+        String val = raw.trim();
+        for (String day : new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}) {
+            if (day.equalsIgnoreCase(val)) return day;
+        }
+        return null;
+    }
+
+    private static String jsonAsString(Object val) {
+        return val == null ? "" : String.valueOf(val);
     }
 
     private static String normalizeFitnessLevel(String raw) {
@@ -683,54 +789,164 @@ public final class GymsyncServer {
     }
 
     private static Map<String, String> parseFlatJson(String raw) {
-        Map<String, String> map = new LinkedHashMap<>();
-        if (raw == null) return map;
-        String s = raw.trim();
-        if (s.startsWith("{")) s = s.substring(1);
-        if (s.endsWith("}")) s = s.substring(0, s.length() - 1);
-        int i = 0;
-        while (i < s.length()) {
-            while (i < s.length() && (Character.isWhitespace(s.charAt(i)) || s.charAt(i) == ',')) i++;
-            if (i >= s.length() || s.charAt(i) != '"') break;
-            int[] nextIdx = new int[1];
-            String key = readJsonString(s, i, nextIdx);
-            i = nextIdx[0];
-            while (i < s.length() && (Character.isWhitespace(s.charAt(i)) || s.charAt(i) == ':')) i++;
-            if (i >= s.length()) break;
-            String val;
-            if (s.charAt(i) == '"') {
-                val = readJsonString(s, i, nextIdx);
-                i = nextIdx[0];
-            } else {
-                int start = i;
-                while (i < s.length() && s.charAt(i) != ',') i++;
-                val = s.substring(start, i).trim();
-                if ("null".equals(val)) val = "";
-            }
-            map.put(key, val);
+        Map<String, Object> parsed = parseJsonObject(raw);
+        Map<String, String> flat = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : parsed.entrySet()) {
+            Object val = entry.getValue();
+            flat.put(entry.getKey(), val == null ? "" : String.valueOf(val));
         }
-        return map;
+        return flat;
     }
 
-    private static String readJsonString(String s, int startQuote, int[] outNext) {
-        StringBuilder sb = new StringBuilder();
-        int i = startQuote + 1;
-        while (i < s.length()) {
-            char c = s.charAt(i++);
-            if (c == '\\' && i < s.length()) {
-                char esc = s.charAt(i++);
-                if (esc == 'n') sb.append('\n');
-                else if (esc == 'r') sb.append('\r');
-                else if (esc == 't') sb.append('\t');
-                else sb.append(esc);
-            } else if (c == '"') {
-                break;
-            } else {
-                sb.append(c);
-            }
+    private static Map<String, Object> parseJsonObject(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return new LinkedHashMap<>();
+        Object parsed = new JsonParser(raw).parseValue();
+        if (!(parsed instanceof Map)) {
+            throw new IllegalArgumentException("Request body must be a JSON object.");
         }
-        outNext[0] = i;
-        return sb.toString();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> obj = (Map<String, Object>) parsed;
+        return obj;
+    }
+
+    private static final class JsonParser {
+        private final String s;
+        private int pos;
+
+        JsonParser(String raw) {
+            this.s = raw;
+        }
+
+        Object parseValue() {
+            skipWhitespace();
+            if (pos >= s.length()) throw new IllegalArgumentException("Unexpected end of JSON.");
+            char c = s.charAt(pos);
+            if (c == '{') return parseObject();
+            if (c == '[') return parseArray();
+            if (c == '"') return parseString();
+            if (c == 't' || c == 'f') return parseBoolean();
+            if (c == 'n') return parseNull();
+            if (c == '-' || (c >= '0' && c <= '9')) return parseNumber();
+            throw new IllegalArgumentException("Unexpected character in JSON at position " + pos + ".");
+        }
+
+        private Map<String, Object> parseObject() {
+            Map<String, Object> map = new LinkedHashMap<>();
+            pos++; // '{'
+            skipWhitespace();
+            if (pos < s.length() && s.charAt(pos) == '}') {
+                pos++;
+                return map;
+            }
+            while (pos < s.length()) {
+                skipWhitespace();
+                if (pos >= s.length() || s.charAt(pos) != '"') {
+                    throw new IllegalArgumentException("Expected JSON string key at position " + pos + ".");
+                }
+                String key = parseString();
+                skipWhitespace();
+                if (pos >= s.length() || s.charAt(pos) != ':') {
+                    throw new IllegalArgumentException("Expected ':' after JSON key at position " + pos + ".");
+                }
+                pos++;
+                map.put(key, parseValue());
+                skipWhitespace();
+                if (pos < s.length() && s.charAt(pos) == ',') {
+                    pos++;
+                } else if (pos < s.length() && s.charAt(pos) == '}') {
+                    pos++;
+                    return map;
+                } else {
+                    throw new IllegalArgumentException("Expected ',' or '}' in JSON object at position " + pos + ".");
+                }
+            }
+            throw new IllegalArgumentException("Unterminated JSON object.");
+        }
+
+        private List<Object> parseArray() {
+            List<Object> list = new ArrayList<>();
+            pos++; // '['
+            skipWhitespace();
+            if (pos < s.length() && s.charAt(pos) == ']') {
+                pos++;
+                return list;
+            }
+            while (pos < s.length()) {
+                list.add(parseValue());
+                skipWhitespace();
+                if (pos < s.length() && s.charAt(pos) == ',') {
+                    pos++;
+                } else if (pos < s.length() && s.charAt(pos) == ']') {
+                    pos++;
+                    return list;
+                } else {
+                    throw new IllegalArgumentException("Expected ',' or ']' in JSON array at position " + pos + ".");
+                }
+            }
+            throw new IllegalArgumentException("Unterminated JSON array.");
+        }
+
+        private String parseString() {
+            StringBuilder sb = new StringBuilder();
+            pos++; // opening quote
+            while (pos < s.length()) {
+                char c = s.charAt(pos++);
+                if (c == '\\') {
+                    if (pos >= s.length()) throw new IllegalArgumentException("Unterminated JSON escape.");
+                    char esc = s.charAt(pos++);
+                    if (esc == 'n') sb.append('\n');
+                    else if (esc == 'r') sb.append('\r');
+                    else if (esc == 't') sb.append('\t');
+                    else if (esc == 'b') sb.append('\b');
+                    else if (esc == 'f') sb.append('\f');
+                    else if (esc == 'u' && pos + 4 <= s.length()) {
+                        sb.append((char) Integer.parseInt(s.substring(pos, pos + 4), 16));
+                        pos += 4;
+                    } else {
+                        sb.append(esc);
+                    }
+                } else if (c == '"') {
+                    return sb.toString();
+                } else {
+                    sb.append(c);
+                }
+            }
+            throw new IllegalArgumentException("Unterminated JSON string.");
+        }
+
+        private Boolean parseBoolean() {
+            if (s.startsWith("true", pos)) {
+                pos += 4;
+                return Boolean.TRUE;
+            }
+            if (s.startsWith("false", pos)) {
+                pos += 5;
+                return Boolean.FALSE;
+            }
+            throw new IllegalArgumentException("Invalid JSON boolean at position " + pos + ".");
+        }
+
+        private Object parseNull() {
+            if (s.startsWith("null", pos)) {
+                pos += 4;
+                return null;
+            }
+            throw new IllegalArgumentException("Invalid JSON literal at position " + pos + ".");
+        }
+
+        private String parseNumber() {
+            int start = pos;
+            while (pos < s.length()) {
+                char c = s.charAt(pos);
+                if ((c >= '0' && c <= '9') || c == '-' || c == '+' || c == '.' || c == 'e' || c == 'E') pos++;
+                else break;
+            }
+            return s.substring(start, pos);
+        }
+
+        private void skipWhitespace() {
+            while (pos < s.length() && Character.isWhitespace(s.charAt(pos))) pos++;
+        }
     }
 
     private static String obj(Object... kv) {

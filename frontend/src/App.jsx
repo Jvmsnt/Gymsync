@@ -30,6 +30,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
@@ -969,24 +970,39 @@ function WorkoutCoachView({ members }) {
   const [selectedEx, setSelectedEx] = useState(null)
 
   const [goal, setGoal] = useState('General Fitness')
-  const [level, setLevel] = useState('Beginner')
+  const [level, setLevel] = useState(members[0]?.fitnessLevel || 'Beginner')
+  const [daysPerWeek, setDaysPerWeek] = useState('3')
   const [zone, setZone] = useState('Full Gym')
+  const [generating, setGenerating] = useState(false)
+  const [customOpen, setCustomOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   useEffect(() => {
-    api('/api/exercises').then((res) => setExercises(res.exercises || []))
+    api('/api/exercises')
+      .then((res) => setExercises(res.exercises || []))
+      .catch((e) => toast.error(e.message))
   }, [])
 
   useEffect(() => {
-    if (!memberId && members.length) setMemberId(String(members[0].userId))
+    if (!memberId && members.length) {
+      setMemberId(String(members[0].userId))
+      if (members[0].fitnessLevel) setLevel(members[0].fitnessLevel)
+    }
   }, [members])
+
+  const selectedMember = members.find((m) => String(m.userId) === String(memberId)) || null
 
   const loadPlans = async (uid) => {
     if (!uid) return
-    const res = await api(`/api/workout-plans?userId=${uid}`)
-    const list = res.plans || []
-    setPlans(list)
-    setPlanId(list[0] ? String(list[0].workoutPlanId) : '')
-    setSelectedEx(null)
+    try {
+      const res = await api(`/api/workout-plans?userId=${uid}`)
+      const list = res.plans || []
+      setPlans(list)
+      setPlanId(list[0] ? String(list[0].workoutPlanId) : '')
+      setSelectedEx(null)
+    } catch (e) {
+      toast.error(e.message)
+    }
   }
 
   useEffect(() => {
@@ -996,6 +1012,8 @@ function WorkoutCoachView({ members }) {
   const activePlan = plans.find((p) => String(p.workoutPlanId) === String(planId)) || plans[0] || null
 
   const generate = async () => {
+    if (!memberId) return toast.error('Select an athlete first.')
+    setGenerating(true)
     try {
       const res = await api('/api/workout-plans/generate', {
         method: 'POST',
@@ -1003,24 +1021,31 @@ function WorkoutCoachView({ members }) {
           userId: Number(memberId),
           goal,
           fitnessLevel: level,
-          daysPerWeek: 3,
+          daysPerWeek: Number(daysPerWeek),
           equipmentPref: zone,
           includeMachines: zone === 'Full Gym' || zone === 'Gym Machines Only',
         }),
       })
-      toast.success('Generated custom training split', { description: res.plan.goal })
+      toast.success('Generated training split', { description: res.plan.goal })
       await loadPlans(memberId)
       setPlanId(String(res.plan.workoutPlanId))
     } catch (e) {
       toast.error(e.message)
+    } finally {
+      setGenerating(false)
     }
   }
 
   const deletePlan = async () => {
     if (!activePlan) return
-    await api(`/api/workout-plans/${activePlan.workoutPlanId}`, { method: 'DELETE' })
-    toast.success(`Removed Plan #${activePlan.workoutPlanId}`)
-    await loadPlans(memberId)
+    try {
+      await api(`/api/workout-plans/${activePlan.workoutPlanId}`, { method: 'DELETE' })
+      toast.success(`Removed Plan #${activePlan.workoutPlanId}`)
+      setDeleteDialogOpen(false)
+      await loadPlans(memberId)
+    } catch (e) {
+      toast.error(e.message)
+    }
   }
 
   return (
@@ -1029,7 +1054,14 @@ function WorkoutCoachView({ members }) {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
           <div className="md:col-span-3 space-y-1">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Athlete</Label>
-            <Select value={memberId} onValueChange={setMemberId}>
+            <Select
+              value={memberId}
+              onValueChange={(uid) => {
+                setMemberId(uid)
+                const next = members.find((m) => String(m.userId) === String(uid))
+                if (next?.fitnessLevel) setLevel(next.fitnessLevel)
+              }}
+            >
               <SelectTrigger className="w-full"><SelectValue placeholder="Choose member" /></SelectTrigger>
               <SelectContent>
                 {members.map((m) => (
@@ -1040,7 +1072,7 @@ function WorkoutCoachView({ members }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="md:col-span-3 space-y-1">
+          <div className="md:col-span-2 space-y-1">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Goal</Label>
             <Select value={goal} onValueChange={setGoal}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
@@ -1062,6 +1094,17 @@ function WorkoutCoachView({ members }) {
               </SelectContent>
             </Select>
           </div>
+          <div className="md:col-span-1 space-y-1">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Split</Label>
+            <Select value={daysPerWeek} onValueChange={setDaysPerWeek}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['2', '3', '4', '5'].map((d) => (
+                  <SelectItem key={d} value={d}>{d}d/wk</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="md:col-span-2 space-y-1">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Equipment Zone</Label>
             <Select value={zone} onValueChange={setZone}>
@@ -1073,10 +1116,19 @@ function WorkoutCoachView({ members }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="md:col-span-2">
-            <Button onClick={generate} className="w-full cursor-pointer">
+          <div className="md:col-span-2 flex gap-2">
+            <Button onClick={generate} disabled={generating || !memberId} className="flex-1 cursor-pointer active:scale-[0.97]">
               <Plus className="h-4 w-4" />
-              Generate
+              {generating ? 'Saving...' : 'Generate'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!memberId || exercises.length === 0}
+              onClick={() => setCustomOpen(true)}
+              className="cursor-pointer active:scale-[0.97]"
+            >
+              Custom
             </Button>
           </div>
         </div>
@@ -1084,9 +1136,9 @@ function WorkoutCoachView({ members }) {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
         <div className="xl:col-span-8 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1">
-              <Select value={planId || 'none'} onValueChange={setPlanId}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex-1 min-w-[240px]">
+              <Select value={planId || 'none'} onValueChange={(v) => { setPlanId(v); setSelectedEx(null) }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="No saved plans" />
                 </SelectTrigger>
@@ -1100,7 +1152,25 @@ function WorkoutCoachView({ members }) {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" size="sm" disabled={!activePlan} onClick={deletePlan} className="text-rose-600 cursor-pointer">
+            {activePlan && (
+              <div className="flex items-center gap-2">
+                <Badge variant={activePlan.planType === 'custom' ? 'default' : 'secondary'} className="capitalize">
+                  {activePlan.planType}
+                </Badge>
+                {activePlan.dateCreated && (
+                  <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                    {activePlan.dateCreated}
+                  </span>
+                )}
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!activePlan}
+              onClick={() => setDeleteDialogOpen(true)}
+              className="text-rose-600 cursor-pointer active:scale-[0.97]"
+            >
               <Trash2 className="h-3.5 w-3.5" />
               Delete Plan
             </Button>
@@ -1120,8 +1190,13 @@ function WorkoutCoachView({ members }) {
               <TableBody>
                 {(activePlan?.exercises || []).map((item, idx) => {
                   const fullEx = exercises.find((e) => e.name.toLowerCase() === item.exerciseName.toLowerCase()) || null
+                  const isRowSelected = selectedEx && fullEx && selectedEx.exerciseId === fullEx.exerciseId
                   return (
-                    <TableRow key={idx} onClick={() => setSelectedEx(fullEx)} className="cursor-pointer">
+                    <TableRow
+                      key={idx}
+                      onClick={() => setSelectedEx(fullEx)}
+                      className={cn('cursor-pointer', isRowSelected && 'bg-muted/70')}
+                    >
                       <TableCell className="font-medium">{item.dayOfWeek}</TableCell>
                       <TableCell className="font-medium">{item.exerciseName}</TableCell>
                       <TableCell className="text-muted-foreground">{item.muscleGroup}</TableCell>
@@ -1137,7 +1212,7 @@ function WorkoutCoachView({ members }) {
                 {(!activePlan || activePlan.exercises.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                      Generate a workout plan above to view athlete exercises.
+                      Generate a workout plan or build a custom split above to view athlete exercises.
                     </TableCell>
                   </TableRow>
                 )}
@@ -1155,7 +1230,256 @@ function WorkoutCoachView({ members }) {
           />
         </div>
       </div>
+
+      <CustomPlanModal
+        open={customOpen}
+        member={selectedMember}
+        exercises={exercises}
+        onClose={() => setCustomOpen(false)}
+        onSaved={async (created) => {
+          setCustomOpen(false)
+          await loadPlans(memberId)
+          if (created?.workoutPlanId) setPlanId(String(created.workoutPlanId))
+        }}
+      />
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Workout Plan</DialogTitle>
+            <DialogDescription>
+              Remove Plan #{activePlan?.workoutPlanId} ({activePlan?.goal}) from {selectedMember?.fullName || 'this athlete'}? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={deletePlan} className="cursor-pointer active:scale-[0.97]">
+              Delete Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+function CustomPlanModal({ open, member, exercises, onClose, onSaved }) {
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  const [goal, setGoal] = useState('')
+  const [dayOfWeek, setDayOfWeek] = useState('Monday')
+  const [exerciseId, setExerciseId] = useState('')
+  const [sets, setSets] = useState('3')
+  const [reps, setReps] = useState('10-12')
+  const [items, setItems] = useState([])
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setGoal('')
+    setDayOfWeek('Monday')
+    setExerciseId(exercises[0] ? String(exercises[0].exerciseId) : '')
+    setSets('3')
+    setReps('10-12')
+    setItems([])
+  }, [open, exercises])
+
+  const addDraftExercise = () => {
+    const matched = exercises.find((e) => String(e.exerciseId) === String(exerciseId))
+    if (!matched) return toast.error('Select an exercise to add.')
+    const parsedSets = Number.parseInt(sets, 10)
+    if (!Number.isInteger(parsedSets) || parsedSets < 1 || parsedSets > 20) {
+      return toast.error('Sets must be a number between 1 and 20.')
+    }
+    const cleanReps = reps.trim()
+    if (!cleanReps || cleanReps.length > 25) {
+      return toast.error('Enter target reps (1–25 characters, e.g., 10-12 or 30 sec).')
+    }
+    setItems((prev) => [
+      ...prev,
+      {
+        key: `${Date.now()}-${Math.random()}`,
+        exerciseId: matched.exerciseId,
+        exerciseName: matched.name,
+        muscleGroup: matched.muscleGroup,
+        dayOfWeek,
+        sets: parsedSets,
+        reps: cleanReps,
+      },
+    ])
+  }
+
+  const removeDraftExercise = (key) => {
+    setItems((prev) => prev.filter((item) => item.key !== key))
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!member?.userId) return toast.error('No athlete selected.')
+    const cleanGoal = goal.trim()
+    if (!cleanGoal) return toast.error('Enter a routine title.')
+    if (items.length === 0) return toast.error('Add at least one exercise to the routine.')
+
+    setSaving(true)
+    try {
+      const res = await api('/api/workout-plans', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId: member.userId,
+          goal: cleanGoal,
+          exercises: items.map((item) => ({
+            exerciseId: item.exerciseId,
+            dayOfWeek: item.dayOfWeek,
+            sets: item.sets,
+            reps: item.reps,
+          })),
+        }),
+      })
+      toast.success('Saved custom workout plan', { description: res.plan.goal })
+      onSaved(res.plan)
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Build Custom Workout Plan</DialogTitle>
+          <DialogDescription>
+            Compose a custom day-by-day training routine for {member?.fullName || 'selected athlete'} ({member?.fitnessLevel || 'Member'}).
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="custom-plan-goal">Routine Title *</Label>
+            <Input
+              id="custom-plan-goal"
+              placeholder="e.g., Upper / Lower Hypertrophy Split"
+              maxLength={120}
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+            />
+          </div>
+
+          <div className="rounded-xl border bg-muted/30 p-3.5 space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Add Exercise Row
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+              <div className="sm:col-span-3 space-y-1">
+                <Label className="text-xs">Day</Label>
+                <Select value={dayOfWeek} onValueChange={setDayOfWeek}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DAYS.map((d) => (
+                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="sm:col-span-4 space-y-1">
+                <Label className="text-xs">Exercise</Label>
+                <Select value={exerciseId} onValueChange={setExerciseId}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="Choose exercise" /></SelectTrigger>
+                  <SelectContent>
+                    {exercises.map((ex) => (
+                      <SelectItem key={ex.exerciseId} value={String(ex.exerciseId)}>
+                        {ex.name} ({ex.muscleGroup})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-xs">Sets</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={20}
+                  className="tabular-nums"
+                  value={sets}
+                  onChange={(e) => setSets(e.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-xs">Reps</Label>
+                <Input
+                  placeholder="10-12"
+                  maxLength={25}
+                  value={reps}
+                  onChange={(e) => setReps(e.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-1">
+                <Button type="button" onClick={addDraftExercise} className="w-full cursor-pointer active:scale-[0.97]">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border overflow-hidden">
+            <ScrollArea className={items.length > 4 ? 'h-56' : 'max-h-56'}>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead>Day</TableHead>
+                    <TableHead>Exercise</TableHead>
+                    <TableHead>Muscle</TableHead>
+                    <TableHead className="text-right">Sets × Reps</TableHead>
+                    <TableHead className="w-12" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item) => (
+                    <TableRow key={item.key}>
+                      <TableCell className="font-medium">{item.dayOfWeek}</TableCell>
+                      <TableCell className="font-medium">{item.exerciseName}</TableCell>
+                      <TableCell className="text-muted-foreground">{item.muscleGroup}</TableCell>
+                      <TableCell className="text-right font-mono text-xs tabular-nums">
+                        {item.sets} × {item.reps}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeDraftExercise(item.key)}
+                          className="text-rose-600 cursor-pointer"
+                          aria-label={`Remove ${item.exerciseName}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {items.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-8 text-center text-xs text-muted-foreground">
+                        No exercises added yet. Use the row builder above to compose the routine.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving || items.length === 0} className="cursor-pointer active:scale-[0.97]">
+              {saving ? 'Saving Plan...' : `Save Custom Plan (${items.length})`}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 

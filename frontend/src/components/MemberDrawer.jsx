@@ -1,17 +1,41 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Drawer } from 'vaul'
 import NumberFlow from '@number-flow/react'
-import { Calendar, MapPin, Pencil, Phone, RefreshCw, ShieldAlert, ShieldCheck, Trash2, X } from 'lucide-react'
+import { Calendar, History, MapPin, Pencil, Phone, RefreshCw, ShieldAlert, ShieldCheck, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { BorderBeam } from '@/components/ui/border-beam'
 import { MagicCard } from '@/components/ui/magic-card'
 import { cn } from '@/lib/utils'
 
 export function MemberDrawer({ member, open, onOpenChange, isAdmin, onRenew, onEdit, onDelete }) {
+  const [history, setHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  useEffect(() => {
+    if (!open || !member?.userId) return
+    let active = true
+    setHistoryLoading(true)
+    fetch(`/api/members/${member.userId}/memberships`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Failed to load cycle history'))))
+      .then((data) => {
+        if (active) setHistory(data.memberships || [])
+      })
+      .catch(() => {
+        if (active) setHistory([])
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [open, member?.userId, member?.endDate])
+
   if (!member) return null
   const isActive = member.status === 'Active'
   const isExpiring = isActive && member.daysRemaining >= 0 && member.daysRemaining <= 7
@@ -181,6 +205,59 @@ export function MemberDrawer({ member, open, onOpenChange, isAdmin, onRenew, onE
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Pass Renewal Cycle History */}
+            <div className="rounded-xl border bg-card">
+              <div className="px-4 py-2.5 border-b bg-muted/40 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <History className="h-3.5 w-3.5" />
+                  Pass Cycle History
+                </span>
+                <Badge variant="outline" className="font-mono text-[10px] tabular-nums">
+                  {history.length} {history.length === 1 ? 'cycle' : 'cycles'}
+                </Badge>
+              </div>
+              {historyLoading ? (
+                <div className="px-4 py-4 text-xs text-muted-foreground">Loading membership cycles...</div>
+              ) : history.length === 0 ? (
+                <div className="px-4 py-4 text-xs text-muted-foreground">No pass history recorded.</div>
+              ) : (
+                <ScrollArea className={history.length > 3 ? 'h-44' : 'max-h-44'}>
+                  <div className="divide-y">
+                    {history.map((cycle) => {
+                      const cycleActive = cycle.status === 'Active'
+                      return (
+                        <div key={cycle.membershipId} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                          <div className="min-w-0">
+                            <p className="font-mono text-xs font-medium tabular-nums">
+                              {cycle.startDate} → {cycle.endDate}
+                            </p>
+                            <p className="font-mono text-[10px] text-muted-foreground tabular-nums mt-0.5">
+                              Cycle #{String(cycle.membershipId).padStart(4, '0')}
+                              {cycle.isCurrent ? ' · Latest' : ''}
+                            </p>
+                          </div>
+                          <Badge
+                            variant={cycle.isCurrent && cycleActive ? 'secondary' : 'outline'}
+                            className={cn(
+                              'text-[10px] font-medium shrink-0',
+                              cycle.isCurrent &&
+                                cycleActive &&
+                                'bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/25',
+                              cycle.isCurrent &&
+                                !cycleActive &&
+                                'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/25'
+                            )}
+                          >
+                            {cycle.isCurrent ? cycle.status : 'Completed'}
+                          </Badge>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </ScrollArea>
+              )}
             </div>
           </div>
 

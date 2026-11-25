@@ -161,9 +161,31 @@ public final class GymsyncServer {
 
             if (path.startsWith("/api/members/")) {
                 String rest = path.substring("/api/members/".length());
+                if (rest.endsWith("/memberships") && "GET".equals(method)) {
+                    int id = parsePositiveInt(rest.substring(0, rest.length() - "/memberships".length()), "member ID");
+                    gymsyncapp.User target = findMember(id);
+                    if (target == null) { sendError(ex, 404, "Member not found."); return; }
+                    LocalDate today = LocalDate.now();
+                    List<gymsyncapp.Membership> history = repo.getMembershipsByUser(id);
+                    List<String> items = new ArrayList<>();
+                    for (int i = 0; i < history.size(); i++) {
+                        gymsyncapp.Membership ms = history.get(i);
+                        items.add(obj(
+                                "membershipId", ms.membershipId,
+                                "userId", ms.userId,
+                                "startDate", ms.startDate.toString(),
+                                "endDate", ms.endDate.toString(),
+                                "status", ms.getComputedStatus(today),
+                                "daysRemaining", ms.getDaysRemaining(today),
+                                "isCurrent", i == 0
+                        ));
+                    }
+                    sendJson(ex, 200, obj("memberId", id, "memberships", arr(items)));
+                    return;
+                }
                 if (rest.endsWith("/renew") && "POST".equals(method)) {
-                    int id = Integer.parseInt(rest.substring(0, rest.length() - "/renew".length()));
-                    gymsyncapp.User target = findUser(id);
+                    int id = parsePositiveInt(rest.substring(0, rest.length() - "/renew".length()), "member ID");
+                    gymsyncapp.User target = findMember(id);
                     if (target == null) { sendError(ex, 404, "Member not found."); return; }
                     gymsyncapp.Membership latest = repo.getLatestMembership(id);
                     LocalDate[] dates = gymsyncapp.BusinessRules.calculateRenewalDates(
@@ -172,9 +194,13 @@ public final class GymsyncServer {
                     sendJson(ex, 200, obj("startDate", dates[0].toString(), "endDate", dates[1].toString()));
                     return;
                 }
-                int id = Integer.parseInt(rest);
-                gymsyncapp.User existing = findUser(id);
+                int id = parsePositiveInt(rest, "member ID");
+                gymsyncapp.User existing = findMember(id);
                 if (existing == null) { sendError(ex, 404, "Member not found."); return; }
+                if ("GET".equals(method)) {
+                    sendJson(ex, 200, obj("member", memberDetailJson(existing, LocalDate.now())));
+                    return;
+                }
                 if ("PUT".equals(method)) {
                     Map<String, String> b = parseFlatJson(readBody(ex));
                     String err = validateMember(b, false, id);
@@ -246,9 +272,14 @@ public final class GymsyncServer {
                     }
                     if (pw.length() < 4) { sendError(ex, 400, "Password must be at least 4 characters."); return; }
                     if (repo.usernameExists(un, 0)) { sendError(ex, 400, "Username already exists."); return; }
+                    String requestedRole = b.getOrDefault("role", "Staff").trim();
+                    String normalizedRole;
+                    if ("Admin".equalsIgnoreCase(requestedRole)) normalizedRole = "Admin";
+                    else if ("Staff".equalsIgnoreCase(requestedRole)) normalizedRole = "Staff";
+                    else { sendError(ex, 400, "Operator role must be Admin or Staff."); return; }
                     gymsyncapp.User u = new gymsyncapp.User();
                     u.username = un;
-                    u.role = b.getOrDefault("role", "Staff");
+                    u.role = normalizedRole;
                     u.firstName = fn;
                     u.lastName = ln;
                     u.contactNo = ct;
@@ -260,7 +291,21 @@ public final class GymsyncServer {
             }
 
             if (path.startsWith("/api/staff/") && "DELETE".equals(method)) {
-                int id = Integer.parseInt(path.substring("/api/staff/".length()));
+                int id = parsePositiveInt(path.substring("/api/staff/".length()), "user ID");
+                gymsyncapp.User target = findUser(id);
+                if (target == null || "Member".equalsIgnoreCase(target.role)) {
+                    sendError(ex, 404, "Operator account not found.");
+                    return;
+                }
+                if ("Admin".equalsIgnoreCase(target.role)) {
+                    long adminCount = repo.getAllUsers().stream()
+                            .filter(u -> "Admin".equalsIgnoreCase(u.role))
+                            .count();
+                    if (adminCount <= 1) {
+                        sendError(ex, 400, "Cannot delete the last Admin account.");
+                        return;
+                    }
+                }
                 repo.deleteUser(id);
                 sendJson(ex, 200, obj("deleted", true));
                 return;
@@ -292,7 +337,7 @@ public final class GymsyncServer {
             }
 
             if (path.startsWith("/api/exercises/")) {
-                int id = Integer.parseInt(path.substring("/api/exercises/".length()));
+                int id = parsePositiveInt(path.substring("/api/exercises/".length()), "exercise ID");
                 if ("PUT".equals(method)) {
                     gymsyncapp.Exercise x = repo.getAllExercises().stream().filter(i -> i.exerciseId == id).findFirst().orElse(null);
                     if (x == null) { sendError(ex, 404, "Exercise not found."); return; }
@@ -324,7 +369,8 @@ public final class GymsyncServer {
             if ("GET".equals(method) && "/api/workout-plans".equals(path)) {
                 int userId = 0;
                 if (query != null && query.startsWith("userId=")) {
-                    userId = Integer.parseInt(query.substring("userId=".length()).split("&")[0]);
+                    String rawUid = query.substring("userId=".length()).split("&")[0];
+                    if (!rawUid.isEmpty()) userId = parsePositiveInt(rawUid, "userId");
                 }
                 List<String> items = new ArrayList<>();
                 for (gymsyncapp.WorkoutPlan wp : repo.getWorkoutPlansByUser(userId)) {
@@ -336,10 +382,22 @@ public final class GymsyncServer {
 
             if ("POST".equals(method) && "/api/workout-plans/generate".equals(path)) {
                 Map<String, String> b = parseFlatJson(readBody(ex));
-                int userId = Integer.parseInt(b.getOrDefault("userId", "0"));
-                String goal = b.getOrDefault("goal", "General Fitness");
-                String level = b.getOrDefault("fitnessLevel", "Beginner");
-                int days = Integer.parseInt(b.getOrDefault("daysPerWeek", "3"));
+                int userId = parsePositiveInt(b.getOrDefault("userId", ""), "member ID");
+                if (findMember(userId) == null) {
+                    sendError(ex, 404, "Member not found.");
+                    return;
+                }
+                String goal = b.getOrDefault("goal", "General Fitness").trim();
+                String level = normalizeFitnessLevel(b.getOrDefault("fitnessLevel", "Beginner"));
+                if (level == null) {
+                    sendError(ex, 400, "Fitness level must be Beginner, Intermediate, or Advanced.");
+                    return;
+                }
+                int days = parsePositiveInt(b.getOrDefault("daysPerWeek", "3"), "daysPerWeek");
+                if (days < 2 || days > 5) {
+                    sendError(ex, 400, "daysPerWeek must be between 2 and 5.");
+                    return;
+                }
                 String equip = b.getOrDefault("equipmentPref", "Full Gym");
                 boolean includeMachines = !"false".equalsIgnoreCase(b.getOrDefault("includeMachines", "true"));
                 gymsyncapp.WorkoutPlan plan = gymsyncapp.BusinessRules.generateRuleBasedPlan(
@@ -350,7 +408,7 @@ public final class GymsyncServer {
             }
 
             if (path.startsWith("/api/workout-plans/") && "DELETE".equals(method)) {
-                int id = Integer.parseInt(path.substring("/api/workout-plans/".length()));
+                int id = parsePositiveInt(path.substring("/api/workout-plans/".length()), "workout plan ID");
                 repo.deleteWorkoutPlan(id);
                 sendJson(ex, 200, obj("deleted", true));
                 return;
@@ -410,6 +468,8 @@ public final class GymsyncServer {
             }
 
             sendError(ex, 404, "Endpoint not found: " + path);
+        } catch (IllegalArgumentException e) {
+            sendError(ex, 400, e.getMessage());
         } catch (Exception e) {
             sendError(ex, 500, "Server error: " + e.getMessage());
         }
@@ -446,6 +506,30 @@ public final class GymsyncServer {
         return repo.getAllUsers().stream().filter(u -> u.userId == id).findFirst().orElse(null);
     }
 
+    private gymsyncapp.User findMember(int id) {
+        gymsyncapp.User u = findUser(id);
+        return (u != null && "Member".equalsIgnoreCase(u.role)) ? u : null;
+    }
+
+    private static int parsePositiveInt(String raw, String fieldLabel) {
+        try {
+            int v = Integer.parseInt(raw == null ? "" : raw.trim());
+            if (v <= 0) throw new IllegalArgumentException(fieldLabel + " must be a positive integer.");
+            return v;
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Invalid " + fieldLabel + ".");
+        }
+    }
+
+    private static String normalizeFitnessLevel(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return "Beginner";
+        String val = raw.trim();
+        if ("Beginner".equalsIgnoreCase(val)) return "Beginner";
+        if ("Intermediate".equalsIgnoreCase(val)) return "Intermediate";
+        if ("Advanced".equalsIgnoreCase(val)) return "Advanced";
+        return null;
+    }
+
     private String validateMember(Map<String, String> b, boolean isNew, int excludeId) {
         String un = b.getOrDefault("username", "").trim();
         String pw = b.getOrDefault("password", "").trim();
@@ -455,13 +539,15 @@ public final class GymsyncServer {
         String emName = b.getOrDefault("emergencyContactName", "").trim();
         String emPhone = b.getOrDefault("emergencyContactNo", "").trim();
         String bd = b.getOrDefault("birthdate", "").trim();
+        String level = normalizeFitnessLevel(b.getOrDefault("fitnessLevel", "Beginner"));
         if (un.isEmpty() || fn.isEmpty() || ln.isEmpty() || ct.isEmpty() || "09".equals(ct)) {
             return "Username, First Name, Last Name, and a valid Contact No. are required.";
         }
         if (emName.isEmpty() || emPhone.isEmpty() || "09".equals(emPhone)) {
             return "Emergency Contact Name and Phone No. are required.";
         }
-        if (isNew && pw.length() < 4) return "Password must be at least 4 characters.";
+        if ((isNew || !pw.isEmpty()) && pw.length() < 4) return "Password must be at least 4 characters.";
+        if (level == null) return "Fitness level must be Beginner, Intermediate, or Advanced.";
         if (repo.usernameExists(un, excludeId)) return "Username '" + un + "' is already taken.";
         if (!bd.isEmpty()) {
             try { LocalDate.parse(bd); } catch (DateTimeParseException ex) {
@@ -483,7 +569,8 @@ public final class GymsyncServer {
         u.address = b.getOrDefault("address", "").trim();
         u.emergencyContactName = b.getOrDefault("emergencyContactName", "").trim();
         u.emergencyContactNo = b.getOrDefault("emergencyContactNo", "").trim();
-        u.fitnessLevel = b.getOrDefault("fitnessLevel", "Beginner");
+        String level = normalizeFitnessLevel(b.getOrDefault("fitnessLevel", "Beginner"));
+        u.fitnessLevel = level != null ? level : "Beginner";
         return u;
     }
 

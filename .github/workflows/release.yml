@@ -2,6 +2,16 @@ name: Release GymSync
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - 'GymsyncServer.java'
+      - 'gymsyncapp.java'
+      - 'gymsync_database_schema_and_seed.sql'
+      - 'frontend/**'
+      - 'lib/**'
+      - 'build-release.ps1'
+      - '.github/workflows/release.yml'
     tags:
       - 'v*'
   workflow_dispatch:
@@ -10,6 +20,10 @@ on:
         description: 'App version without leading v (e.g., 2.0.0)'
         required: true
         default: '2.0.0'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -43,30 +57,55 @@ jobs:
           if ("${{ github.event_name }}" -eq "workflow_dispatch") {
             $ver = "${{ inputs.version }}"
             $tag = "v$ver"
-          } else {
+            $releaseName = "GymSync $tag — Desk OS"
+            $filesPattern = "release/GymSync-v$ver-Windows-x64.zip`nrelease/GymSync-v$ver-Runnable.jar"
+            $isRolling = "false"
+          } elseif ("${{ github.ref_type }}" -eq "tag") {
             $tag = "${{ github.ref_name }}"
             $ver = $tag.TrimStart('v')
+            $releaseName = "GymSync $tag — Desk OS"
+            $filesPattern = "release/GymSync-v$ver-Windows-x64.zip`nrelease/GymSync-v$ver-Runnable.jar"
+            $isRolling = "false"
+          } else {
+            $ver = "2.0.0"
+            $tag = "latest"
+            $releaseName = "GymSync Latest Build — Desk OS"
+            $filesPattern = "release/GymSync-Windows-x64.zip`nrelease/GymSync-Runnable.jar"
+            $isRolling = "true"
           }
-          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "RELEASE_VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append
+
           ./build-release.ps1 -Version $ver
+
+          if ($isRolling -eq "true") {
+            Copy-Item "release/GymSync-v$ver-Windows-x64.zip" "release/GymSync-Windows-x64.zip" -Force
+            Copy-Item "release/GymSync-v$ver-Runnable.jar" "release/GymSync-Runnable.jar" -Force
+          }
+
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_NAME=$releaseName" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ZIP_NAME=$(if ($isRolling -eq 'true') { 'GymSync-Windows-x64.zip' } else { "GymSync-v$ver-Windows-x64.zip" })" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "JAR_NAME=$(if ($isRolling -eq 'true') { 'GymSync-Runnable.jar' } else { "GymSync-v$ver-Runnable.jar" })" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "IS_LATEST=$(if ($isRolling -eq 'true') { 'false' } else { 'true' })" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          name: "GymSync ${{ env.RELEASE_TAG }} — Desk OS"
+          name: ${{ env.RELEASE_NAME }}
           draft: false
           prerelease: false
+          make_latest: ${{ env.IS_LATEST }}
           body: |
             ## Quick Download (Windows)
-            1. Download **`GymSync-${{ env.RELEASE_TAG }}-Windows-x64.zip`** below.
+            1. Download **`${{ env.ZIP_NAME }}`** below.
             2. Right-click → **Extract All...** anywhere on your computer.
-            3. Double-click **`GymSync.exe`** inside the extracted `GymSync` folder (Java is already bundled—no installation required).
+            3. Double-click **`GymSync.exe`** inside the extracted `GymSync` folder (Java is already bundled — no installation required).
+
+            Or download **`${{ env.JAR_NAME }}`** if you already have Java 17+ installed (`java -jar ${{ env.JAR_NAME }}`).
 
             ### Demo Operator Accounts
             - **Admin Desk:** `admin` / `admin123`
             - **Staff Desk:** `staff` / `staff123`
           files: |
-            release/GymSync-v*-Windows-x64.zip
-            release/GymSync-v*-Runnable.jar
+            release/${{ env.ZIP_NAME }}
+            release/${{ env.JAR_NAME }}

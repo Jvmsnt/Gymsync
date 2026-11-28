@@ -19,7 +19,15 @@ import java.util.concurrent.Executors;
  */
 public final class GymsyncServer {
     private static final int PORT = Integer.parseInt(System.getProperty("gymsync.port", "8080"));
-    private static final Path DIST_DIR = Paths.get("frontend", "dist").toAbsolutePath().normalize();
+    private static final Path DIST_DIR = resolveDistDir();
+
+    private static Path resolveDistDir() {
+        String custom = System.getProperty("gymsync.dist", "").trim();
+        if (!custom.isEmpty()) {
+            return Paths.get(custom).toAbsolutePath().normalize();
+        }
+        return Paths.get("frontend", "dist").toAbsolutePath().normalize();
+    }
 
     private final gymsyncapp.DataRepository repo;
 
@@ -559,29 +567,68 @@ public final class GymsyncServer {
 
     private void handleStatic(HttpExchange ex) throws IOException {
         String reqPath = ex.getRequestURI().getPath();
-        if (reqPath == null || "/".equals(reqPath)) reqPath = "/index.html";
-        Path candidate = DIST_DIR.resolve(reqPath.substring(1)).normalize();
-        if (!candidate.startsWith(DIST_DIR) || !Files.exists(candidate) || Files.isDirectory(candidate)) {
-            candidate = DIST_DIR.resolve("index.html");
+        if (reqPath == null || "/".equals(reqPath) || reqPath.isEmpty()) reqPath = "/index.html";
+        if (reqPath.contains("..")) {
+            sendError(ex, 400, "Invalid path.");
+            return;
         }
-        if (!Files.exists(candidate)) {
+        if (!reqPath.startsWith("/")) reqPath = "/" + reqPath;
+
+        byte[] bytes = null;
+        String resolvedName = reqPath;
+
+        if (Files.isDirectory(DIST_DIR)) {
+            Path candidate = DIST_DIR.resolve(reqPath.substring(1)).normalize();
+            if (!candidate.startsWith(DIST_DIR) || !Files.exists(candidate) || Files.isDirectory(candidate)) {
+                candidate = DIST_DIR.resolve("index.html");
+            }
+            if (Files.exists(candidate) && !Files.isDirectory(candidate)) {
+                bytes = Files.readAllBytes(candidate);
+                resolvedName = candidate.getFileName().toString();
+            }
+        }
+
+        if (bytes == null) {
+            try (InputStream is = GymsyncServer.class.getResourceAsStream("/dist" + reqPath)) {
+                if (is != null) {
+                    bytes = is.readAllBytes();
+                }
+            }
+            if (bytes == null) {
+                try (InputStream fallback = GymsyncServer.class.getResourceAsStream("/dist/index.html")) {
+                    if (fallback != null) {
+                        bytes = fallback.readAllBytes();
+                        resolvedName = "/index.html";
+                    }
+                }
+            }
+        }
+
+        if (bytes == null) {
             byte[] msg = "Frontend not built. Run: npm --prefix frontend run build".getBytes(StandardCharsets.UTF_8);
             ex.getResponseHeaders().set("Content-Type", "text/plain; charset=utf-8");
             ex.sendResponseHeaders(404, msg.length);
             try (OutputStream os = ex.getResponseBody()) { os.write(msg); }
             return;
         }
-        String name = candidate.getFileName().toString().toLowerCase(Locale.ROOT);
-        String mime = name.endsWith(".html") ? "text/html; charset=utf-8"
-                : name.endsWith(".js") ? "application/javascript; charset=utf-8"
-                : name.endsWith(".css") ? "text/css; charset=utf-8"
-                : name.endsWith(".svg") ? "image/svg+xml"
-                : name.endsWith(".png") ? "image/png"
-                : "application/octet-stream";
-        byte[] bytes = Files.readAllBytes(candidate);
-        ex.getResponseHeaders().set("Content-Type", mime);
+
+        ex.getResponseHeaders().set("Content-Type", guessMime(resolvedName));
         ex.sendResponseHeaders(200, bytes.length);
         try (OutputStream os = ex.getResponseBody()) { os.write(bytes); }
+    }
+
+    private static String guessMime(String path) {
+        String name = path.toLowerCase(Locale.ROOT);
+        if (name.endsWith(".html")) return "text/html; charset=utf-8";
+        if (name.endsWith(".js")) return "application/javascript; charset=utf-8";
+        if (name.endsWith(".css")) return "text/css; charset=utf-8";
+        if (name.endsWith(".svg")) return "image/svg+xml";
+        if (name.endsWith(".png")) return "image/png";
+        if (name.endsWith(".ico")) return "image/x-icon";
+        if (name.endsWith(".json")) return "application/json; charset=utf-8";
+        if (name.endsWith(".woff2")) return "font/woff2";
+        if (name.endsWith(".woff")) return "font/woff";
+        return "application/octet-stream";
     }
 
     private gymsyncapp.User findUser(int id) {

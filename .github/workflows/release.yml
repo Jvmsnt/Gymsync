@@ -1,0 +1,72 @@
+name: Release GymSync
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'App version without leading v (e.g., 2.0.0)'
+        required: true
+        default: '2.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Java 25 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Build Windows portable app & runnable JAR
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $ver = "${{ inputs.version }}"
+            $tag = "v$ver"
+          } else {
+            $tag = "${{ github.ref_name }}"
+            $ver = $tag.TrimStart('v')
+          }
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append
+          ./build-release.ps1 -Version $ver
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: "GymSync ${{ env.RELEASE_TAG }} — Desk OS"
+          draft: false
+          prerelease: false
+          body: |
+            ## Quick Download (Windows)
+            1. Download **`GymSync-${{ env.RELEASE_TAG }}-Windows-x64.zip`** below.
+            2. Right-click → **Extract All...** anywhere on your computer.
+            3. Double-click **`GymSync.exe`** inside the extracted `GymSync` folder (Java is already bundled—no installation required).
+
+            ### Demo Operator Accounts
+            - **Admin Desk:** `admin` / `admin123`
+            - **Staff Desk:** `staff` / `staff123`
+          files: |
+            release/GymSync-v*-Windows-x64.zip
+            release/GymSync-v*-Runnable.jar

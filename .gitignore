@@ -3,3 +3,5 @@ gymsync.db
 frontend/node_modules/
 GEMINI.md
 CLAUDE.md
+release/
+build-stage/

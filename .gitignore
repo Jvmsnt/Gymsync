@@ -1,3 +1,5 @@
 *.class
 gymsync.db
 frontend/node_modules/
+GEMINI.md
+CLAUDE.md

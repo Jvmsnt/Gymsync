@@ -2,56 +2,71 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Daylight Mode (Light Fallback) */
 :root {
-  --background: #ffffff;
-  --foreground: #09090b;
+  --background: #f3f2ed;
+  --sidebar: #eae9e3;
+  --foreground: #111214;
   --card: #ffffff;
-  --card-foreground: #09090b;
+  --card-foreground: #111214;
+  --surface-2: #f8f7f3;
+  --surface-3: #efeee8;
   --popover: #ffffff;
-  --popover-foreground: #09090b;
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
-  --destructive: #e11d48;
+  --popover-foreground: #111214;
+  --primary: #111214;
+  --primary-foreground: #f4f4f1;
+  --secondary: #efeee8;
+  --secondary-foreground: #111214;
+  --muted: #eae9e3;
+  --muted-foreground: #565961;
+  --accent: #efeee8;
+  --accent-foreground: #111214;
+  --destructive: #c8213f;
   --destructive-foreground: #ffffff;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #18181b;
+  --border: #e2e0d8;
+  --input: #cccac0;
+  --ring: #111214;
+  --volt: #4c6a00;
+  --volt-bg: #c6f02a;
   --radius: 0.625rem;
 }
 
+/* Obsidian + Electric Volt Mode (Default Figma Design System) */
 .dark {
-  --background: #0c0d10;
-  --foreground: #fafafa;
-  --card: #111216;
-  --card-foreground: #fafafa;
-  --popover: #14151a;
-  --popover-foreground: #fafafa;
-  --primary: #fafafa;
-  --primary-foreground: #09090b;
-  --secondary: #1b1d24;
-  --secondary-foreground: #fafafa;
-  --muted: #17191f;
-  --muted-foreground: #a1a1aa;
-  --accent: #1d1f27;
-  --accent-foreground: #fafafa;
-  --destructive: #f43f5e;
+  --background: #09090b;
+  --sidebar: #0d0e11;
+  --foreground: #f4f4f1;
+  --card: #121317;
+  --card-foreground: #f4f4f1;
+  --surface-2: #181a1f;
+  --surface-3: #202329;
+  --popover: #14161b;
+  --popover-foreground: #f4f4f1;
+  --primary: #d4ff3f;
+  --primary-foreground: #0a0b0d;
+  --secondary: #181a1f;
+  --secondary-foreground: #f4f4f1;
+  --muted: #121317;
+  --muted-foreground: #a0a2aa;
+  --accent: #1d2027;
+  --accent-foreground: #f4f4f1;
+  --destructive: #ff5c7a;
   --destructive-foreground: #ffffff;
-  --border: #23252e;
-  --input: #272933;
-  --ring: #d4d4d8;
+  --border: #1f2228;
+  --input: #2e323a;
+  --ring: #d4ff3f;
+  --volt: #d4ff3f;
+  --volt-bg: #d4ff3f;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-sidebar: var(--sidebar);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -67,6 +82,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-volt: var(--volt);
+  --color-volt-bg: var(--volt-bg);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -91,16 +108,22 @@
   }
 
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: var(--muted);
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: var(--sidebar);
     color: var(--foreground);
     margin: 0;
   }
 
   h1, h2, h3, .font-display {
-    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Geist', sans-serif;
     letter-spacing: -0.025em;
   }
+}
+
+.font-serif-accent {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  letter-spacing: -0.01em;
 }
 
 .tabular-nums {
@@ -108,7 +131,12 @@
 }
 
 .font-mono {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Signature Obsidian + Volt Metallic Digital Member Pass surface */
+.obsidian-pass-surface {
+  background: linear-gradient(135deg, #171c17 0%, #0f1114 54%, #0a0b0e 100%);
 }
 
 ::-webkit-scrollbar {
@@ -119,9 +147,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(113, 113, 122, 0.28);
+  background: rgba(160, 162, 170, 0.22);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(113, 113, 122, 0.45);
+  background: rgba(212, 255, 63, 0.35);
 }
